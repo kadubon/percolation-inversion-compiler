@@ -319,6 +319,86 @@ def _implemented_domain_route_specs() -> tuple[AdapterRouteSpec, ...]:
             safe_default="diagnostic-with-generator-limit-obligation",
         ),
         AdapterRouteSpec(
+            route_id="adapters.domain.verify_ecpt_bridge_reserve",
+            verifier_route=(
+                "percolation_inversion_compiler.adapters.domain.verify_ecpt_bridge_reserve"
+            ),
+            obligation_category="ecpt-bridge-reserve",
+            availability="implemented",
+            discharge_level=DischargeLevel.CONTRACT_ENFORCED,
+            license_note="core deterministic implementation, Apache-2.0",
+            required_evidence_kind=["finite-bridge-reserve"],
+            residual_policy="charge-cross-theory-residual-until-bridge-relations-are-validated",
+            safe_default="diagnostic-with-bridge-reserve-obligation",
+        ),
+        AdapterRouteSpec(
+            route_id="adapters.domain.verify_ecpt_trace_diagnostic_projection",
+            verifier_route=(
+                "percolation_inversion_compiler.adapters.domain."
+                "verify_ecpt_trace_diagnostic_projection"
+            ),
+            obligation_category="ecpt-trace-diagnostic",
+            availability="implemented",
+            discharge_level=DischargeLevel.CONTRACT_ENFORCED,
+            license_note="core deterministic implementation, Apache-2.0",
+            required_evidence_kind=["finite-trace-diagnostic-projection"],
+            residual_policy="charge-trace-complex-residual-until-projection-is-validated",
+            safe_default="diagnostic-with-trace-diagnostic-obligation",
+        ),
+        AdapterRouteSpec(
+            route_id="adapters.domain.verify_ecpt_domain_abstraction",
+            verifier_route=(
+                "percolation_inversion_compiler.adapters.domain.verify_ecpt_domain_abstraction"
+            ),
+            obligation_category="ecpt-ecology-ontology",
+            availability="implemented",
+            discharge_level=DischargeLevel.EXTERNAL_DOMAIN_REQUIRED,
+            license_note="core deterministic implementation, Apache-2.0",
+            required_evidence_kind=["finite-domain-abstraction"],
+            residual_policy="charge-ontology-residual-until-domain-abstraction-is-validated",
+            safe_default="diagnostic-with-ecology-ontology-obligation",
+        ),
+        AdapterRouteSpec(
+            route_id="adapters.domain.verify_ecpt_execution_policy",
+            verifier_route=(
+                "percolation_inversion_compiler.adapters.domain.verify_ecpt_execution_policy"
+            ),
+            obligation_category="ecpt-economics-policy",
+            availability="implemented",
+            discharge_level=DischargeLevel.EXTERNAL_DOMAIN_REQUIRED,
+            license_note="core deterministic implementation, Apache-2.0",
+            required_evidence_kind=["finite-execution-policy-envelope"],
+            residual_policy="charge-policy-residual-until-counterfactual-envelope-is-validated",
+            safe_default="diagnostic-with-economics-policy-obligation",
+        ),
+        AdapterRouteSpec(
+            route_id="adapters.domain.verify_ecpt_proxy_target_contract",
+            verifier_route=(
+                "percolation_inversion_compiler.adapters.domain.verify_ecpt_proxy_target_contract"
+            ),
+            obligation_category="ecpt-proxy-target",
+            availability="implemented",
+            discharge_level=DischargeLevel.EXTERNAL_DOMAIN_REQUIRED,
+            license_note="core deterministic implementation, Apache-2.0",
+            required_evidence_kind=["finite-proxy-target-contract"],
+            residual_policy="charge-proxy-grounding-residual-until-target-contract-is-validated",
+            safe_default="diagnostic-with-proxy-target-obligation",
+        ),
+        AdapterRouteSpec(
+            route_id="adapters.domain.verify_ecpt_speculative_channel_repair",
+            verifier_route=(
+                "percolation_inversion_compiler.adapters.domain."
+                "verify_ecpt_speculative_channel_repair"
+            ),
+            obligation_category="ecpt-speculative-channel",
+            availability="implemented",
+            discharge_level=DischargeLevel.EXTERNAL_DOMAIN_REQUIRED,
+            license_note="core deterministic implementation, Apache-2.0",
+            required_evidence_kind=["finite-speculative-channel-repair"],
+            residual_policy="charge-speculative-channel-residual-until-repair-envelope-is-validated",
+            safe_default="diagnostic-with-speculative-channel-obligation",
+        ),
+        AdapterRouteSpec(
             route_id="adapters.domain.verify_trc_telemetry_calibration",
             verifier_route=(
                 "percolation_inversion_compiler.adapters.domain.verify_trc_telemetry_calibration"
@@ -412,32 +492,32 @@ _CATEGORY_IMPLEMENTATION_BINDINGS: dict[str, tuple[str, DischargeLevel, tuple[st
         ("redesign-domain-oracle",),
     ),
     "ecpt-trace-diagnostic": (
-        "ecpt.adapters.trace_complex.verify_diagnostic_projection",
+        "adapters.domain.verify_ecpt_trace_diagnostic_projection",
         DischargeLevel.CONTRACT_ENFORCED,
         ("trace-complex-domain-witness",),
     ),
     "ecpt-bridge-reserve": (
-        "ecpt.adapters.bridge.verify_cross_theory_bridge",
+        "adapters.domain.verify_ecpt_bridge_reserve",
         DischargeLevel.CONTRACT_ENFORCED,
         ("cross-theory-bridge-proof",),
     ),
     "ecpt-ecology-ontology": (
-        "ecpt.adapters.ecology.verify_domain_abstraction",
+        "adapters.domain.verify_ecpt_domain_abstraction",
         DischargeLevel.EXTERNAL_DOMAIN_REQUIRED,
         ("ontology-extension-domain-proof",),
     ),
     "ecpt-economics-policy": (
-        "ecpt.adapters.policy.verify_execution_policy",
+        "adapters.domain.verify_ecpt_execution_policy",
         DischargeLevel.EXTERNAL_DOMAIN_REQUIRED,
         ("policy-counterfactual-domain-proof",),
     ),
     "ecpt-proxy-target": (
-        "ecpt.adapters.proxy.verify_target_contract",
+        "adapters.domain.verify_ecpt_proxy_target_contract",
         DischargeLevel.EXTERNAL_DOMAIN_REQUIRED,
         ("proxy-target-grounding-proof",),
     ),
     "ecpt-speculative-channel": (
-        "ecpt.adapters.speculative.verify_channel_and_repair",
+        "adapters.domain.verify_ecpt_speculative_channel_repair",
         DischargeLevel.EXTERNAL_DOMAIN_REQUIRED,
         ("speculative-channel-repair-proof",),
     ),

@@ -5,6 +5,10 @@ from __future__ import annotations
 from collections.abc import Callable, Sequence
 from math import log, sqrt
 
+from percolation_inversion_compiler.core.adapter_routes import (
+    binding_for_route,
+    list_adapter_route_specs,
+)
 from percolation_inversion_compiler.core.algorithms import (
     expected_value,
     finite_difference_interval,
@@ -19,6 +23,8 @@ from percolation_inversion_compiler.ecpt.records import (
     ActivationConstructionCertificate,
     ActivationThresholdCertificate,
     AdmissibilityGrade,
+    ASIProxyTargetContract,
+    CapabilityEdge,
     CapabilityHypergraph,
     CapabilityStateVector,
     CapacityCertificate,
@@ -29,11 +35,17 @@ from percolation_inversion_compiler.ecpt.records import (
     FiniteTraceLaw,
     InformationProjectionQuotient,
     InnerViabilityKernel,
+    InterventionCandidate,
     MeanFieldEnvelopeCertificate,
     ObservationProtocol,
     PacketAtlas,
     PathLawResponsePolicyCertificate,
+    PhaseControlAction,
     PhaseControlEnvelope,
+    PhaseControlObjective,
+    PhaseControlPlan,
+    PhaseControlRunReport,
+    PhaseControlState,
     ProtocolFunctorCertificate,
     QueueCertificate,
     RAFSettlementCertificate,
@@ -676,6 +688,240 @@ def self_normalized_margin_risk(
     mean_margin = sum(margins) / len(margins)
     boundary = sqrt(2.0 * quadratic_variation * log(2.0 / alpha))
     return mean_margin - boundary - abs(tail_ledger)
+
+
+def _proxy_mass(masses: dict[str, float], target: ASIProxyTargetContract) -> float:
+    return sum(max(0.0, masses.get(node, 0.0)) for node in target.target_nodes)
+
+
+def _candidate_graph(state: PhaseControlState, action: PhaseControlAction) -> CapabilityHypergraph:
+    edge = CapabilityEdge(
+        edge_id=f"phase-control-action:{action.action_id}",
+        sources=tuple(action.source_nodes),
+        target=action.target_node,
+        activation_weight=max(0.0, action.activation_delta),
+        burden=max(0.0, action.burden_delta + action.residual_charge),
+        status=ClaimStatus.PROVISIONAL,
+        required_capacity=action.resource_cost,
+    )
+    graph = state.graph.model_copy(deep=True)
+    graph.edges.append(edge)
+    graph.nodes.add(action.target_node)
+    graph.nodes.update(action.source_nodes)
+    return graph
+
+
+def check_phase_control_action(
+    state: PhaseControlState,
+    objective: PhaseControlObjective,
+    action: PhaseControlAction,
+) -> CheckResult:
+    """Check a finite ECPT planning action without promoting proxy claims."""
+
+    reasons: list[str] = []
+    missing: list[str] = []
+    graph_nodes = state.graph.all_nodes()
+    present = set(state.present_obligations) | graph_nodes
+    if not state.constraint_frame.hard_domain_live():
+        reasons.append("phase-control action blocked by hard-domain gate")
+    if action.activation_delta < 0:
+        reasons.append("phase-control action activation_delta is negative")
+    if action.burden_delta < 0 or action.residual_charge < 0 or action.risk_charge < 0:
+        reasons.append("phase-control action charges must be nonnegative")
+    absent_sources = sorted(set(action.source_nodes) - graph_nodes)
+    if absent_sources:
+        reasons.append("phase-control action references absent source nodes")
+        missing.extend(absent_sources)
+    absent_preconditions = sorted(set(action.preconditions) - present)
+    if absent_preconditions:
+        reasons.append("phase-control action preconditions are missing")
+        missing.extend(absent_preconditions)
+    required = set(action.required_obligations) | set(objective.target.required_obligations)
+    absent_obligations = sorted(required - set(state.present_obligations))
+    if absent_obligations:
+        reasons.append("phase-control action has unresolved target/action obligations")
+        missing.extend(absent_obligations)
+    forbidden = sorted(set(objective.target.forbidden_obligations) & set(state.present_obligations))
+    if forbidden:
+        reasons.append("phase-control action violates forbidden proxy obligations")
+        missing.extend(forbidden)
+    known_routes = {spec.route_id for spec in list_adapter_route_specs()}
+    unknown_routes = sorted(set(action.verifier_routes) - known_routes)
+    if unknown_routes:
+        reasons.append("phase-control action references unknown verifier routes")
+        missing.extend(unknown_routes)
+    ledger = Ledger()
+    for resource, cost in sorted(action.resource_cost.items()):
+        budget = state.budgets.get(resource)
+        if cost < 0:
+            reasons.append(f"phase-control action resource cost is negative for {resource}")
+        if budget is not None and cost > budget:
+            reasons.append(f"phase-control action exceeds budget for {resource}")
+            ledger = ledger.add_coordinate(
+                f"ecpt-plan:{action.action_id}:budget:{resource}",
+                cost - budget,
+                kind=CoordinateKind.RESIDUAL,
+            )
+    if action.residual_charge:
+        ledger = ledger.add_coordinate(
+            f"ecpt-plan:{action.action_id}:residual",
+            action.residual_charge,
+            kind=CoordinateKind.RESIDUAL,
+        )
+    if action.risk_charge > objective.risk_tolerance:
+        reasons.append("phase-control action risk charge exceeds objective tolerance")
+    return CheckResult(
+        accepted=not reasons,
+        status=ClaimStatus.PROVISIONAL if not reasons else ClaimStatus.DIAGNOSTIC,
+        finite_checks_passed=not reasons,
+        operationally_usable=False,
+        settled=False,
+        reasons=sorted(set(reasons)),
+        missing_obligations=sorted(set(missing)),
+        residual_ledger=ledger.combine(residual_from_reasons("phase-control-action", reasons)),
+    )
+
+
+def evaluate_phase_control_action(
+    state: PhaseControlState,
+    objective: PhaseControlObjective,
+    action: PhaseControlAction,
+) -> InterventionCandidate:
+    """Evaluate one finite intervention candidate for an ASI-proxy target."""
+
+    baseline = reachable_mass(state.graph)
+    controlled_graph = _candidate_graph(state, action)
+    controlled = reachable_mass(controlled_graph)
+    baseline_proxy = _proxy_mass(baseline, objective.target)
+    controlled_proxy = _proxy_mass(controlled, objective.target)
+    action_check = check_phase_control_action(state, objective, action)
+    raw_gain = controlled_proxy - baseline_proxy
+    residual_charge = action.residual_charge + action_check.residual_ledger.burden_sum()
+    finite_proxy_gain = raw_gain - residual_charge - action.risk_charge
+    resource_penalty = sum(max(0.0, value) for value in action.resource_cost.values())
+    score = finite_proxy_gain - resource_penalty
+    route_residuals: list[str] = []
+    for route in action.verifier_routes:
+        binding = binding_for_route(route)
+        if binding is not None:
+            route_residuals.extend(binding.residual_external_obligation_refs)
+    missing = sorted(set(action_check.missing_obligations + route_residuals))
+    reasons = list(action_check.reasons)
+    if finite_proxy_gain < objective.target.minimum_proxy_mass:
+        reasons.append("finite proxy gain is below target floor")
+    finite_scope_usable = bool(action_check.finite_checks_passed) and finite_proxy_gain >= 0
+    operationally_usable = finite_scope_usable and not missing and score > 0
+    return InterventionCandidate(
+        candidate_id=f"candidate:{action.action_id}",
+        action=action,
+        baseline_proxy_mass=baseline_proxy,
+        controlled_proxy_mass=controlled_proxy,
+        finite_proxy_gain=finite_proxy_gain,
+        score=score,
+        residual_charge=residual_charge,
+        risk_charge=action.risk_charge,
+        resource_cost=dict(sorted(action.resource_cost.items())),
+        required_evidence_routes=sorted(action.verifier_routes),
+        missing_obligations=missing,
+        reasons=sorted(set(reasons)),
+        residual_ledger=action_check.residual_ledger,
+        finite_scope_usable=finite_scope_usable,
+        operationally_usable=operationally_usable,
+        settled=False,
+    )
+
+
+def build_phase_control_plan(
+    state: PhaseControlState,
+    objective: PhaseControlObjective,
+    actions: Sequence[PhaseControlAction],
+    *,
+    profile: str = "development",
+) -> PhaseControlRunReport:
+    """Build a deterministic ECPT ASI-proxy phase-control plan."""
+
+    baseline = reachable_mass(state.graph)
+    candidates = [
+        evaluate_phase_control_action(state, objective, action)
+        for action in sorted(actions, key=lambda item: item.action_id)
+    ]
+    candidates = sorted(candidates, key=lambda item: (-item.score, item.action.action_id))
+    remaining_budget = dict(state.budgets)
+    selected: list[InterventionCandidate] = []
+    residual_ledger = Ledger()
+    plan_reasons: list[str] = []
+    for candidate in candidates:
+        if not candidate.finite_scope_usable or candidate.score <= 0:
+            continue
+        fits_budget = True
+        for resource, cost in candidate.resource_cost.items():
+            if resource in remaining_budget and cost > remaining_budget[resource]:
+                fits_budget = False
+                residual_ledger = residual_ledger.add_coordinate(
+                    f"ecpt-plan:{candidate.action.action_id}:remaining-budget:{resource}",
+                    cost - remaining_budget[resource],
+                    kind=CoordinateKind.RESIDUAL,
+                )
+        if not fits_budget:
+            continue
+        for resource, cost in candidate.resource_cost.items():
+            if resource in remaining_budget:
+                remaining_budget[resource] -= cost
+        selected.append(candidate)
+        residual_ledger = residual_ledger.combine(candidate.residual_ledger)
+    if not state.constraint_frame.hard_domain_live():
+        plan_reasons.append("phase-control plan blocked by hard-domain gate")
+    if objective.horizon < 0:
+        plan_reasons.append("phase-control objective horizon is negative")
+    if objective.residual_budget < 0:
+        plan_reasons.append("phase-control objective residual budget is negative")
+    residual_sum = residual_ledger.burden_sum()
+    if residual_sum > objective.residual_budget:
+        plan_reasons.append("phase-control plan residual charge exceeds objective budget")
+    missing = sorted(
+        {obligation for candidate in selected for obligation in candidate.missing_obligations}
+    )
+    required_routes = sorted(
+        {route for candidate in selected for route in candidate.required_evidence_routes}
+    )
+    selected_actions = [candidate.action for candidate in selected]
+    controlled_graph = state.graph
+    for action in selected_actions:
+        controlled_graph = _candidate_graph(
+            state.model_copy(update={"graph": controlled_graph}),
+            action,
+        )
+    controlled = reachable_mass(controlled_graph)
+    gain_total = sum(candidate.finite_proxy_gain for candidate in selected)
+    score_total = sum(candidate.score for candidate in selected)
+    accepted = bool(selected) and not plan_reasons
+    operationally_usable = accepted and not missing and residual_sum <= objective.residual_budget
+    plan = PhaseControlPlan(
+        plan_id=f"phase-control-plan:{state.state_id}:{objective.objective_id}",
+        objective_id=objective.objective_id,
+        profile=profile,
+        accepted=accepted,
+        status=ClaimStatus.PROVISIONAL if accepted else ClaimStatus.DIAGNOSTIC,
+        partial=not operationally_usable or len(selected) < len(actions),
+        selected_actions=selected_actions,
+        candidates=candidates,
+        finite_proxy_gain_total=gain_total,
+        score=score_total,
+        required_evidence_routes=required_routes,
+        missing_obligations=missing,
+        reasons=sorted(set(plan_reasons)),
+        residual_ledger=residual_ledger,
+        operationally_usable=operationally_usable,
+        settled=False,
+    )
+    return PhaseControlRunReport(
+        report_id=f"phase-control-run:{state.state_id}:{objective.objective_id}",
+        state_id=state.state_id,
+        target_id=objective.target.target_id,
+        plan=plan,
+        baseline_reachable_mass=dict(sorted(baseline.items())),
+        controlled_reachable_mass=dict(sorted(controlled.items())),
+    )
 
 
 def hitting_time_acceleration(

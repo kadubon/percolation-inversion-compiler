@@ -1,18 +1,22 @@
 # Percolation Inversion Compiler
 
 `percolation-inversion-compiler` is a production-oriented finite
-verifier-routing SDK and JSON-first obligation ledger compiler for ECPT, BIT,
-and TRC. It turns machine-readable mathematical artifacts into finite checker
-judgments: proof obligations, residual ledgers, dependency DAGs, typed trace
-normal forms, frontier extraction records, verifier route bindings, provenance
-manifests, SBOMs, and portable JSON Schemas for AI agent integration.
+verifier-routing SDK, ECPT active phase-control runtime, and JSON-first
+obligation ledger compiler for ECPT, BIT, and TRC. It turns machine-readable
+mathematical artifacts into finite checker judgments: proof obligations,
+residual ledgers, dependency DAGs, typed trace normal forms, frontier extraction
+records, verifier route bindings, provenance manifests, SBOMs, portable JSON
+Schemas, and ranked ECPT ASI-proxy phase-control plans for AI agent integration.
 
 In practical terms, the input is a paper-derived TeX source, registry-like
 JSON/YAML, or a finite certificate record. The output is deterministic JSON that
 answers three questions: which finite certificates passed, which proof
 obligations remain, and which residual ledger coordinates must stay charged.
 Autonomous agents can use that output as a routing layer before they call
-domain simulators, frontier planners, or other verifier adapters.
+domain simulators, frontier planners, or other verifier adapters. In v0.2.3,
+agents can also call `pic ecpt plan` to rank finite interventions against an
+ASI-proxy target while preserving every unresolved proof obligation and residual
+ledger coordinate.
 
 The repository is not an ASI detector and does not assert that artificial
 superintelligence has been achieved. Its narrower scientific role is to provide
@@ -23,7 +27,8 @@ residual costs remain charged rather than hidden.
 The three papers play complementary roles:
 
 - ECPT models protocol-relative capability propagation, activation, queues,
-  capacity, viability, and phase-control certificates.
+  capacity, viability, and phase-control certificates. The v0.2.3 runtime adds
+  an active planning layer over those finite certificates.
 - BIT supplies a witness calculus for unlockable potential: unit functors,
   stopped evidence sheaves, martingale deficiency audits, release duality,
   mechanism cubes, and certificate compiler graphs.
@@ -45,6 +50,7 @@ What this gives an agent:
 - typed trace normal forms and trace-normal-form checks for TRC frontiers;
 - frontier extraction and audit reports for protocol-relative claims;
 - fail-closed production readiness checks for external verifier routing;
+- active ECPT ASI-proxy phase-control plans with ranked finite interventions;
 - SHA-256 evidence provenance envelopes for verifier adapters;
 - canonical-to-implementation discharge route bindings with settlement scope;
 - deterministic schema/provenance manifests and SBOM-ready release assets;
@@ -83,6 +89,8 @@ uv run pic snapshot list
 uv run pic snapshot show --artifact trc
 uv run pic snapshot routes
 uv run pic routes bindings
+uv run pic ecpt plan --state examples/ecpt_phase_control_state.json --target examples/ecpt_asi_proxy_target.json --budget examples/ecpt_phase_control_budget.json --profile production
+uv run pic ecpt simulate --state examples/ecpt_phase_control_state.json --actions examples/ecpt_phase_control_actions.json
 uv run pic explain external def:null-channel-routing --from-snapshot
 uv run pic snapshot verify --artifact trc
 uv run pic evidence verify --envelope examples/evidence_envelope.json
@@ -124,6 +132,8 @@ uv run pic doctor --profile production --provenance provenance.json --fail-on fa
 uv run pic snapshot routes
 uv run pic routes bindings
 uv run pic routes explain --route adapters.domain.verify_trc_telemetry_calibration
+uv run pic routes explain --route ecpt.adapters.proxy.verify_target_contract
+uv run pic ecpt plan --state examples\ecpt_phase_control_state.json --target examples\ecpt_asi_proxy_target.json --budget examples\ecpt_phase_control_budget.json --profile production
 uv run pic doctor --profile production --required-route adapters.domain.verify_trc_telemetry_calibration --provenance provenance.json --fail-on fail
 uv run pic doctor --fail-on warn
 uv run pic evidence verify --envelope examples\evidence_envelope.json --profile production
@@ -158,6 +168,7 @@ derived status, proof obligations, and residual ledgers.
 
 - [Architecture](docs/architecture.md)
 - [Mathematical contracts](docs/mathematical-contracts.md)
+- [ECPT active phase-control runtime](docs/ecpt-phase-control-runtime.md)
 - [Theory coverage](docs/theory-coverage.md)
 - [External obligations](docs/external-obligations.md)
 - [Agent integration](docs/agent-integration.md)

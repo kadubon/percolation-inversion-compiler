@@ -21,6 +21,14 @@ from percolation_inversion_compiler.core import (
     resolve_adapter_route,
 )
 from percolation_inversion_compiler.core.frontier import FrontierRecord
+from percolation_inversion_compiler.ecpt import (
+    ASIProxyTargetContract,
+    PhaseControlAction,
+    PhaseControlObjective,
+    PhaseControlState,
+    build_phase_control_plan,
+    reachable_mass,
+)
 from percolation_inversion_compiler.io import (
     audit_theory_source,
     build_operational_readiness_report,
@@ -58,6 +66,7 @@ routes_app = typer.Typer(help="Inspect verifier route bindings.")
 provenance_app = typer.Typer(help="Create and verify release provenance manifests.")
 sbom_app = typer.Typer(help="Create deterministic release SBOM documents.")
 parse_app = typer.Typer(help="Run strict TeX parser diagnostics.")
+ecpt_app = typer.Typer(help="Run ECPT active phase-control planning tools.")
 app.add_typer(demo_app, name="demo")
 app.add_typer(audit_app, name="audit")
 app.add_typer(snapshot_app, name="snapshot")
@@ -66,6 +75,7 @@ app.add_typer(routes_app, name="routes")
 app.add_typer(provenance_app, name="provenance")
 app.add_typer(sbom_app, name="sbom")
 app.add_typer(parse_app, name="parse")
+app.add_typer(ecpt_app, name="ecpt")
 console = Console()
 
 
@@ -75,6 +85,48 @@ def _dump(data: Any, output: Path | None = None) -> None:
         output.write_text(text + "\n", encoding="utf-8")
     else:
         console.print_json(text)
+
+
+def _load_phase_state(path: Path) -> tuple[PhaseControlState, list[PhaseControlAction]]:
+    data = load_data(path)
+    raw_state = data.get("state", data)
+    state = PhaseControlState.model_validate(raw_state)
+    raw_actions = data.get("actions", [])
+    if not isinstance(raw_actions, list):
+        raise typer.BadParameter("state file actions must be a list when present")
+    actions = [PhaseControlAction.model_validate(item) for item in raw_actions]
+    return state, actions
+
+
+def _load_phase_actions(path: Path) -> list[PhaseControlAction]:
+    data = load_data(path)
+    raw_actions = data.get("actions", data.get("phase_control_actions"))
+    if not isinstance(raw_actions, list):
+        raise typer.BadParameter("actions file must contain an actions list")
+    return [PhaseControlAction.model_validate(item) for item in raw_actions]
+
+
+def _load_phase_objective(path: Path, budget_data: dict[str, Any]) -> PhaseControlObjective:
+    data = load_data(path)
+    if "objective" in data:
+        raw_objective = data["objective"]
+        if not isinstance(raw_objective, dict):
+            raise typer.BadParameter("target file objective must be an object")
+        merged = dict(raw_objective)
+        for key in ["horizon", "residual_budget", "risk_tolerance", "route_preferences"]:
+            if key in budget_data:
+                merged[key] = budget_data[key]
+        return PhaseControlObjective.model_validate(merged)
+    raw_target = data.get("target", data)
+    target = ASIProxyTargetContract.model_validate(raw_target)
+    return PhaseControlObjective(
+        objective_id=str(budget_data.get("objective_id", f"objective:{target.target_id}")),
+        target=target,
+        horizon=int(budget_data.get("horizon", 1)),
+        residual_budget=float(budget_data.get("residual_budget", 0.0)),
+        risk_tolerance=float(budget_data.get("risk_tolerance", 0.0)),
+        route_preferences=list(budget_data.get("route_preferences", [])),
+    )
 
 
 @app.callback()
@@ -650,6 +702,138 @@ def parse_audit(
     _dump(report.model_dump(mode="json"), output)
     if strict_grammar and not report.accepted:
         raise typer.Exit(1)
+
+
+@ecpt_app.command("plan")
+def ecpt_plan(
+    state: Annotated[
+        Path,
+        typer.Option("--state", help="PhaseControlState JSON/YAML, optionally with actions."),
+    ],
+    target: Annotated[
+        Path,
+        typer.Option("--target", help="ASIProxyTargetContract or PhaseControlObjective JSON/YAML."),
+    ],
+    budget: Annotated[
+        Path,
+        typer.Option("--budget", help="Budget/objective JSON/YAML, optionally with actions."),
+    ],
+    profile: Annotated[
+        str,
+        typer.Option("--profile", help="Planner profile: development, research, or production."),
+    ] = "development",
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Build a deterministic ECPT ASI-proxy phase-control plan."""
+
+    phase_state, state_actions = _load_phase_state(state)
+    budget_data = load_data(budget)
+    raw_budgets = budget_data.get("budgets")
+    if isinstance(raw_budgets, dict):
+        phase_state = phase_state.model_copy(update={"budgets": raw_budgets})
+    objective = _load_phase_objective(target, budget_data)
+    actions = state_actions
+    if "actions" in budget_data:
+        raw_actions = budget_data["actions"]
+        if not isinstance(raw_actions, list):
+            raise typer.BadParameter("budget file actions must be a list when present")
+        actions.extend(PhaseControlAction.model_validate(item) for item in raw_actions)
+    if not actions:
+        raise typer.BadParameter("phase-control planning requires at least one action")
+    report = build_phase_control_plan(phase_state, objective, actions, profile=profile)
+    _dump(report.model_dump(mode="json"), output)
+
+
+@ecpt_app.command("simulate")
+def ecpt_simulate(
+    state: Annotated[
+        Path,
+        typer.Option("--state", help="PhaseControlState JSON/YAML."),
+    ],
+    actions: Annotated[
+        Path,
+        typer.Option("--actions", help="JSON/YAML object containing an actions list."),
+    ],
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Simulate finite ECPT reachable-mass response for proposed actions."""
+
+    phase_state, _ = _load_phase_state(state)
+    parsed_actions = _load_phase_actions(actions)
+    target_nodes = sorted({action.target_node for action in parsed_actions})
+    objective = PhaseControlObjective(
+        objective_id="simulate-finite-reachable-mass",
+        target=ASIProxyTargetContract(
+            target_id="simulation-target",
+            target_nodes=target_nodes,
+        ),
+        residual_budget=1.0,
+        risk_tolerance=1.0,
+    )
+    report = build_phase_control_plan(phase_state, objective, parsed_actions)
+    _dump(
+        {
+            "state_id": phase_state.state_id,
+            "baseline_reachable_mass": dict(sorted(reachable_mass(phase_state.graph).items())),
+            "controlled_reachable_mass": report.controlled_reachable_mass,
+            "candidates": [
+                candidate.model_dump(mode="json") for candidate in report.plan.candidates
+            ],
+            "safety_invariants": report.safety_invariants,
+        },
+        output,
+    )
+
+
+@ecpt_app.command("route-obligations")
+def ecpt_route_obligations(
+    audit: Annotated[
+        Path,
+        typer.Option("--audit", help="pic audit theory JSON output with ECPT external items."),
+    ],
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Map ECPT external obligations to verifier route bindings."""
+
+    data = load_data(audit)
+    external_items = data.get("external_obligation_items", [])
+    catalog = data.get("external_obligation_catalog")
+    if isinstance(catalog, dict) and not external_items:
+        external_items = catalog.get("obligations", [])
+    if not isinstance(external_items, list):
+        raise typer.BadParameter("audit JSON external obligations must be a list")
+    specs = {
+        key: spec
+        for spec in list_adapter_route_specs()
+        for key in {spec.route_id, spec.verifier_route}
+    }
+    routed: list[dict[str, Any]] = []
+    for item in external_items:
+        if not isinstance(item, dict):
+            continue
+        route_id = item.get("verifier_route") or item.get("route_id")
+        spec = specs.get(str(route_id)) if route_id is not None else None
+        binding = binding_for_route(spec.route_id) if spec is not None else None
+        routed.append(
+            {
+                "item_id": item.get("item_id"),
+                "label": item.get("label"),
+                "obligation_category": item.get("obligation_category"),
+                "verifier_route": route_id,
+                "route_known": spec is not None,
+                "required_evidence_kind": [] if spec is None else spec.required_evidence_kind,
+                "binding": None if binding is None else binding.model_dump(mode="json"),
+                "safe_default": item.get("safe_default") if spec is None else spec.safe_default,
+                "residual_coordinates": item.get("residual_coordinates", []),
+            }
+        )
+    _dump({"routed_obligations": routed}, output)
 
 
 @app.command(name="compile")

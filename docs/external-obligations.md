@@ -66,7 +66,7 @@ hook shape.
 
 `pic snapshot routes` emits `AdapterRouteSpec` records, and `pic routes bindings`
 emits the reviewed `DischargeRouteBinding` records that connect canonical
-paper routes to implemented adapter contracts. In v0.2.2, canonical ECPT/TRC
+paper routes to implemented adapter contracts. In v0.2.3, canonical ECPT/TRC
 external routes are no longer left as opaque `unavailable` entries. Each route
 has a fail-closed binding and one of these discharge levels:
 
@@ -91,11 +91,19 @@ external domain evidence that remains. For `replay_check` and
 `contract_enforced` routes, agents may use `finite_scope_usable` while still
 carrying those residual obligations forward.
 
+The ECPT active runtime uses the same route catalog. Bridge reserve, trace
+diagnostic, ecology/ontology abstraction, economics/policy, proxy-target, and
+speculative-channel categories are bound to deterministic contract adapters.
+These adapters check finite envelope content and residual bounds where possible;
+they keep proxy grounding, ontology extension, policy counterfactual, channel
+repair, and cross-theory proof obligations explicit when domain evidence is not
+finite.
+
 ## Evidence Envelopes
 
 Adapters consume `VerifierEvidenceEnvelope` records: route id, obligation ids,
 evidence kinds, evidence references, deterministic flag, residual coordinates,
-and v0.2.2 `EvidenceArtifact` provenance. Each artifact carries SHA-256
+and `EvidenceArtifact` provenance. Each artifact carries SHA-256
 identity, schema digest, producer identity, verifier identity, verifier version,
 timestamp, and optional signature or attestation references. A resolver returns
 `VerifierResolution` with accepted/rejected obligation ids, settled scope,

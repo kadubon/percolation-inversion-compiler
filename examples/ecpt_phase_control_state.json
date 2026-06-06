@@ -1,0 +1,105 @@
+{
+  "actions": [
+    {
+      "action_id": "raise-observable-integration",
+      "activation_delta": 0.9,
+      "burden_delta": 0.1,
+      "postconditions": [
+        "proxy-frontier-observed"
+      ],
+      "preconditions": [
+        "compute",
+        "models"
+      ],
+      "required_obligations": [
+        "obligation:baseline-safety"
+      ],
+      "residual_charge": 0.02,
+      "resource_cost": {
+        "compute": 0.2
+      },
+      "risk_charge": 0.03,
+      "source_nodes": [
+        "compute",
+        "models"
+      ],
+      "target_node": "phase-transition-proxy",
+      "verifier_routes": [
+        "ecpt.adapters.proxy.verify_target_contract"
+      ]
+    },
+    {
+      "action_id": "unavailable-speculative-channel",
+      "activation_delta": 0.4,
+      "burden_delta": 0.2,
+      "preconditions": [
+        "missing-channel"
+      ],
+      "residual_charge": 0.1,
+      "resource_cost": {
+        "compute": 4.0
+      },
+      "risk_charge": 0.4,
+      "source_nodes": [
+        "missing-channel"
+      ],
+      "target_node": "phase-transition-proxy",
+      "verifier_routes": [
+        "ecpt.adapters.speculative.verify_channel_and_repair"
+      ]
+    }
+  ],
+  "state": {
+    "budgets": {
+      "compute": 1.0
+    },
+    "constraint_frame": {
+      "hard_gates": {
+        "operator-review": true,
+        "safety-ledger-live": true
+      }
+    },
+    "graph": {
+      "edges": [
+        {
+          "activation_weight": 0.7,
+          "burden": 0.05,
+          "edge_id": "baseline-model-stack",
+          "sources": [
+            "compute"
+          ],
+          "status": "provisional",
+          "target": "models"
+        }
+      ],
+      "nodes": [
+        "compute",
+        "models"
+      ],
+      "seed_mass": {
+        "compute": 1.0
+      }
+    },
+    "present_obligations": [
+      "obligation:baseline-safety"
+    ],
+    "route_ids": [
+      "ecpt.adapters.proxy.verify_target_contract",
+      "ecpt.adapters.speculative.verify_channel_and_repair"
+    ],
+    "state_id": "ecpt-demo-state",
+    "state_vector": {
+      "packets": [
+        {
+          "coordinates": {
+            "compute": 1.0
+          },
+          "packet_id": "compute-seed",
+          "status": "provisional",
+          "validity_domain": "demo"
+        }
+      ],
+      "validity_domain": "demo"
+    }
+  }
+}

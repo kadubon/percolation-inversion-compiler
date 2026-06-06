@@ -1,0 +1,32 @@
+{
+  "actions": [
+    {
+      "action_id": "raise-observable-integration",
+      "activation_delta": 0.9,
+      "burden_delta": 0.1,
+      "postconditions": [
+        "proxy-frontier-observed"
+      ],
+      "preconditions": [
+        "compute",
+        "models"
+      ],
+      "required_obligations": [
+        "obligation:baseline-safety"
+      ],
+      "residual_charge": 0.02,
+      "resource_cost": {
+        "compute": 0.2
+      },
+      "risk_charge": 0.03,
+      "source_nodes": [
+        "compute",
+        "models"
+      ],
+      "target_node": "phase-transition-proxy",
+      "verifier_routes": [
+        "ecpt.adapters.proxy.verify_target_contract"
+      ]
+    }
+  ]
+}

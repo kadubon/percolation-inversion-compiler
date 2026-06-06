@@ -1,0 +1,14 @@
+{
+  "minimum_proxy_mass": 0.05,
+  "proxy_coordinates": {
+    "phase-transition-proxy": 1.0
+  },
+  "required_obligations": [
+    "obligation:baseline-safety"
+  ],
+  "residual_policy": "preserve-unresolved-asi-proxy-residuals",
+  "target_id": "ecpt-demo-asi-proxy-target",
+  "target_nodes": [
+    "phase-transition-proxy"
+  ]
+}

@@ -12,6 +12,7 @@ uv run pic doctor --profile development --fail-on never
 uv run pic doctor --profile research --fail-on never
 uv run pic doctor --profile production --fail-on never
 uv run pic doctor --profile production --required-route adapters.domain.verify_trc_telemetry_calibration --fail-on never
+uv run pic doctor --profile production --required-route ecpt.adapters.proxy.verify_target_contract --fail-on never
 ```
 
 `development` accepts metadata-only evidence for local experimentation.
@@ -35,6 +36,7 @@ uv run pic provenance create --schema-dir schemas --output provenance.json
 uv run pic provenance verify --manifest provenance.json
 uv run pic doctor --profile production --provenance provenance.json --fail-on fail
 uv run pic doctor --profile production --required-route adapters.domain.verify_trc_telemetry_calibration --provenance provenance.json --fail-on fail
+uv run pic doctor --profile production --required-route ecpt.adapters.proxy.verify_target_contract --provenance provenance.json --fail-on fail
 ```
 
 A valid provenance manifest can substitute for local canonical TeX in production

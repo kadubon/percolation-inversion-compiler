@@ -301,3 +301,105 @@ class MeanFieldEnvelopeCertificate(BaseModel):
             and self.coupling_residual >= 0.0
             and self.reachable_mass_residual >= 0.0
         )
+
+
+class ASIProxyTargetContract(BaseModel):
+    """Protocol-relative ASI-proxy target, not an unobserved ASI proof claim."""
+
+    target_id: str
+    target_nodes: list[str] = Field(default_factory=list)
+    minimum_proxy_mass: float = 0.0
+    proxy_coordinates: dict[str, float] = Field(default_factory=dict)
+    required_obligations: list[str] = Field(default_factory=list)
+    forbidden_obligations: list[str] = Field(default_factory=list)
+    residual_policy: str = "preserve-unresolved-asi-proxy-residuals"
+
+
+class PhaseControlObjective(BaseModel):
+    objective_id: str
+    target: ASIProxyTargetContract
+    horizon: int = 1
+    residual_budget: float = 0.0
+    risk_tolerance: float = 0.0
+    route_preferences: list[str] = Field(default_factory=list)
+    objective_kind: str = "maximize-finite-asi-proxy-mass"
+
+
+class PhaseControlState(BaseModel):
+    state_id: str
+    graph: CapabilityHypergraph
+    state_vector: CapabilityStateVector
+    constraint_frame: ConstraintFrame = Field(default_factory=ConstraintFrame)
+    envelope: PhaseControlEnvelope | None = None
+    present_obligations: list[str] = Field(default_factory=list)
+    route_ids: list[str] = Field(default_factory=list)
+    budgets: dict[str, float] = Field(default_factory=dict)
+
+
+class PhaseControlAction(BaseModel):
+    action_id: str
+    source_nodes: list[str] = Field(default_factory=list)
+    target_node: str
+    activation_delta: float = 0.0
+    burden_delta: float = 0.0
+    residual_charge: float = 0.0
+    risk_charge: float = 0.0
+    resource_cost: dict[str, float] = Field(default_factory=dict)
+    verifier_routes: list[str] = Field(default_factory=list)
+    required_obligations: list[str] = Field(default_factory=list)
+    preconditions: list[str] = Field(default_factory=list)
+    postconditions: list[str] = Field(default_factory=list)
+
+
+class InterventionCandidate(BaseModel):
+    candidate_id: str
+    action: PhaseControlAction
+    baseline_proxy_mass: float = 0.0
+    controlled_proxy_mass: float = 0.0
+    finite_proxy_gain: float = 0.0
+    score: float = 0.0
+    residual_charge: float = 0.0
+    risk_charge: float = 0.0
+    resource_cost: dict[str, float] = Field(default_factory=dict)
+    required_evidence_routes: list[str] = Field(default_factory=list)
+    missing_obligations: list[str] = Field(default_factory=list)
+    reasons: list[str] = Field(default_factory=list)
+    residual_ledger: Ledger = Field(default_factory=Ledger)
+    finite_scope_usable: bool = False
+    operationally_usable: bool = False
+    settled: bool = False
+
+
+class PhaseControlPlan(BaseModel):
+    plan_id: str
+    objective_id: str
+    profile: str = "development"
+    accepted: bool = False
+    status: ClaimStatus = ClaimStatus.DIAGNOSTIC
+    partial: bool = True
+    selected_actions: list[PhaseControlAction] = Field(default_factory=list)
+    candidates: list[InterventionCandidate] = Field(default_factory=list)
+    finite_proxy_gain_total: float = 0.0
+    score: float = 0.0
+    required_evidence_routes: list[str] = Field(default_factory=list)
+    missing_obligations: list[str] = Field(default_factory=list)
+    reasons: list[str] = Field(default_factory=list)
+    residual_ledger: Ledger = Field(default_factory=Ledger)
+    operationally_usable: bool = False
+    settled: bool = False
+
+
+class PhaseControlRunReport(BaseModel):
+    report_id: str
+    state_id: str
+    target_id: str
+    plan: PhaseControlPlan
+    baseline_reachable_mass: dict[str, float] = Field(default_factory=dict)
+    controlled_reachable_mass: dict[str, float] = Field(default_factory=dict)
+    safety_invariants: list[str] = Field(
+        default_factory=lambda: [
+            "phase-control planning recommendations do not prove unobserved ASI outcomes",
+            "unresolved external obligations remain charged in residual ledgers",
+            "planner output alone never promotes a claim to settled status",
+        ]
+    )

@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.2.3 - 2026-06-06
+
+- Adds the ECPT active phase-control runtime with `PhaseControlState`, `ASIProxyTargetContract`, ranked `PhaseControlAction` candidates, `PhaseControlPlan`, and `PhaseControlRunReport`.
+- Adds `pic ecpt plan`, `pic ecpt simulate`, and `pic ecpt route-obligations` for autonomous-agent ASI-proxy phase-control workflows.
+- Adds deterministic ECPT contract adapters for bridge reserve, trace diagnostics, ecology/ontology abstraction, economics/policy envelopes, proxy-target grounding, and speculative-channel repair.
+- Keeps planner output proxy-active and fail-closed: plans can be operationally useful for routing, but unresolved external obligations remain charged and planning alone never settles unobserved ASI claims.
+
 ## v0.2.2 - 2026-06-06
 
 - Adds settlement scope semantics to verifier resolutions and route bindings so finite replay/contract scope is separated from residual physical, oracle, policy, or domain obligations.

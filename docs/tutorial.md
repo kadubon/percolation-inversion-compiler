@@ -82,7 +82,20 @@ The demo emits a TRC compile result with main, diagnostic, relaxed, and partial
 frontier records. Main-frontier records require accepted executable trace normal
 forms; a self-declared trace flag is not enough.
 
-## 6. Read Coverage
+## 6. Run ECPT Active Phase-Control
+
+```powershell
+uv run pic ecpt plan --state examples\ecpt_phase_control_state.json --target examples\ecpt_asi_proxy_target.json --budget examples\ecpt_phase_control_budget.json --profile production
+uv run pic ecpt simulate --state examples\ecpt_phase_control_state.json --actions examples\ecpt_phase_control_actions.json
+uv run pic routes explain --route ecpt.adapters.proxy.verify_target_contract
+```
+
+Read `finite_proxy_gain_total`, `selected_actions`,
+`required_evidence_routes`, `missing_obligations`, and `residual_ledger`. The
+plan helps an agent choose which finite ECPT action to evaluate next. It does
+not prove the unobserved ASI target or discharge domain obligations by itself.
+
+## 7. Read Coverage
 
 ```powershell
 uv run pic coverage --source tests\fixtures\minimal_claims.tex
@@ -93,7 +106,7 @@ Coverage statuses distinguish finite constructive algorithms, finite checkers,
 portable schemas, external proof obligations, and unsupported items. Canonical
 coverage should keep `unsupported` at zero.
 
-## 7. Route External Obligations
+## 8. Route External Obligations
 
 For canonical sources, external items can be explained as verifier contracts:
 
@@ -111,14 +124,14 @@ whether to call a domain adapter or keep a diagnostic/partial result.
 When TeX is unavailable, add `--from-snapshot` to read the bundled derived
 metadata instead.
 
-## 8. Verify Evidence Envelopes
+## 9. Verify Evidence Envelopes
 
 ```powershell
 uv run pic evidence verify --envelope examples\evidence_envelope.json --profile production
 uv run pic evidence discharge --envelope examples\evidence_envelope.json --obligations examples\external_obligations.json --profile production
 ```
 
-The example demonstrates the v0.2.2 verifier SDK boundary. The envelope is
+The example demonstrates the verifier SDK boundary. The envelope is
 accepted only when the route id, evidence kind, SHA-256 digest shape, schema
 digest shape, producer identity, verifier identity, verifier version, and
 determinism checks pass. Production mode also rejects metadata-only evidence

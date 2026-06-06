@@ -19,6 +19,9 @@ uv run pic provenance create --schema-dir schemas --output provenance.json
 uv run pic provenance verify --manifest provenance.json
 uv run pic routes bindings
 uv run pic routes explain --route adapters.domain.verify_trc_telemetry_calibration
+uv run pic routes explain --route ecpt.adapters.proxy.verify_target_contract
+uv run pic ecpt plan --state examples\ecpt_phase_control_state.json --target examples\ecpt_asi_proxy_target.json --budget examples\ecpt_phase_control_budget.json --profile production
+uv run pic ecpt simulate --state examples\ecpt_phase_control_state.json --actions examples\ecpt_phase_control_actions.json
 uv run pic doctor --profile production --required-route adapters.domain.verify_trc_telemetry_calibration --provenance provenance.json --fail-on fail
 uv run pic evidence verify --envelope examples\evidence_envelope.json --profile production
 uv run pic evidence discharge --envelope examples\evidence_envelope.json --obligations examples\external_obligations.json --profile production
@@ -51,6 +54,9 @@ An agent connector should implement this policy:
    `VerifierEvidenceEnvelope`, `VerifierResolution`, and then a
    provenance-bound `ExternalVerifierHook`.
 8. Preserve residual ledgers in logs and downstream planning records.
+9. For ECPT active planning, treat `PhaseControlPlan.selected_actions` as
+   ranked finite recommendations and route every `missing_obligations` entry
+   before main operational execution.
 
 ## Routing Recipe
 
@@ -126,3 +132,9 @@ The intended use is protocol-relative ASI-proxy phase-control research. Agents
 can use the package to organize capability, bottleneck, and cyber-physical
 frontier evidence. They must not treat it as evidence for unobserved ASI,
 unconditional phase transition claims, or uncertified simulator output.
+
+In v0.2.3, `pic ecpt plan` makes this workflow active: it ranks finite
+interventions that can increase a protocol-relative ASI-proxy target under hard
+gates, resource budgets, route bindings, and residual charges. The plan remains
+diagnostic or provisional until verifier evidence discharges the relevant
+external obligations.

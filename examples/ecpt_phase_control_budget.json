@@ -1,0 +1,12 @@
+{
+  "budgets": {
+    "compute": 1.0
+  },
+  "horizon": 3,
+  "objective_id": "ecpt-demo-active-phase-control",
+  "residual_budget": 0.25,
+  "risk_tolerance": 0.1,
+  "route_preferences": [
+    "ecpt.adapters.proxy.verify_target_contract"
+  ]
+}
