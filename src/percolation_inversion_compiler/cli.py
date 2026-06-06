@@ -79,10 +79,10 @@ def doctor(
 ) -> None:
     """Report operational readiness for CI and autonomous-agent runners."""
 
-    report = build_operational_readiness_report()
-    _dump(report.model_dump(mode="json"), output)
     if fail_on not in {"fail", "warn", "never"}:
         raise typer.BadParameter("--fail-on must be one of: fail, warn, never")
+    report = build_operational_readiness_report()
+    _dump(report.model_dump(mode="json"), output)
     if fail_on == "fail" and report.overall_status == "fail":
         raise typer.Exit(1)
     if fail_on == "warn" and report.overall_status in {"fail", "warn"}:

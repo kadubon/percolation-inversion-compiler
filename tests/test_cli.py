@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from pathlib import Path
 
 from jsonschema import Draft202012Validator
 from typer.testing import CliRunner
@@ -138,7 +139,7 @@ def test_cli_json_determinism_for_check() -> None:
     command = [
         "check",
         "--source",
-        "tests\\fixtures\\minimal_claims.tex",
+        str(Path("tests") / "fixtures" / "minimal_claims.tex"),
         "--strict-projection",
         "--derive-status",
     ]
