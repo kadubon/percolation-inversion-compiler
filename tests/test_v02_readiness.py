@@ -178,7 +178,7 @@ def test_v02_evidence_route_negative_contracts(tmp_path) -> None:  # type: ignor
         producer_id="producer",
         produced_at="2026-06-06T00:00:00Z",
         verifier_id="verifier",
-        verifier_version="0.2.0",
+        verifier_version="0.2.1",
         content_ref=evidence_path.name,
     )
     accepted = resolve_adapter_route(

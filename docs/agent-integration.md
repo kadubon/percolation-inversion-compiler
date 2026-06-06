@@ -15,6 +15,11 @@ uv run pic check --source tests\fixtures\minimal_claims.tex --strict-projection 
 uv run pic audit theory --source tests\fixtures\minimal_claims.tex --fail-on projection
 uv run pic schema --type AgentConnectorSpec
 uv run pic schema --all --output-dir schemas
+uv run pic provenance create --schema-dir schemas --output provenance.json
+uv run pic provenance verify --manifest provenance.json
+uv run pic routes bindings
+uv run pic evidence verify --envelope examples\evidence_envelope.json --profile production
+uv run pic evidence discharge --envelope examples\evidence_envelope.json --obligations examples\external_obligations.json --profile production
 uv run pic demo datacenter
 uv run pic explain external def:null-channel-routing
 uv run pic doctor --fail-on warn
@@ -38,8 +43,9 @@ An agent connector should implement this policy:
 5. Inspect `finite_checks_passed`, `operationally_usable`, and `settled`;
    `accepted` alone is not an operational approval.
 6. Refuse main operational actions when `missing_obligations` is nonempty.
-7. Route external proof obligations to domain adapters through
-   `ExternalVerifierHook`.
+7. Route external proof obligations through `DischargeRouteBinding`,
+   `VerifierEvidenceEnvelope`, `VerifierResolution`, and then a
+   provenance-bound `ExternalVerifierHook`.
 8. Preserve residual ledgers in logs and downstream planning records.
 
 ## Routing Recipe
@@ -52,8 +58,9 @@ For each audit report:
    category, not by informal label text.
 3. For every external item, call `pic explain external <item-id>` and validate
    the result against `TheoryImplementationRecord.schema.json`.
-4. Call the domain adapter only when it can produce an `ExternalVerifierHook`
-   with accepted or rejected obligation ids and explicit residual coordinates.
+4. Call the domain adapter only when it can produce an accepted
+   `VerifierResolution` with evidence artifact ids and a resolution digest.
+   Convert it to an `ExternalVerifierHook` only after that provenance exists.
 5. Keep the safe default when the hook is missing, rejected, nondeterministic, or
    outside the advertised verifier contract.
 
@@ -69,9 +76,14 @@ Minimal unresolved hook shape:
   "safe_default": "return-diagnostic-with-unresolved-obligations",
   "residual_coordinates": {
     "null-channel-unverified": 1.0
-  }
+  },
+  "provenance_policy": "legacy-hook-no-resolution-provenance"
 }
 ```
+
+This unresolved hook is intentionally diagnostic. An accepted hook must include
+`resolution_id`, `resolution_digest`, `evidence_envelope_id`, and
+`evidence_artifact_ids` from an accepted `VerifierResolution`.
 
 ## Safe Failure
 
@@ -88,6 +100,11 @@ digests, producer identity, verifier identity, verifier version, timestamp, and
 deterministic execution before treating an adapter result as a discharged
 obligation. Missing or mismatched evidence keeps the result diagnostic and keeps
 the residual charged.
+
+In the `production` evidence profile, metadata-only artifacts are rejected.
+Every artifact must either point to replayable `content_ref` whose SHA-256 digest
+matches, or be handled by a future crypto/attestation adapter. The core package
+does not accept a bare digest as production evidence.
 
 ## ASI-Proxy Framing
 

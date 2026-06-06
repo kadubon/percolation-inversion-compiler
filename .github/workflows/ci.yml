@@ -48,7 +48,7 @@ jobs:
         run: uv run mypy src scripts
 
       - name: Test
-        run: uv run pytest --cov=percolation_inversion_compiler --cov-report=term-missing --cov-fail-under=80
+        run: uv run pytest --cov=percolation_inversion_compiler --cov-report=term-missing --cov-fail-under=82
 
       - name: Build package
         run: uv build
@@ -60,19 +60,25 @@ jobs:
           uv run pic schema --type Judgment
           uv run pic schema --type TheoryAuditReport
           uv run pic schema --all --output-dir "$RUNNER_TEMP/schema-smoke"
+          uv run pic provenance create --schema-dir "$RUNNER_TEMP/schema-smoke" --output "$RUNNER_TEMP/provenance.json"
+          uv run pic provenance verify --manifest "$RUNNER_TEMP/provenance.json"
           uv run pic snapshot list
           uv run pic snapshot show --artifact trc
           uv run pic snapshot verify --artifact trc
           uv run pic snapshot routes
+          uv run pic routes bindings
           uv run pic explain external def:null-channel-routing --from-snapshot
           uv run pic doctor --fail-on never
           uv run pic doctor --profile production --fail-on never
+          uv run pic doctor --profile production --provenance "$RUNNER_TEMP/provenance.json" --fail-on fail
           uv run pic validate --registry examples/minimal_registry.json
-          uv run pic evidence verify --envelope examples/evidence_envelope.json
+          uv run pic evidence verify --envelope examples/evidence_envelope.json --profile production
+          uv run pic evidence discharge --envelope examples/evidence_envelope.json --obligations examples/external_obligations.json --profile production
           uv run pic check --source tests/fixtures/minimal_claims.tex --strict-projection --derive-status
           uv run pic audit theory --source tests/fixtures/minimal_claims.tex --fail-on projection
           uv run pic compile --records examples/frontier_records.json --archive-cap 8
           uv run pic demo datacenter
+          uv run python scripts/generate_sbom.py --output "$RUNNER_TEMP/pic.sbom.json"
 
       - name: Validate citation metadata
         run: uv run python scripts/validate_citation.py

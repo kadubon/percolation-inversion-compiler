@@ -32,7 +32,9 @@ uv run pic snapshot show --artifact trc
 uv run pic explain external def:null-channel-routing --from-snapshot
 uv run pic snapshot routes
 uv run pic snapshot verify --artifact trc
-uv run pic evidence verify --envelope examples/evidence_envelope.json
+uv run pic routes bindings
+uv run pic evidence verify --envelope examples/evidence_envelope.json --profile production
+uv run pic evidence discharge --envelope examples/evidence_envelope.json --obligations examples/external_obligations.json --profile production
 uv run pic doctor --fail-on never
 uv run pic doctor --profile production --fail-on never
 ```
@@ -46,11 +48,15 @@ dependencies, and canonical TeX metadata are operationally ready.
 
 ```powershell
 uv run pic schema --all --output-dir schemas
+uv run pic provenance create --schema-dir schemas --output provenance.json
+uv run pic provenance verify --manifest provenance.json
+uv run pic doctor --profile production --provenance provenance.json --fail-on fail
 ```
 
 The bundle includes core records such as `Judgment`, `ObligationSet`,
 `TheoryAuditReport`, `ExternalVerifierHook`, theorem-level BIT/ECPT
-certificates, and `AgentConnectorSpec`.
+certificates, `DischargeRouteBinding`, `EvidencePolicy`,
+`ProvenanceManifest`, and `AgentConnectorSpec`.
 
 ## 4. Audit Theory Coverage
 
@@ -101,10 +107,14 @@ metadata instead.
 ## 8. Verify Evidence Envelopes
 
 ```powershell
-uv run pic evidence verify --envelope examples\evidence_envelope.json
+uv run pic evidence verify --envelope examples\evidence_envelope.json --profile production
+uv run pic evidence discharge --envelope examples\evidence_envelope.json --obligations examples\external_obligations.json --profile production
 ```
 
-The example demonstrates the v0.2.0 verifier SDK boundary. The envelope is
+The example demonstrates the v0.2.1 verifier SDK boundary. The envelope is
 accepted only when the route id, evidence kind, SHA-256 digest shape, schema
 digest shape, producer identity, verifier identity, verifier version, and
-determinism checks pass.
+determinism checks pass. Production mode also rejects metadata-only evidence
+without a replayable `content_ref` or verified attestation. The discharge command
+emits a provenance-bound `ExternalVerifierHook`; legacy hooks without resolution
+provenance remain diagnostic.

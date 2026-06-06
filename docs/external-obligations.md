@@ -63,24 +63,42 @@ hook shape.
 
 ## Route Availability
 
-`pic snapshot routes` emits `AdapterRouteSpec` records. A route can be:
+`pic snapshot routes` emits `AdapterRouteSpec` records, and `pic routes bindings`
+emits the reviewed `DischargeRouteBinding` records that connect canonical
+paper routes to implemented adapter contracts. In v0.2.1, canonical ECPT/TRC
+external routes are no longer left as opaque `unavailable` entries. Each route
+has a fail-closed binding and one of these discharge levels:
 
-- `implemented`: available in the lean core with finite inputs.
-- `optional`: available only when the relevant optional OSS extra is installed.
-- `unavailable`: a domain adapter contract exists, but the package does not
-  claim to implement that domain verifier.
+- `finite_value_check`: finite numeric, telemetry, archive, or generator
+  evidence can be checked by the package.
+- `replay_check`: finite replay evidence can be checked, while continuous
+  physical-domain claims remain residual obligations.
+- `contract_enforced`: the SDK checks envelope shape, provenance, safe default,
+  and non-promotion rules, but keeps a named domain witness unresolved.
+- `external_domain_required`: the route is bound to an adapter contract, but an
+  external domain witness or oracle-style evidence remains necessary.
 
-Unavailable routes return a diagnostic `VerifierResolution`. Optional routes
-also return diagnostic results when their dependency is absent. Neither case may
-promote an external obligation to `settled`.
+Optional OSS routes also return diagnostic results when their dependency is
+absent. Contract-enforced and external-domain routes can be operationally useful
+for agent routing, but they do not make the underlying external claim `settled`
+unless a finite accepted `VerifierResolution` with provenance discharges the
+matching obligation.
 
 ## Evidence Envelopes
 
 Adapters consume `VerifierEvidenceEnvelope` records: route id, obligation ids,
 evidence kinds, evidence references, deterministic flag, residual coordinates,
-and v0.2.0 `EvidenceArtifact` provenance. Each artifact carries SHA-256
+and v0.2.1 `EvidenceArtifact` provenance. Each artifact carries SHA-256
 identity, schema digest, producer identity, verifier identity, verifier version,
 timestamp, and optional signature or attestation references. A resolver returns
 `VerifierResolution` with accepted/rejected obligation ids and residual ledger
 entries. Agent connectors should log both records so downstream planning can
 preserve the missing evidence boundary.
+
+The production evidence profile is stricter than development: metadata-only
+artifacts with `content_ref: null` are diagnostic unless an optional attestation
+adapter has verified the attestation. Legacy `ExternalVerifierHook` records are
+still readable, but an accepted hook must reference an accepted
+`VerifierResolution` by `resolution_id`, `resolution_digest`,
+`evidence_envelope_id`, and `evidence_artifact_ids` before it can discharge an
+external certificate obligation.

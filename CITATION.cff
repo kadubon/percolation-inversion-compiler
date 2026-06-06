@@ -1,14 +1,14 @@
 cff-version: 1.2.0
 message: "If you use this software, cite the software package and the referenced theory papers."
 title: "Percolation Inversion Compiler"
-version: "0.2.0"
+version: "0.2.1"
 authors:
   - family-names: "Takahashi"
     given-names: "K."
 license: "Apache-2.0"
 repository-code: "https://github.com/kadubon/percolation-inversion-compiler"
 date-released: "2026-06-06"
-abstract: "Finite certificate compiler toolkit for ECPT, BIT, and TRC research artifacts."
+abstract: "Production verifier SDK for ECPT, BIT, and TRC finite certificates, proof obligations, residual ledgers, and AI agent routing."
 references:
   - type: article
     title: "Executable Capability Percolation Theory"

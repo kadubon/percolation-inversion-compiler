@@ -14,7 +14,7 @@ Before proposing a change, run:
 
 ```powershell
 uv sync --all-extras --dev
-uv run pytest --cov=percolation_inversion_compiler --cov-report=term-missing --cov-fail-under=80
+uv run pytest --cov=percolation_inversion_compiler --cov-report=term-missing --cov-fail-under=82
 uv run ruff check .
 uv run ruff format --check .
 uv run mypy src scripts

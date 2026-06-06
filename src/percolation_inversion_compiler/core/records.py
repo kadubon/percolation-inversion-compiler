@@ -129,6 +129,11 @@ class ExternalVerifierHook(BaseModel):
     rejected_obligation_ids: set[str] = Field(default_factory=set)
     failure_modes: dict[str, str] = Field(default_factory=dict)
     residual_coordinates: dict[str, float] = Field(default_factory=dict)
+    resolution_id: str | None = None
+    resolution_digest: str | None = None
+    evidence_envelope_id: str | None = None
+    evidence_artifact_ids: set[str] = Field(default_factory=set)
+    provenance_policy: str = "legacy-hook-no-resolution-provenance"
     schema_refs: list[str] = Field(default_factory=list)
     deterministic: bool = True
     notes: list[str] = Field(default_factory=list)

@@ -25,7 +25,10 @@ from percolation_inversion_compiler.bit.records import (
 )
 from percolation_inversion_compiler.core.adapter_routes import (
     AdapterRouteSpec,
+    DischargeRouteBinding,
     EvidenceArtifact,
+    EvidencePolicy,
+    EvidenceVerificationProfileRecord,
     VerifierEvidenceEnvelope,
     VerifierResolution,
 )
@@ -100,6 +103,11 @@ from percolation_inversion_compiler.ecpt.records import (
     ReachableMassRecursionCertificate,
     SettlementReturnRAFCertificate,
 )
+from percolation_inversion_compiler.io.provenance import (
+    ProvenanceManifest,
+    ProvenanceManifestEntry,
+    SchemaBundleDigest,
+)
 from percolation_inversion_compiler.io.snapshots import (
     SnapshotAttribution,
     SnapshotCatalog,
@@ -173,10 +181,13 @@ def schema_model_map() -> dict[str, type[BaseModel]]:
         "ConfidenceLedger": ConfidenceLedger,
         "ControlledTransition": ControlledTransition,
         "DKWCertificate": DKWCertificate,
+        "DischargeRouteBinding": DischargeRouteBinding,
         "DomainTypedSemiring": DomainTypedSemiring,
         "DominanceWitness": DominanceWitness,
         "EProcessCertificate": EProcessCertificate,
         "EvidenceArtifact": EvidenceArtifact,
+        "EvidencePolicy": EvidencePolicy,
+        "EvidenceVerificationProfile": EvidenceVerificationProfileRecord,
         "ExecutableTraceNormalForm": ExecutableTraceNormalForm,
         "ExternalObligationCatalog": ExternalObligationCatalog,
         "ExternalVerifierHook": ExternalVerifierHook,
@@ -208,6 +219,8 @@ def schema_model_map() -> dict[str, type[BaseModel]]:
         "OrderedPotentialCone": OrderedPotentialCone,
         "PhaseControlEnvelope": PhaseControlEnvelope,
         "PortabilitySchemaBundle": PortabilitySchemaBundle,
+        "ProvenanceManifest": ProvenanceManifest,
+        "ProvenanceManifestEntry": ProvenanceManifestEntry,
         "ProductOrder": ProductOrder,
         "ProductionReadinessProfile": ProductionReadinessProfile,
         "ProcessGrammarRecord": ProcessGrammarRecord,
@@ -222,6 +235,7 @@ def schema_model_map() -> dict[str, type[BaseModel]]:
         "Registry": Registry,
         "ResourceCalendarRecord": ResourceCalendarRecord,
         "ScriptGroundMetricCertificate": ScriptGroundMetricCertificate,
+        "SchemaBundleDigest": SchemaBundleDigest,
         "SelectiveCUPCertificate": SelectiveCUPCertificate,
         "SettlementReturnRAFCertificate": SettlementReturnRAFCertificate,
         "SinkhornCertificate": SinkhornCertificate,

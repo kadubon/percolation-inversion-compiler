@@ -185,6 +185,13 @@ def check_external_verifier_hook(
     overlap = hook.accepted_obligation_ids & hook.rejected_obligation_ids
     if overlap:
         reasons.append("external verifier both accepts and rejects an obligation")
+    if hook.accepted_obligation_ids and (
+        hook.resolution_id is None
+        or hook.resolution_digest is None
+        or hook.evidence_envelope_id is None
+        or not hook.evidence_artifact_ids
+    ):
+        reasons.append("accepted external verifier hook requires resolution provenance")
     for name, value in hook.residual_coordinates.items():
         if value < 0:
             reasons.append("external verifier residual coordinate is negative")

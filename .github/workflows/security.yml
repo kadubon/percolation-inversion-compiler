@@ -44,6 +44,13 @@ jobs:
       - name: Publishable-file safety scan
         run: uv run python scripts/check_publish_safety.py
 
+      - name: Provenance and SBOM smoke
+        run: |
+          uv run pic schema --all --output-dir "$RUNNER_TEMP/schema-smoke"
+          uv run pic provenance create --schema-dir "$RUNNER_TEMP/schema-smoke" --output "$RUNNER_TEMP/provenance.json"
+          uv run pic provenance verify --manifest "$RUNNER_TEMP/provenance.json"
+          uv run python scripts/generate_sbom.py --output "$RUNNER_TEMP/pic.sbom.json"
+
   dependency-review:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest

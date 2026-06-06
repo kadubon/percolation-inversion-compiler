@@ -7,9 +7,11 @@ import pytest
 
 from percolation_inversion_compiler.core import (
     AdapterRouteSpec,
+    DischargeLevel,
     EvidenceArtifact,
     VerifierEvidenceEnvelope,
     list_adapter_route_specs,
+    list_discharge_route_bindings,
     resolve_adapter_route,
 )
 from percolation_inversion_compiler.core.coverage import TheoryImplementationRecord
@@ -60,20 +62,35 @@ def test_canonical_snapshot_regression_when_present(key: str, filename: str) -> 
 
 def test_adapter_route_catalog_covers_external_snapshot_routes() -> None:
     known_routes = {spec.verifier_route for spec in list_adapter_route_specs()}
+    bound_route_ids = {binding.canonical_route_id for binding in list_discharge_route_bindings()}
     for snapshot in list_theory_snapshots():
         catalog = snapshot.external_obligation_catalog
         if catalog is None:
             continue
         for obligation in catalog.obligations:
             assert obligation.verifier_route in known_routes
+            spec = next(
+                route
+                for route in list_adapter_route_specs()
+                if route.verifier_route == obligation.verifier_route
+            )
+            assert spec.route_id in bound_route_ids
 
 
-def test_unavailable_adapter_route_returns_diagnostic_resolution() -> None:
+def test_contract_adapter_route_returns_diagnostic_without_evidence() -> None:
     spec = next(
         route
         for route in list_adapter_route_specs()
         if route.verifier_route == "trc.adapters.physical_hybrid.verify_envelope"
     )
+    binding = next(
+        route
+        for route in list_discharge_route_bindings()
+        if route.canonical_route_id == spec.route_id
+    )
+    assert spec.availability == "contract"
+    assert binding.discharge_level == DischargeLevel.REPLAY_CHECK
+    assert binding.unresolved_domain_obligations
     result = resolve_adapter_route(
         spec,
         VerifierEvidenceEnvelope(
@@ -87,7 +104,7 @@ def test_unavailable_adapter_route_returns_diagnostic_resolution() -> None:
     assert not result.accepted
     assert result.status == ClaimStatus.DIAGNOSTIC
     assert result.safe_default == "diagnostic-with-physical-obligation"
-    assert "adapter route is declared unavailable" in result.reasons
+    assert "evidence artifacts are missing" in result.reasons
 
 
 def test_evidence_artifact_provenance_accepts_attested_digest() -> None:
@@ -116,7 +133,7 @@ def test_evidence_artifact_provenance_accepts_attested_digest() -> None:
                     producer_id="producer",
                     produced_at="2026-06-06T00:00:00Z",
                     verifier_id="verifier",
-                    verifier_version="0.2.0",
+                    verifier_version="0.2.1",
                 )
             ],
         ),
@@ -153,7 +170,7 @@ def test_evidence_artifact_hash_mismatch_is_diagnostic(tmp_path) -> None:  # typ
                     producer_id="producer",
                     produced_at="2026-06-06T00:00:00Z",
                     verifier_id="verifier",
-                    verifier_version="0.2.0",
+                    verifier_version="0.2.1",
                     content_ref=str(evidence_file),
                 )
             ],

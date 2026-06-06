@@ -24,7 +24,7 @@ fields separate:
 
 - `declared_status`: what an external source or registry says;
 - `derived_status`: what the checker derives from finite obligations;
-- `finite_checks_passed`, `operationally_usable`, and `settled`: v0.2.0
+- `finite_checks_passed`, `operationally_usable`, and `settled`: v0.2.1
   fail-closed booleans that separate finite shape acceptance from usable settled
   output;
 - `proof_obligations`: what remains unverified or domain-specific;

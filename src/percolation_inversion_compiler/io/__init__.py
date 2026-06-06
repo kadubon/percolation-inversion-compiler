@@ -7,6 +7,14 @@ from percolation_inversion_compiler.io.doctor import (
     build_operational_readiness_report,
     readiness_profile,
 )
+from percolation_inversion_compiler.io.provenance import (
+    ProvenanceManifest,
+    ProvenanceManifestEntry,
+    SchemaBundleDigest,
+    create_provenance_manifest,
+    schema_bundle_digest,
+    verify_provenance_manifest,
+)
 from percolation_inversion_compiler.io.schema import (
     PortabilitySchemaBundle,
     registry_json_schema,
@@ -53,6 +61,9 @@ __all__ = [
     "ExtractedFile",
     "MRRecord",
     "PortabilitySchemaBundle",
+    "ProvenanceManifest",
+    "ProvenanceManifestEntry",
+    "SchemaBundleDigest",
     "SnapshotAttribution",
     "SnapshotCatalog",
     "TheorySnapshot",
@@ -61,6 +72,7 @@ __all__ = [
     "build_operational_readiness_report",
     "canonical_manifest",
     "count_mr_records_by_category",
+    "create_provenance_manifest",
     "extract_artifact",
     "extract_filecontents",
     "extract_mr_records",
@@ -72,8 +84,10 @@ __all__ = [
     "readiness_profile",
     "registry_json_schema",
     "schema_bundle",
+    "schema_bundle_digest",
     "schema_by_type",
     "snapshot_delta",
     "validate_canonical_source",
     "validate_data",
+    "verify_provenance_manifest",
 ]

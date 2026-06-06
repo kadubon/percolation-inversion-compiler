@@ -212,8 +212,23 @@ def test_external_verifier_hook_preserves_unresolved_obligations() -> None:
     assert "hybrid-envelope" in unresolved_result.missing_obligations
     assert unresolved_result.residual_ledger.burden_sum() >= 0.35
 
-    resolved = unresolved.model_copy(update={"accepted_obligation_ids": {"hybrid-envelope"}})
-    resolved_result = check_external_verifier_hook(resolved, [obligation])
+    legacy_resolved = unresolved.model_copy(update={"accepted_obligation_ids": {"hybrid-envelope"}})
+    legacy_result = check_external_verifier_hook(legacy_resolved, [obligation])
+    assert not legacy_result.accepted
+    assert "accepted external verifier hook requires resolution provenance" in (
+        legacy_result.reasons
+    )
+
+    provenance_bound = legacy_resolved.model_copy(
+        update={
+            "resolution_id": "resolution:abc",
+            "resolution_digest": "a" * 64,
+            "evidence_envelope_id": "envelope:abc",
+            "evidence_artifact_ids": {"artifact:abc"},
+            "provenance_policy": "evidence-policy:production",
+        }
+    )
+    resolved_result = check_external_verifier_hook(provenance_bound, [obligation])
     assert resolved_result.accepted
     assert resolved_result.status == ClaimStatus.SETTLED
 

@@ -12,8 +12,11 @@ from rich.console import Console
 
 from percolation_inversion_compiler import __version__
 from percolation_inversion_compiler.core import (
+    ExternalProofObligation,
     VerifierEvidenceEnvelope,
+    check_external_verifier_hook,
     list_adapter_route_specs,
+    list_discharge_route_bindings,
     resolve_adapter_route,
 )
 from percolation_inversion_compiler.core.frontier import FrontierRecord
@@ -22,6 +25,7 @@ from percolation_inversion_compiler.io import (
     build_operational_readiness_report,
     canonical_manifest,
     count_mr_records_by_category,
+    create_provenance_manifest,
     extract_artifact,
     extract_theory_coverage,
     find_snapshot_item,
@@ -29,10 +33,13 @@ from percolation_inversion_compiler.io import (
     load_theory_snapshot,
     registry_json_schema,
     schema_bundle,
+    schema_bundle_digest,
     schema_by_type,
     validate_canonical_source,
     validate_data,
+    verify_provenance_manifest,
 )
+from percolation_inversion_compiler.io.provenance import ProvenanceManifest
 from percolation_inversion_compiler.io.schema import load_data
 from percolation_inversion_compiler.trc import compile_frontier, datacenter_demo
 
@@ -44,10 +51,14 @@ demo_app = typer.Typer(help="Run bundled finite examples.")
 audit_app = typer.Typer(help="Run source and theory audits.")
 snapshot_app = typer.Typer(help="Inspect bundled derived theory snapshots.")
 evidence_app = typer.Typer(help="Verify external evidence envelopes.")
+routes_app = typer.Typer(help="Inspect verifier route bindings.")
+provenance_app = typer.Typer(help="Create and verify release provenance manifests.")
 app.add_typer(demo_app, name="demo")
 app.add_typer(audit_app, name="audit")
 app.add_typer(snapshot_app, name="snapshot")
 app.add_typer(evidence_app, name="evidence")
+app.add_typer(routes_app, name="routes")
+app.add_typer(provenance_app, name="provenance")
 console = Console()
 
 
@@ -84,6 +95,10 @@ def doctor(
         str,
         typer.Option("--profile", help="Readiness profile: development, research, or production."),
     ] = "development",
+    provenance: Annotated[
+        Path | None,
+        typer.Option("--provenance", help="Verified provenance manifest JSON."),
+    ] = None,
     output: Annotated[
         Path | None, typer.Option("--output", "-o", help="Write JSON output.")
     ] = None,
@@ -93,7 +108,7 @@ def doctor(
     if fail_on not in {"fail", "warn", "never"}:
         console.print("Error: --fail-on must be one of: fail, warn, never")
         raise typer.Exit(2)
-    report = build_operational_readiness_report(profile=profile)
+    report = build_operational_readiness_report(profile=profile, provenance=provenance)
     _dump(report.model_dump(mode="json"), output)
     if fail_on == "fail" and report.overall_status == "fail":
         raise typer.Exit(1)
@@ -173,6 +188,11 @@ def schema(
                     )
                 (output_dir / "bundle.schema.json").write_text(
                     json.dumps(bundle.model_dump(mode="json"), indent=2, sort_keys=True) + "\n",
+                    encoding="utf-8",
+                )
+                digest = schema_bundle_digest(output_dir, base_dir=output_dir.parent)
+                (output_dir / "schema-digest.json").write_text(
+                    json.dumps(digest.model_dump(mode="json"), indent=2, sort_keys=True) + "\n",
                     encoding="utf-8",
                 )
                 return
@@ -403,6 +423,64 @@ def snapshot_routes(
     )
 
 
+@routes_app.command("bindings")
+def route_bindings(
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Show reviewed canonical-to-implementation discharge route bindings."""
+
+    _dump(
+        {
+            "bindings": [
+                binding.model_dump(mode="json") for binding in list_discharge_route_bindings()
+            ]
+        },
+        output,
+    )
+
+
+@provenance_app.command("create")
+def provenance_create(
+    schema_dir: Annotated[
+        Path | None,
+        typer.Option("--schema-dir", help="Directory containing generated schema JSON files."),
+    ] = None,
+    sbom_ref: Annotated[
+        str | None,
+        typer.Option("--sbom-ref", help="Optional SBOM release-asset reference."),
+    ] = None,
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write provenance manifest JSON.")
+    ] = None,
+) -> None:
+    """Create a deterministic SHA-256 provenance manifest."""
+
+    manifest = create_provenance_manifest(schema_dir=schema_dir, sbom_ref=sbom_ref)
+    _dump(manifest.model_dump(mode="json"), output)
+
+
+@provenance_app.command("verify")
+def provenance_verify(
+    manifest: Annotated[
+        Path,
+        typer.Option("--manifest", "-m", help="Provenance manifest JSON."),
+    ],
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write verification JSON.")
+    ] = None,
+) -> None:
+    """Verify a deterministic provenance manifest against local files."""
+
+    data = load_data(manifest)
+    parsed = ProvenanceManifest.model_validate(data)
+    valid, reasons = verify_provenance_manifest(parsed)
+    _dump({"manifest": str(manifest), "valid": valid, "reasons": reasons}, output)
+    if not valid:
+        raise typer.Exit(1)
+
+
 @snapshot_app.command("verify")
 def snapshot_verify(
     artifact: Annotated[
@@ -478,6 +556,10 @@ def evidence_verify(
         Path,
         typer.Option("--envelope", "-e", help="VerifierEvidenceEnvelope JSON/YAML file."),
     ],
+    profile: Annotated[
+        str,
+        typer.Option("--profile", help="Evidence verification profile."),
+    ] = "development",
     output: Annotated[
         Path | None, typer.Option("--output", "-o", help="Write JSON output.")
     ] = None,
@@ -490,9 +572,52 @@ def evidence_verify(
     spec = specs.get(evidence.route_id)
     if spec is None:
         raise typer.BadParameter(f"unknown adapter route {evidence.route_id!r}")
-    result = resolve_adapter_route(spec, evidence, base_dir=envelope.parent)
+    result = resolve_adapter_route(spec, evidence, base_dir=envelope.parent, profile=profile)
     _dump(result.model_dump(mode="json"), output)
     if not result.accepted:
+        raise typer.Exit(1)
+
+
+@evidence_app.command("discharge")
+def evidence_discharge(
+    envelope: Annotated[
+        Path,
+        typer.Option("--envelope", "-e", help="VerifierEvidenceEnvelope JSON/YAML file."),
+    ],
+    obligations: Annotated[
+        Path,
+        typer.Option("--obligations", help="JSON/YAML object with an obligations list."),
+    ],
+    profile: Annotated[
+        str,
+        typer.Option("--profile", help="Evidence verification profile."),
+    ] = "development",
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Verify evidence and emit a provenance-bound ExternalVerifierHook."""
+
+    evidence = VerifierEvidenceEnvelope.model_validate(load_data(envelope))
+    obligation_data = load_data(obligations)
+    raw_obligations = obligation_data.get("obligations")
+    if not isinstance(raw_obligations, list):
+        raise typer.BadParameter("obligations file must contain a top-level 'obligations' list")
+    parsed_obligations = [ExternalProofObligation.model_validate(item) for item in raw_obligations]
+    specs = {spec.route_id: spec for spec in list_adapter_route_specs()}
+    spec = specs.get(evidence.route_id)
+    if spec is None:
+        raise typer.BadParameter(f"unknown adapter route {evidence.route_id!r}")
+    resolution = resolve_adapter_route(spec, evidence, base_dir=envelope.parent, profile=profile)
+    hook = resolution.to_external_verifier_hook()
+    check = check_external_verifier_hook(hook, parsed_obligations)
+    data = {
+        "resolution": resolution.model_dump(mode="json"),
+        "hook": hook.model_dump(mode="json"),
+        "check": check.model_dump(mode="json"),
+    }
+    _dump(data, output)
+    if not resolution.accepted or not check.accepted:
         raise typer.Exit(1)
 
 

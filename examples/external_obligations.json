@@ -1,0 +1,19 @@
+{
+  "obligations": [
+    {
+      "accepted_evidence_kind": [
+        "finite-telemetry-calibration"
+      ],
+      "description": "Finite telemetry calibration evidence for the bundled verifier example.",
+      "failure_mode": "telemetry-calibration-unverified",
+      "failure_modes": [
+        "telemetry-window-missing",
+        "calibration-drift-unbounded"
+      ],
+      "obligation_category": "telemetry-calibration",
+      "obligation_id": "obligation:trc-telemetry-calibration",
+      "residual_policy": "charge-telemetry-residual-until-calibration-error-is-bounded",
+      "safe_default": "diagnostic-with-telemetry-calibration-obligation"
+    }
+  ]
+}

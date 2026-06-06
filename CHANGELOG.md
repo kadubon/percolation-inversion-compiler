@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.2.1 - 2026-06-06
+
+- Adds canonical-to-implementation discharge route bindings for external verifier routes.
+- Adds production evidence policy checks for replayable content hashes and provenance-bound hooks.
+- Adds deterministic provenance manifests, schema digest output, SBOM generation, and production doctor provenance support.
+- Expands verifier SDK docs for agent-facing ASI-proxy phase-control workflows without claiming unobserved physical or ASI proof.
+
 ## v0.2.0 - 2026-06-06
 
 - Adds fail-closed status, ledger, frontier, and TRC compile behavior for agent-facing use.

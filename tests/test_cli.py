@@ -91,6 +91,12 @@ def test_cli_schema_bundle(tmp_path) -> None:  # type: ignore[no-untyped-def]
     assert (output_dir / "EvidenceArtifact.schema.json").exists()
     assert (output_dir / "TRCCompileResult.schema.json").exists()
     assert (output_dir / "CanonicalManifest.schema.json").exists()
+    assert (output_dir / "DischargeRouteBinding.schema.json").exists()
+    assert (output_dir / "EvidencePolicy.schema.json").exists()
+    assert (output_dir / "EvidenceVerificationProfile.schema.json").exists()
+    assert (output_dir / "ProvenanceManifest.schema.json").exists()
+    assert (output_dir / "SchemaBundleDigest.schema.json").exists()
+    assert (output_dir / "schema-digest.json").exists()
     bundle = json.loads((output_dir / "bundle.schema.json").read_text(encoding="utf-8"))
     assert "AgentConnectorSpec" in bundle["schemas"]
     assert "safe_failure_behavior" in bundle["schemas"]["AgentConnectorSpec"]["properties"]
@@ -99,6 +105,11 @@ def test_cli_schema_bundle(tmp_path) -> None:  # type: ignore[no-untyped-def]
     assert "TheorySnapshot" in bundle["schemas"]
     assert "VerifierResolution" in bundle["schemas"]
     assert "EvidenceArtifact" in bundle["schemas"]
+    assert "DischargeRouteBinding" in bundle["schemas"]
+    assert "EvidencePolicy" in bundle["schemas"]
+    assert "EvidenceVerificationProfile" in bundle["schemas"]
+    assert "ProvenanceManifest" in bundle["schemas"]
+    assert "SchemaBundleDigest" in bundle["schemas"]
     assert "CheckResult" in bundle["schemas"]
     assert "LedgerCoordinate" in bundle["schemas"]
     assert "OperationalReadinessReport" in bundle["schemas"]
@@ -256,6 +267,15 @@ def test_cli_snapshot_list_show_and_routes() -> None:
         for route in route_data["routes"]
     )
 
+    bindings = runner.invoke(app, ["routes", "bindings"])
+    assert bindings.exit_code == 0
+    binding_data = json.loads(bindings.output)
+    assert any(
+        binding["canonical_verifier_route"] == "trc.adapters.physical_hybrid.verify_envelope"
+        and binding["discharge_level"] == "replay_check"
+        for binding in binding_data["bindings"]
+    )
+
     verified = runner.invoke(app, ["snapshot", "verify", "--artifact", "trc"])
     assert verified.exit_code == 0
     verified_data = json.loads(verified.output)
@@ -266,12 +286,78 @@ def test_cli_snapshot_list_show_and_routes() -> None:
 def test_cli_evidence_verify_accepts_example() -> None:
     result = runner.invoke(
         app,
-        ["evidence", "verify", "--envelope", "examples/evidence_envelope.json"],
+        [
+            "evidence",
+            "verify",
+            "--envelope",
+            "examples/evidence_envelope.json",
+            "--profile",
+            "production",
+        ],
     )
     assert result.exit_code == 0
     data = json.loads(result.output)
     assert data["accepted"]
     assert data["status"] == "settled"
+    assert data["profile"] == "production"
+
+
+def test_cli_evidence_discharge_emits_provenance_bound_hook() -> None:
+    result = runner.invoke(
+        app,
+        [
+            "evidence",
+            "discharge",
+            "--envelope",
+            "examples/evidence_envelope.json",
+            "--obligations",
+            "examples/external_obligations.json",
+            "--profile",
+            "production",
+        ],
+    )
+    assert result.exit_code == 0
+    data = json.loads(result.output)
+    assert data["resolution"]["accepted"]
+    assert data["check"]["accepted"]
+    assert data["hook"]["resolution_id"]
+    assert data["hook"]["resolution_digest"]
+
+
+def test_cli_provenance_create_verify_and_doctor(tmp_path) -> None:  # type: ignore[no-untyped-def]
+    schema_dir = tmp_path / "schemas"
+    schema_result = runner.invoke(app, ["schema", "--all", "--output-dir", str(schema_dir)])
+    assert schema_result.exit_code == 0
+    manifest_path = tmp_path / "provenance.json"
+    create = runner.invoke(
+        app,
+        [
+            "provenance",
+            "create",
+            "--schema-dir",
+            str(schema_dir),
+            "--output",
+            str(manifest_path),
+        ],
+    )
+    assert create.exit_code == 0
+    verify = runner.invoke(app, ["provenance", "verify", "--manifest", str(manifest_path)])
+    assert verify.exit_code == 0
+    verify_data = json.loads(verify.output)
+    assert verify_data["valid"]
+    doctor = runner.invoke(
+        app,
+        [
+            "doctor",
+            "--profile",
+            "production",
+            "--provenance",
+            str(manifest_path),
+            "--fail-on",
+            "fail",
+        ],
+    )
+    assert doctor.exit_code == 0
 
 
 def test_cli_compile_fail_fast_for_invalid_main() -> None:
