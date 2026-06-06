@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
   id-token: write
   attestations: write
 
@@ -82,3 +82,20 @@ jobs:
         uses: actions/attest@59d89421af93a897026c735860bf21b6eb4f7b26 # v4
         with:
           subject-path: dist/percolation-inversion-compiler-${{ env.VERSION }}.cyclonedx.json
+
+      - name: Upload attested assets to existing GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view "${GITHUB_REF_NAME}" >/dev/null 2>&1; then
+            gh release upload "${GITHUB_REF_NAME}" \
+              "dist/percolation_inversion_compiler-${VERSION}-py3-none-any.whl" \
+              "dist/percolation_inversion_compiler-${VERSION}.tar.gz" \
+              "dist/percolation-inversion-compiler-${VERSION}.schemas.zip" \
+              "dist/percolation-inversion-compiler-${VERSION}.provenance.json" \
+              "dist/percolation-inversion-compiler-${VERSION}.sbom.json" \
+              "dist/percolation-inversion-compiler-${VERSION}.cyclonedx.json" \
+              --clobber
+          else
+            echo "GitHub Release ${GITHUB_REF_NAME} does not exist yet; skipping upload."
+          fi
