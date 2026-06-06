@@ -48,7 +48,7 @@ jobs:
         run: uv run mypy src scripts
 
       - name: Test
-        run: uv run pytest --cov=percolation_inversion_compiler --cov-report=term-missing --cov-fail-under=87
+        run: uv run pytest --cov=percolation_inversion_compiler --cov-report=term-missing --cov-fail-under=88
 
       - name: Build package
         run: uv build
@@ -90,6 +90,11 @@ jobs:
           uv run pic ecology plan --registry "$RUNNER_TEMP/ecology-registry.json" --psi "$RUNNER_TEMP/ecology-psi.json" --profile production
           uv run pic ecology loop --state examples/ecology_loop_state.json --agent-output "SQOT reserve packet for ECPT active phase-control"
           uv run pic runtime step --state examples/runtime_state.json --input examples/runtime_step_input.json --profile production --output "$RUNNER_TEMP/runtime-step.json"
+          uv run pic runtime step --state examples/runtime_state.json --input examples/runtime_step_input_with_evidence.json --profile production --output "$RUNNER_TEMP/runtime-step-evidence.json"
+          uv run pic runtime resolve-evidence --input examples/runtime_step_input_with_evidence.json --profile production --output "$RUNNER_TEMP/runtime-evidence.json"
+          uv run pic runtime apply-results --state examples/runtime_state.json --report "$RUNNER_TEMP/runtime-step-evidence.json" --results examples/runtime_action_results.json --output "$RUNNER_TEMP/runtime-next-state.json"
+          uv run pic runtime compare --baseline examples/runtime_baseline_run.json --candidate examples/runtime_candidate_run.json --threshold examples/runtime_threshold.json --output "$RUNNER_TEMP/runtime-comparison.json"
+          uv run pic runtime certify-acceleration --baseline examples/runtime_baseline_run.json --candidate examples/runtime_candidate_run.json --output "$RUNNER_TEMP/runtime-acceleration-certificate.json"
           uv run pic runtime loop --state examples/runtime_state.json --inputs examples/runtime_loop_inputs.jsonl --max-steps 2 --profile production --output "$RUNNER_TEMP/runtime-loop.json"
           uv run pic runtime health --state examples/runtime_state.json --profile production --output "$RUNNER_TEMP/runtime-health.json"
           uv run pic runtime export-openapi --output "$RUNNER_TEMP/runtime-openapi.json"

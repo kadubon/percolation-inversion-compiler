@@ -97,20 +97,28 @@ not prove the unobserved ASI target or discharge domain obligations by itself.
 
 ## 7. Run the Active Agent Runtime
 
-The v0.3.0 runtime composes ECPT planning, packet ecology, SQOT scheduling, and
-verifier routing into one agent-facing step:
+The v0.3.1 runtime composes ECPT planning, packet ecology, SQOT scheduling,
+verifier routing, packet promotion, and finite acceleration comparison into one
+agent-facing loop:
 
 ```powershell
 uv run pic runtime step --state examples\runtime_state.json --input examples\runtime_step_input.json --profile production
+uv run pic runtime step --state examples\runtime_state.json --input examples\runtime_step_input_with_evidence.json --profile production --output runtime-step.json
+uv run pic runtime resolve-evidence --input examples\runtime_step_input_with_evidence.json --profile production
+uv run pic runtime apply-results --state examples\runtime_state.json --report runtime-step.json --results examples\runtime_action_results.json --output runtime-next-state.json
+uv run pic runtime compare --baseline examples\runtime_baseline_run.json --candidate examples\runtime_candidate_run.json --threshold examples\runtime_threshold.json
+uv run pic runtime certify-acceleration --baseline examples\runtime_baseline_run.json --candidate examples\runtime_candidate_run.json
 uv run pic runtime loop --state examples\runtime_state.json --inputs examples\runtime_loop_inputs.jsonl --max-steps 2 --profile production
 uv run pic runtime health --state examples\runtime_state.json --profile production
 uv run pic runtime export-openapi --output runtime-openapi.json
 ```
 
-Read `agent_tasks`, `route_execution_requests`, `phase_acceleration_score`,
-`missing_obligations`, and `residual_ledger`. Runtime output can rank
-protocol-relative ASI-proxy work for an agent, but it keeps `settled=false`
-until verifier evidence discharges the relevant finite route.
+Read `agent_tasks`, `route_execution_requests`, `promotion_report`,
+`evidence_resolution_batch`, `phase_acceleration_score`, `missing_obligations`,
+and `residual_ledger`. Runtime output can rank protocol-relative ASI-proxy work
+for an agent, but it keeps `settled=false` until verifier evidence discharges
+the relevant finite route. Use `AccelerationCertificate` only as a finite
+baseline-comparison result, not as proof of unobserved ASI.
 
 The optional service is local-first:
 

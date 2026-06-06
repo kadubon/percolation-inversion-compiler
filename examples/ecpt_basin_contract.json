@@ -1,0 +1,19 @@
+{
+  "basin_id": "runtime-demo-basin",
+  "max_path_cost": 1.0,
+  "receiver_family": [
+    "agent",
+    "verifier"
+  ],
+  "required_edge_types": [],
+  "required_packet_types": [
+    "phase"
+  ],
+  "required_verifier_routes": [
+    "adapters.domain.verify_ecpt_proxy_target_contract"
+  ],
+  "target_basis": [
+    "phase"
+  ],
+  "validity_domain": "protocol-relative-finite"
+}

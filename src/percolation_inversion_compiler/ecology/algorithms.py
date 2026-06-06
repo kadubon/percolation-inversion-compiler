@@ -10,13 +10,18 @@ from pathlib import Path
 from typing import cast
 
 from percolation_inversion_compiler.core.ledger import CoordinateKind, Ledger
+from percolation_inversion_compiler.core.records import CheckResult
+from percolation_inversion_compiler.core.status import ClaimStatus
 from percolation_inversion_compiler.ecology.records import (
+    BasinReachabilityReport,
     BottleneckIntervention,
     BottleneckInversionPlan,
+    CapabilityBasinContract,
     CapabilityPacketCandidate,
     CapabilityPacketRegistry,
     ClosedLoopAgentIteration,
     EdgeWitness,
+    EdgeWitnessCertificate,
     PacketIngestionReport,
     PacketSourceKind,
     PsiDashboard,
@@ -126,6 +131,36 @@ def build_packet_registry(
                 packet.residual_charge,
                 kind=CoordinateKind.RESIDUAL,
             )
+        if packet.expires_at == "expired":
+            residual = residual.add_coordinate(
+                f"packet:{packet.packet_id}:stale",
+                1.0,
+                kind=CoordinateKind.RESIDUAL,
+            )
+        if not packet.evidence_hash_valid:
+            residual = residual.add_coordinate(
+                f"packet:{packet.packet_id}:hash-invalid",
+                1.0,
+                kind=CoordinateKind.RESIDUAL,
+            )
+        if not packet.route_safe:
+            residual = residual.add_coordinate(
+                f"packet:{packet.packet_id}:unsafe-route",
+                1.0,
+                kind=CoordinateKind.RESIDUAL,
+            )
+        if packet.authority_required and not packet.authority_granted:
+            residual = residual.add_coordinate(
+                f"packet:{packet.packet_id}:authority-missing",
+                1.0,
+                kind=CoordinateKind.RESIDUAL,
+            )
+        if packet.hazard_charge:
+            residual = residual.add_coordinate(
+                f"packet:{packet.packet_id}:hazard",
+                packet.hazard_charge,
+                kind=CoordinateKind.RESIDUAL,
+            )
     for edge in sorted_edges:
         if edge.residual:
             residual = residual.add_coordinate(
@@ -202,6 +237,75 @@ def build_edge_witnesses(
                 )
             )
     return sorted(witnesses, key=lambda edge: edge.edge_id)
+
+
+def edge_certificate_from_witness(edge: EdgeWitness) -> EdgeWitnessCertificate:
+    """Convert a lightweight edge witness into an auditable certificate."""
+
+    residual = Ledger()
+    if edge.residual:
+        residual = residual.add_coordinate(
+            f"edge-certificate:{edge.edge_id}:false-edge-residual",
+            edge.residual,
+            kind=CoordinateKind.RESIDUAL,
+        )
+    return EdgeWitnessCertificate(
+        certificate_id=f"edge-certificate:{edge.edge_id}",
+        edge_id=edge.edge_id,
+        relation_type=edge.edge_type,
+        source_packet_ids=edge.source_packet_ids,
+        target_packet_id=edge.target_packet_id,
+        evidence_refs=edge.evidence_refs,
+        confidence_lower_bound=edge.confidence,
+        false_edge_residual=edge.residual,
+        expires_at=edge.expires_at,
+        accepted=edge.accepted,
+        reasons=edge.reasons,
+        residual_ledger=residual,
+    )
+
+
+def verify_edge_witness_certificate(
+    registry: CapabilityPacketRegistry,
+    certificate: EdgeWitnessCertificate,
+) -> CheckResult:
+    """Check an edge certificate against packet identities and finite evidence."""
+
+    packet_ids = {packet.packet_id for packet in registry.packets}
+    reasons: list[str] = []
+    if certificate.target_packet_id not in packet_ids:
+        reasons.append("target packet is absent from registry")
+    missing_sources = sorted(set(certificate.source_packet_ids) - packet_ids)
+    if missing_sources:
+        reasons.append("source packet is absent from registry")
+    if not certificate.source_packet_ids:
+        reasons.append("edge certificate has no source packets")
+    if certificate.confidence_lower_bound < 0.0:
+        reasons.append("confidence lower bound is negative")
+    if certificate.false_edge_residual < 0.0:
+        reasons.append("false-edge residual is negative")
+    if certificate.expires_at == "expired":
+        reasons.append("edge certificate is expired")
+    if not certificate.evidence_refs:
+        reasons.append("edge certificate has no evidence references")
+    accepted = certificate.accepted and not reasons
+    residual = certificate.residual_ledger
+    if not accepted:
+        residual = residual.add_coordinate(
+            f"edge-certificate:{certificate.certificate_id}:diagnostic",
+            max(1.0, certificate.false_edge_residual),
+            kind=CoordinateKind.RESIDUAL,
+        )
+    return CheckResult(
+        accepted=accepted,
+        status=ClaimStatus.PROVISIONAL if accepted else ClaimStatus.DIAGNOSTIC,
+        finite_checks_passed=not reasons,
+        operationally_usable=accepted,
+        settled=False,
+        reasons=sorted(set(reasons)),
+        missing_obligations=missing_sources,
+        residual_ledger=residual,
+    )
 
 
 def verification_throughput(
@@ -301,6 +405,91 @@ def build_psi_dashboard(
         limiting_components=limiting,
         throughput=throughput,
         residual_ledger=registry.residual_ledger,
+    )
+
+
+def check_basin_reachability(
+    registry: CapabilityPacketRegistry,
+    basin: CapabilityBasinContract,
+) -> BasinReachabilityReport:
+    """Check finite basin reachability from packets, edges, routes, and receivers."""
+
+    packets = sorted(registry.packets, key=lambda packet: packet.packet_id)
+    edges = sorted(
+        [edge for edge in registry.edges if edge.accepted],
+        key=lambda edge: edge.edge_id,
+    )
+    accepted_edge_ids = [edge.edge_id for edge in edges]
+    receiver_compatible = not basin.receiver_family or any(
+        set(packet.receiver_family) & set(basin.receiver_family) for packet in packets
+    )
+    packet_type_hits = {
+        required: any(
+            required in set(packet.tags)
+            or required == packet.salience_class
+            or required == packet.source_kind.value
+            for packet in packets
+        )
+        for required in basin.required_packet_types
+    }
+    edge_type_hits = {
+        required: any(required == edge.edge_type for edge in edges)
+        for required in basin.required_edge_types
+    }
+    routes = {route for packet in packets for route in packet.verifier_routes}
+    missing_routes = sorted(set(basin.required_verifier_routes) - routes)
+    target_hits = {
+        target: [
+            packet.packet_id
+            for packet in packets
+            if target in set(packet.tags) or target in packet.claim or target == packet.packet_id
+        ]
+        for target in basin.target_basis
+    }
+    reachable = sorted({packet_id for hits in target_hits.values() for packet_id in hits})
+    path_cost = sum(max(0.0, 1.0 - edge.confidence + edge.residual) for edge in edges)
+    missing_packet_types = sorted(
+        required for required, present in packet_type_hits.items() if not present
+    )
+    missing_edge_types = sorted(
+        required for required, present in edge_type_hits.items() if not present
+    )
+    reasons: list[str] = []
+    if not receiver_compatible:
+        reasons.append("no packet is compatible with basin receiver family")
+    if basin.target_basis and not reachable:
+        reasons.append("target basis is not reached by accepted packet paths")
+    if missing_packet_types:
+        reasons.append("required packet type is missing")
+    if missing_edge_types:
+        reasons.append("required edge type is missing")
+    if missing_routes:
+        reasons.append("required verifier route is missing")
+    if path_cost > basin.max_path_cost:
+        reasons.append("accepted path cost exceeds basin maximum")
+    residual = registry.residual_ledger
+    for reason in reasons:
+        residual = residual.add_coordinate(
+            f"basin:{basin.basin_id}:{reason.replace(' ', '-')}",
+            1.0,
+            kind=CoordinateKind.RESIDUAL,
+        )
+    accepted = not reasons
+    return BasinReachabilityReport(
+        report_id=f"basin-reachability:{basin.basin_id}:{registry.registry_id}",
+        basin_id=basin.basin_id,
+        accepted=accepted,
+        reachable_packet_ids=reachable,
+        accepted_edge_ids=accepted_edge_ids,
+        missing_packet_types=missing_packet_types,
+        missing_edge_types=missing_edge_types,
+        missing_verifier_routes=missing_routes,
+        receiver_compatible=receiver_compatible,
+        path_cost_lower_bound=path_cost,
+        residual_ledger=residual,
+        operationally_usable=accepted,
+        settled=False,
+        reasons=sorted(set(reasons)),
     )
 
 

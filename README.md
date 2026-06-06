@@ -1,20 +1,28 @@
 # Percolation Inversion Compiler
 
-`percolation-inversion-compiler` is an ECPT active agent runtime and
+`percolation-inversion-compiler` is a closed-loop ECPT active agent runtime and
 production-oriented finite verifier-routing SDK for ECPT, BIT, TRC, and SQOT.
 It turns paper-derived TeX, registry JSON, verifier evidence, agent outputs,
-and packet candidate records into deterministic JSON: finite checker judgments,
-proof obligations, residual ledgers, salience-queue schedules, typed trace
-normal forms, frontier extraction records, packet edge witnesses, Psi
-dashboards, bottleneck-inversion plans, runtime step reports, provenance
-manifests, SBOMs, and portable JSON Schemas for AI agent integration.
+action results, and packet candidate records into deterministic JSON: finite
+checker judgments, proof obligations, residual ledgers, salience-queue
+schedules, typed trace normal forms, frontier extraction records, verified
+packet promotion reports, packet edge certificates, Psi dashboards,
+bottleneck-inversion plans, runtime event logs, finite acceleration
+certificates, provenance manifests, SBOMs, and portable JSON Schemas for AI
+agent integration.
+
+Search terms: certificate compiler, proof obligations, residual ledgers, typed
+trace normal forms, frontier extraction, AI agent integration,
+protocol-relative ASI-proxy phase-control.
 
 In practical terms, the input is a finite artifact an agent may want to use: a
 canonical theory source, packet candidate, issue/PR/repository metadata, agent
 work product, trace, or verifier evidence envelope. The output answers five
 questions: which finite certificates passed, which proof obligations remain,
-which residual coordinates stay charged, which packets/obligations should be
-scheduled next, and which ECPT ASI-proxy component is currently the bottleneck.
+which residual coordinates stay charged, which packets can become reusable
+verified packet capital, which packets/obligations should be scheduled next,
+which ECPT ASI-proxy component is currently the bottleneck, and whether a
+candidate runtime path improves on a resource-matched baseline.
 Agents can use that output as a routing layer before they call domain
 simulators, frontier planners, live connectors, verifier adapters, or the
 optional local runtime HTTP service.
@@ -29,7 +37,8 @@ The three papers play complementary roles:
 
 - ECPT models protocol-relative capability propagation, activation, queues,
   capacity, viability, and phase-control certificates. The active runtime ranks
-  finite interventions and packet-edge construction steps for ASI-proxy targets.
+  finite interventions, packet-edge construction, verified packet promotion,
+  and acceleration-certificate checks for ASI-proxy targets.
 - BIT supplies a witness calculus for unlockable potential: unit functors,
   stopped evidence sheaves, martingale deficiency audits, release duality,
   mechanism cubes, and certificate compiler graphs.
@@ -50,13 +59,18 @@ charges and failure modes.
 
 Three direct ways to use it:
 
-- Use as CLI: run `pic runtime step`, `pic runtime loop`, `pic ecpt plan`,
-  `pic sqot schedule`, `pic ecology psi`, and `pic evidence verify`.
-- Use as Python SDK: call `build_runtime_step`, `run_runtime_loop`, and
-  `runtime_health` with portable `RuntimeState` and `RuntimeStepInput` JSON.
+- Use as CLI: run `pic runtime step`, `pic runtime resolve-evidence`,
+  `pic runtime apply-results`, `pic runtime compare`, `pic runtime
+  certify-acceleration`, `pic ecpt plan`, `pic sqot schedule`, and `pic
+  evidence verify`.
+- Use as Python SDK: call `build_runtime_step`, `resolve_step_evidence`,
+  `apply_action_results`, `compare_runtime_runs`, `certify_runtime_acceleration`,
+  and `runtime_health` with portable runtime JSON.
 - Run local HTTP service: start `pic runtime service --host 127.0.0.1 --port
   8765 --profile production` and call `/runtime/step`, `/runtime/loop`,
-  `/ecology/ingest`, `/evidence/verify`, and `/health`.
+  `/runtime/result/apply`, `/runtime/evidence/resolve`, `/runtime/compare`,
+  `/runtime/certify-acceleration`, `/ecology/ingest`, `/evidence/verify`, and
+  `/health`.
   In production set `PIC_RUNTIME_TOKEN` and use `Authorization: Bearer ...`.
 
 What this gives an agent:
@@ -68,6 +82,9 @@ What this gives an agent:
 - fail-closed production readiness checks for external verifier routing;
 - active ECPT ASI-proxy phase-control plans with ranked finite interventions;
 - ECPT packet ecology ingestion, edge witnesses, Psi dashboards, and bottleneck plans;
+- verified packet promotion, packet rejection, and edge witness certificates;
+- closed-loop event logs and action-result application for repeated agent runs;
+- finite acceleration certificates comparing candidate runs to baselines;
 - SQOT salience scheduling for packet, obligation, and verifier queues;
 - an ECPT active runtime that composes packet ecology, SQOT scheduling,
   bottleneck planning, verifier routing, and residual ledger preservation;
@@ -122,6 +139,11 @@ uv run pic ecology psi --registry ecology-registry.json --threshold examples/eco
 uv run pic ecology plan --registry ecology-registry.json --psi ecology-psi.json --profile production
 uv run pic ecology loop --state examples/ecology_loop_state.json --agent-output "SQOT reserve packet for ECPT active phase-control."
 uv run pic runtime step --state examples/runtime_state.json --input examples/runtime_step_input.json --profile production
+uv run pic runtime step --state examples/runtime_state.json --input examples/runtime_step_input_with_evidence.json --profile production --output runtime-step.json
+uv run pic runtime resolve-evidence --input examples/runtime_step_input_with_evidence.json --profile production
+uv run pic runtime apply-results --state examples/runtime_state.json --report runtime-step.json --results examples/runtime_action_results.json --output runtime-next-state.json
+uv run pic runtime compare --baseline examples/runtime_baseline_run.json --candidate examples/runtime_candidate_run.json --threshold examples/runtime_threshold.json
+uv run pic runtime certify-acceleration --baseline examples/runtime_baseline_run.json --candidate examples/runtime_candidate_run.json
 uv run pic runtime loop --state examples/runtime_state.json --inputs examples/runtime_loop_inputs.jsonl --max-steps 2 --profile production
 uv run pic runtime health --state examples/runtime_state.json --profile production
 uv run pic runtime export-openapi --output runtime-openapi.json
@@ -179,6 +201,9 @@ uv run pic doctor --fail-on warn
 uv run pic evidence verify --envelope examples\evidence_envelope.json --profile production
 uv run pic validate --registry examples\minimal_registry.json
 uv run pic runtime step --state examples\runtime_state.json --input examples\runtime_step_input.json --profile production
+uv run pic runtime resolve-evidence --input examples\runtime_step_input_with_evidence.json --profile production
+uv run pic runtime compare --baseline examples\runtime_baseline_run.json --candidate examples\runtime_candidate_run.json --threshold examples\runtime_threshold.json
+uv run pic runtime certify-acceleration --baseline examples\runtime_baseline_run.json --candidate examples\runtime_candidate_run.json
 uv run pic runtime loop --state examples\runtime_state.json --inputs examples\runtime_loop_inputs.jsonl --max-steps 2 --profile production
 uv run pic runtime service --host 127.0.0.1 --port 8765 --profile production
 uv run pic compile --records examples\frontier_records.json
@@ -212,8 +237,11 @@ derived status, proof obligations, and residual ledgers.
 - [Architecture](docs/architecture.md)
 - [Mathematical contracts](docs/mathematical-contracts.md)
 - [ECPT active agent runtime](docs/runtime.md)
+- [ECPT closed-loop runtime](docs/runtime-closed-loop.md)
 - [Local runtime HTTP service](docs/runtime-service.md)
 - [ECPT acceleration score](docs/ecpt-acceleration-score.md)
+- [Finite acceleration certificates](docs/acceleration-certificates.md)
+- [Verified packet promotion](docs/packet-promotion.md)
 - [ECPT active phase-control runtime](docs/ecpt-phase-control-runtime.md)
 - [SQOT salience scheduler](docs/sqot.md)
 - [ECPT packet ecology runtime](docs/ecpt-packet-ecology-runtime.md)

@@ -1,0 +1,17 @@
+{
+  "accepted": true,
+  "finite_checks_passed": true,
+  "initial_state_id": "runtime-demo",
+  "operationally_usable": true,
+  "resource_units": 1.0,
+  "run_id": "runtime-run:baseline",
+  "score_trajectory": [
+    {
+      "finite_proxy_gain": 0.1,
+      "score_id": "score:baseline",
+      "total_score": 0.1
+    }
+  ],
+  "settled": false,
+  "threshold_crossing_step": null
+}

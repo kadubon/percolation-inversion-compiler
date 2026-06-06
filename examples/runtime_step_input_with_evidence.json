@@ -1,0 +1,40 @@
+{
+  "agent_output": "ECPT runtime packet: proxy target evidence was checked by a finite verifier route and remains protocol-relative.",
+  "allow_live_connectors": false,
+  "edge_certificates": [],
+  "evidence_envelope_refs": [],
+  "evidence_envelopes": [
+    {
+      "deterministic": true,
+      "envelope_id": "runtime-proxy-target-envelope",
+      "evidence_artifacts": [
+        {
+          "attestation_ref": "github-artifact-attestation:runtime-proxy-target-fixture",
+          "attestation_verified": true,
+          "artifact_id": "runtime-proxy-target-fixture",
+          "evidence_kind": "finite-proxy-target-contract",
+          "media_type": "application/json",
+          "produced_at": "2026-06-06T00:00:00Z",
+          "producer_id": "pic-example-generator",
+          "schema_sha256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+          "schema_uri": "https://github.com/kadubon/percolation-inversion-compiler/schemas/VerifierEvidenceEnvelope",
+          "sha256": "a0774a3c0b3b2f3f81a726d70d30ab4c5add8203afa96b27ad170527a30d0fe6",
+          "verifier_id": "pic-core-envelope-checker",
+          "verifier_version": "0.3.1"
+        }
+      ],
+      "evidence_kind": [
+        "finite-proxy-target-contract"
+      ],
+      "obligation_ids": [
+        "obligation:baseline-safety"
+      ],
+      "residual_coordinates": {},
+      "route_id": "adapters.domain.verify_ecpt_proxy_target_contract"
+    }
+  ],
+  "input_id": "runtime-step-with-evidence",
+  "live_sources": [],
+  "local_sources": [],
+  "packets": []
+}

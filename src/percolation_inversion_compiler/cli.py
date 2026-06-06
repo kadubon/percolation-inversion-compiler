@@ -69,11 +69,18 @@ from percolation_inversion_compiler.io.schema import load_data
 from percolation_inversion_compiler.runtime import (
     ActionCommitPolicy,
     AgentRuntimeConfig,
+    RuntimeActionResult,
+    RuntimeRunReport,
     RuntimeServiceSettings,
     RuntimeState,
     RuntimeStepInput,
+    RuntimeStepReport,
+    apply_action_results,
     build_runtime_step,
+    certify_runtime_acceleration,
+    compare_runtime_runs,
     create_runtime_app,
+    resolve_step_evidence,
     run_runtime_loop,
     run_runtime_service,
     runtime_health,
@@ -251,6 +258,30 @@ def _load_runtime_step_input(path: Path) -> RuntimeStepInput:
     if not isinstance(raw, dict):
         raise typer.BadParameter("runtime input file must contain an object")
     return RuntimeStepInput.model_validate(raw)
+
+
+def _load_runtime_step_report(path: Path) -> RuntimeStepReport:
+    data = load_data(path)
+    raw = data.get("runtime_step_report", data.get("report", data))
+    if not isinstance(raw, dict):
+        raise typer.BadParameter("runtime report file must contain an object")
+    return RuntimeStepReport.model_validate(raw)
+
+
+def _load_runtime_action_results(path: Path) -> list[RuntimeActionResult]:
+    data = load_data(path)
+    raw = data.get("results", data.get("runtime_action_results"))
+    if not isinstance(raw, list):
+        raise typer.BadParameter("runtime results file must contain a results list")
+    return [RuntimeActionResult.model_validate(item) for item in raw]
+
+
+def _load_runtime_run_report(path: Path) -> RuntimeRunReport:
+    data = load_data(path)
+    raw = data.get("runtime_run_report", data.get("run", data))
+    if not isinstance(raw, dict):
+        raise typer.BadParameter("runtime run file must contain an object")
+    return RuntimeRunReport.model_validate(raw)
 
 
 def _load_runtime_inputs(path: Path) -> list[RuntimeStepInput]:
@@ -1169,6 +1200,113 @@ def runtime_loop_command(
     )
     reports = run_runtime_loop(parsed_state, parsed_inputs, config, max_steps=max_steps)
     _dump({"reports": [report.model_dump(mode="json") for report in reports]}, output)
+
+
+@runtime_app.command("resolve-evidence")
+def runtime_resolve_evidence_command(
+    step_input: Annotated[
+        Path,
+        typer.Option("--input", help="RuntimeStepInput JSON/YAML with inline evidence."),
+    ],
+    profile: Annotated[
+        str,
+        typer.Option("--profile", help="Evidence verification profile."),
+    ] = "development",
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Resolve runtime step evidence envelopes against verifier routes."""
+
+    parsed_input = _load_runtime_step_input(step_input)
+    batch = resolve_step_evidence(parsed_input, profile=profile)
+    _dump(batch.model_dump(mode="json"), output)
+    if not batch.accepted and profile == "production":
+        raise typer.Exit(1)
+
+
+@runtime_app.command("apply-results")
+def runtime_apply_results_command(
+    state: Annotated[
+        Path,
+        typer.Option("--state", help="RuntimeState JSON/YAML."),
+    ],
+    report: Annotated[
+        Path,
+        typer.Option("--report", help="RuntimeStepReport JSON/YAML."),
+    ],
+    results: Annotated[
+        Path,
+        typer.Option("--results", help="JSON/YAML object containing a results list."),
+    ],
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write next RuntimeState JSON.")
+    ] = None,
+) -> None:
+    """Apply agent action results to runtime state without status promotion."""
+
+    next_state = apply_action_results(
+        _load_runtime_state(state),
+        _load_runtime_step_report(report),
+        _load_runtime_action_results(results),
+    )
+    _dump(next_state.model_dump(mode="json"), output)
+
+
+@runtime_app.command("compare")
+def runtime_compare_command(
+    baseline: Annotated[
+        Path,
+        typer.Option("--baseline", help="Baseline RuntimeRunReport JSON/YAML."),
+    ],
+    candidate: Annotated[
+        Path,
+        typer.Option("--candidate", help="Candidate RuntimeRunReport JSON/YAML."),
+    ],
+    threshold: Annotated[
+        Path | None,
+        typer.Option("--threshold", help="Optional threshold object JSON/YAML."),
+    ] = None,
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Compare baseline and candidate runtime runs."""
+
+    comparison = compare_runtime_runs(
+        _load_runtime_run_report(baseline),
+        _load_runtime_run_report(candidate),
+        {} if threshold is None else _threshold_from_file(threshold),
+    )
+    _dump(comparison.model_dump(mode="json"), output)
+
+
+@runtime_app.command("certify-acceleration")
+def runtime_certify_acceleration_command(
+    baseline: Annotated[
+        Path,
+        typer.Option("--baseline", help="Baseline RuntimeRunReport JSON/YAML."),
+    ],
+    candidate: Annotated[
+        Path,
+        typer.Option("--candidate", help="Candidate RuntimeRunReport JSON/YAML."),
+    ],
+    threshold: Annotated[
+        Path | None,
+        typer.Option("--threshold", help="Optional threshold object JSON/YAML."),
+    ] = None,
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Build a finite ECPT ASI-proxy acceleration certificate."""
+
+    certificate = certify_runtime_acceleration(
+        _load_runtime_run_report(baseline),
+        _load_runtime_run_report(candidate),
+        {} if threshold is None else _threshold_from_file(threshold),
+    )
+    _dump(certificate.model_dump(mode="json"), output)
 
 
 @runtime_app.command("health")

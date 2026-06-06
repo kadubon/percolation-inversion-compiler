@@ -1,5 +1,13 @@
 # Changelog
 
+## v0.3.1 - 2026-06-06
+
+- Closes the ECPT active agent runtime loop with action-result application, event logs, evidence resolution batches, verified packet promotion, and runtime run comparison.
+- Adds finite `AccelerationCertificate` and `RuntimeComparisonReport` records so agents can compare baseline and candidate ASI-proxy phase-control runs without claiming unobserved ASI, physical, simulator, or oracle outcomes.
+- Adds edge witness certificates, capability basin contracts, packet promotion reports, packet rejection records, and basin reachability reports for stricter packet-capital and false-liquidity control.
+- Extends SQOT integration so stale, hash-invalid, unsafe-route, authority-invalid, and rollback-missing packets are quarantined and cannot make runtime output operationally usable.
+- Adds `pic runtime resolve-evidence`, `pic runtime apply-results`, `pic runtime compare`, and `pic runtime certify-acceleration`, plus matching local HTTP service endpoints.
+
 ## v0.3.0 - 2026-06-06
 
 - Adds the ECPT active agent runtime with stable `RuntimeState`, `RuntimeStepInput`, `RuntimeStepReport`, `AgentTask`, `RouteExecutionRequest`, `ActionCommit`, `PhaseAccelerationScore`, and runtime health records.

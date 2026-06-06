@@ -1,7 +1,7 @@
 [project]
 name = "percolation-inversion-compiler"
-version = "0.3.0"
-description = "ECPT active agent runtime and production-oriented finite verifier-routing SDK for ASI-proxy phase-control, packet ecology, salience scheduling, proof obligations, residual ledgers, provenance, and optional local HTTP service integration."
+version = "0.3.1"
+description = "Closed-loop ECPT active agent runtime and finite verifier-routing SDK for ASI-proxy phase-control, verified packet promotion, acceleration certificates, proof obligations, residual ledgers, provenance, and local HTTP service integration."
 readme = "README.md"
 requires-python = ">=3.11"
 license = { text = "Apache-2.0" }
@@ -99,7 +99,7 @@ testpaths = ["tests"]
 addopts = "-q"
 
 [tool.coverage.report]
-fail_under = 87
+fail_under = 88
 
 [tool.bandit]
 exclude_dirs = ["tests", ".venv", "build", "dist"]

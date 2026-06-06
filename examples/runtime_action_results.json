@@ -1,0 +1,42 @@
+{
+  "results": [
+    {
+      "accepted": true,
+      "action_id": "route-proxy-target-evidence",
+      "executed": true,
+      "finite_checks_passed": true,
+      "observed_delta": {
+        "proxy_target_route_resolved": 1.0
+      },
+      "operationally_usable": true,
+      "output_packets": [
+        {
+          "claim": "Applied ECPT runtime result preserved residual ledger and produced a follow-up packet.",
+          "content_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+          "evidence_refs": [
+            "sha256:2222222222222222222222222222222222222222222222222222222222222222"
+          ],
+          "expected_downstream_gain": 0.2,
+          "packet_id": "packet:runtime-result-followup",
+          "receiver_family": [
+            "agent",
+            "verifier"
+          ],
+          "source_kind": "agent-output",
+          "source_ref": "runtime-action-result",
+          "tags": [
+            "ecpt",
+            "phase"
+          ],
+          "verification_cost": 0.05
+        }
+      ],
+      "output_ref": "runtime-result-followup",
+      "output_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+      "result_id": "runtime-action-result-1",
+      "rollback_available": true,
+      "settled": false,
+      "task_id": "task:phase-action:route-proxy-target-evidence"
+    }
+  ]
+}

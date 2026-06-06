@@ -2,7 +2,9 @@
 
 `PhaseAccelerationScore` is a finite ranking signal for agent work. It is not a
 certificate that ASI has been achieved. It summarizes how a runtime step changes
-the protocol-relative ASI-proxy planning surface.
+the protocol-relative ASI-proxy planning surface. v0.3.1 adds
+`AccelerationCertificate` for baseline/candidate comparison; the score ranks a
+step, while the certificate checks a finite run-level acceleration claim.
 
 The score combines:
 
@@ -29,3 +31,5 @@ Agent usage:
 3. Refuse main operational execution when `missing_obligations` is nonempty.
 4. Route `route_execution_requests` and re-run the runtime after evidence
    verification.
+5. Use `pic runtime compare` or `pic runtime certify-acceleration` before
+   claiming finite protocol-relative improvement over a baseline.

@@ -28,6 +28,10 @@ uv run pic ecology psi --registry ecology-registry.json --threshold examples\eco
 uv run pic ecology plan --registry ecology-registry.json --psi ecology-psi.json --profile production
 uv run pic ecology loop --state examples\ecology_loop_state.json --agent-output "SQOT reserve packet for ECPT active phase-control."
 uv run pic runtime step --state examples\runtime_state.json --input examples\runtime_step_input.json --profile production
+uv run pic runtime resolve-evidence --input examples\runtime_step_input_with_evidence.json --profile production
+uv run pic runtime apply-results --state examples\runtime_state.json --report runtime-step.json --results examples\runtime_action_results.json --output runtime-next-state.json
+uv run pic runtime compare --baseline examples\runtime_baseline_run.json --candidate examples\runtime_candidate_run.json --threshold examples\runtime_threshold.json
+uv run pic runtime certify-acceleration --baseline examples\runtime_baseline_run.json --candidate examples\runtime_candidate_run.json
 uv run pic runtime loop --state examples\runtime_state.json --inputs examples\runtime_loop_inputs.jsonl --max-steps 2 --profile production
 uv run pic runtime health --state examples\runtime_state.json --profile production
 uv run pic runtime export-openapi --output runtime-openapi.json
@@ -66,10 +70,13 @@ An agent connector should implement this policy:
 9. For ECPT active planning, treat `PhaseControlPlan.selected_actions` as
    ranked finite recommendations and route every `missing_obligations` entry
    before main operational execution.
-10. For v0.3.0 active runtime, submit observations through `RuntimeStepInput`,
+10. For v0.3.1 active runtime, submit observations through `RuntimeStepInput`,
     let the runtime rebuild packet edges, update Psi, run SQOT scheduling,
     rank ECPT phase-control tasks, and preserve residual ledgers without
     settling unresolved proof obligations.
+11. Resolve evidence envelopes, promote only verified packets, apply
+    `RuntimeActionResult` records, and compare runtime runs before treating a
+    candidate strategy as finite ASI-proxy acceleration.
 
 ## Routing Recipe
 
@@ -146,21 +153,25 @@ can use the package to organize capability, bottleneck, and cyber-physical
 frontier evidence. They must not treat it as evidence for unobserved ASI,
 unconditional phase transition claims, or uncertified simulator output.
 
-In v0.3.0, the workflow is active at the runtime level. `pic runtime step`
+In v0.3.1, the workflow is closed-loop at the runtime level. `pic runtime step`
 converts agent output into packets, builds edge witnesses, updates Psi, ranks
 bottleneck and ECPT phase-control tasks, schedules work through SQOT, emits
-verifier route requests, and returns `phase_acceleration_score`. `pic runtime
-loop` preserves the residual ledger across multiple inputs. These outputs
-accelerate protocol-relative ASI-proxy phase-control evaluation and routing;
-they remain diagnostic or provisional until verifier evidence discharges the
-relevant external obligations.
+verifier route requests, resolves inline evidence, promotes verified packet
+capital, and returns `phase_acceleration_score`. `pic runtime apply-results`
+feeds task outcomes back into the event log and registry. `pic runtime compare`
+and `pic runtime certify-acceleration` compare a candidate run to a
+resource-matched baseline. These outputs accelerate protocol-relative
+ASI-proxy phase-control evaluation and routing; they remain diagnostic or
+provisional until verifier evidence discharges the relevant external
+obligations.
 
 ## SDK and Service Paths
 
 Agents that run in Python should call `build_runtime_step`,
-`run_runtime_loop`, and `runtime_health` directly. Agents written in other
-languages should use the schema bundle plus either deterministic CLI JSON or
-the optional local HTTP service.
+`resolve_step_evidence`, `apply_action_results`, `compare_runtime_runs`,
+`certify_runtime_acceleration`, `run_runtime_loop`, and `runtime_health`
+directly. Agents written in other languages should use the schema bundle plus
+either deterministic CLI JSON or the optional local HTTP service.
 
 Production HTTP service usage requires `PIC_RUNTIME_TOKEN` bearer auth:
 

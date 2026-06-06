@@ -14,14 +14,21 @@ from percolation_inversion_compiler.core import (
 from percolation_inversion_compiler.ecology import ingest_agent_output, ingest_live_source
 from percolation_inversion_compiler.ecology.connectors import infer_live_kind
 from percolation_inversion_compiler.runtime.algorithms import (
+    apply_action_results,
     build_runtime_step,
+    certify_runtime_acceleration,
+    compare_runtime_runs,
+    resolve_step_evidence,
     run_runtime_loop,
 )
 from percolation_inversion_compiler.runtime.records import (
     AgentRuntimeConfig,
+    RuntimeActionResult,
+    RuntimeRunReport,
     RuntimeServiceSettings,
     RuntimeState,
     RuntimeStepInput,
+    RuntimeStepReport,
 )
 
 
@@ -36,7 +43,7 @@ def create_runtime_app(settings: RuntimeServiceSettings | None = None) -> Any:
 
     fastapi_app = fastapi.FastAPI(
         title="Percolation Inversion Compiler Runtime",
-        version="0.3.0",
+        version="0.3.1",
         description="Local-first ECPT active ASI-proxy phase-control runtime service.",
     )
     http_exception = fastapi.HTTPException
@@ -106,6 +113,49 @@ def create_runtime_app(settings: RuntimeServiceSettings | None = None) -> Any:
         )
         return {"reports": [report.model_dump(mode="json") for report in reports]}
 
+    async def runtime_result_apply(
+        request: Any,
+    ) -> dict[str, Any]:
+        require_auth(_authorization(request))
+        payload = await request.json()
+        state = RuntimeState.model_validate(payload.get("state"))
+        report = RuntimeStepReport.model_validate(payload.get("report"))
+        results = [RuntimeActionResult.model_validate(item) for item in payload.get("results", [])]
+        next_state = apply_action_results(state, report, results)
+        return next_state.model_dump(mode="json")
+
+    async def runtime_evidence_resolve(
+        request: Any,
+    ) -> dict[str, Any]:
+        require_auth(_authorization(request))
+        payload = await request.json()
+        step_input = RuntimeStepInput.model_validate(payload.get("input", payload))
+        profile = str(payload.get("profile", active_settings.profile))
+        batch = resolve_step_evidence(step_input, profile=profile)
+        return batch.model_dump(mode="json")
+
+    async def runtime_compare(
+        request: Any,
+    ) -> dict[str, Any]:
+        require_auth(_authorization(request))
+        payload = await request.json()
+        baseline = RuntimeRunReport.model_validate(payload.get("baseline"))
+        candidate = RuntimeRunReport.model_validate(payload.get("candidate"))
+        threshold = payload.get("threshold", {})
+        comparison = compare_runtime_runs(baseline, candidate, threshold)
+        return comparison.model_dump(mode="json")
+
+    async def runtime_certify_acceleration(
+        request: Any,
+    ) -> dict[str, Any]:
+        require_auth(_authorization(request))
+        payload = await request.json()
+        baseline = RuntimeRunReport.model_validate(payload.get("baseline"))
+        candidate = RuntimeRunReport.model_validate(payload.get("candidate"))
+        threshold = payload.get("threshold", {})
+        certificate = certify_runtime_acceleration(baseline, candidate, threshold)
+        return certificate.model_dump(mode="json")
+
     async def ecology_ingest(
         request: Any,
     ) -> dict[str, Any]:
@@ -152,6 +202,10 @@ def create_runtime_app(settings: RuntimeServiceSettings | None = None) -> Any:
         service_health,
         runtime_step,
         runtime_loop,
+        runtime_result_apply,
+        runtime_evidence_resolve,
+        runtime_compare,
+        runtime_certify_acceleration,
         ecology_ingest,
         evidence_verify,
         openapi_schema,
@@ -161,6 +215,18 @@ def create_runtime_app(settings: RuntimeServiceSettings | None = None) -> Any:
     fastapi_app.add_api_route("/health", service_health, methods=["GET"])
     fastapi_app.add_api_route("/runtime/step", runtime_step, methods=["POST"])
     fastapi_app.add_api_route("/runtime/loop", runtime_loop, methods=["POST"])
+    fastapi_app.add_api_route("/runtime/result/apply", runtime_result_apply, methods=["POST"])
+    fastapi_app.add_api_route(
+        "/runtime/evidence/resolve",
+        runtime_evidence_resolve,
+        methods=["POST"],
+    )
+    fastapi_app.add_api_route("/runtime/compare", runtime_compare, methods=["POST"])
+    fastapi_app.add_api_route(
+        "/runtime/certify-acceleration",
+        runtime_certify_acceleration,
+        methods=["POST"],
+    )
     fastapi_app.add_api_route("/ecology/ingest", ecology_ingest, methods=["POST"])
     fastapi_app.add_api_route("/evidence/verify", evidence_verify, methods=["POST"])
     fastapi_app.add_api_route("/schemas/openapi.json", openapi_schema, methods=["GET"])
