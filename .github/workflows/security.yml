@@ -49,7 +49,10 @@ jobs:
           uv run pic schema --all --output-dir "$RUNNER_TEMP/schema-smoke"
           uv run pic provenance create --schema-dir "$RUNNER_TEMP/schema-smoke" --output "$RUNNER_TEMP/provenance.json"
           uv run pic provenance verify --manifest "$RUNNER_TEMP/provenance.json"
-          uv run python scripts/generate_sbom.py --output "$RUNNER_TEMP/pic.sbom.json"
+          ! uv run pic provenance verify --manifest "$RUNNER_TEMP/provenance.json" --require-attestation
+          uv run pic sbom create --format pic --output "$RUNNER_TEMP/pic.sbom.json"
+          uv run pic sbom create --format cyclonedx --output "$RUNNER_TEMP/cyclonedx.sbom.json"
+          uv run pic parse audit --source tests/fixtures/minimal_claims.tex --strict-grammar
 
   dependency-review:
     if: github.event_name == 'pull_request'

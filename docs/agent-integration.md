@@ -18,6 +18,8 @@ uv run pic schema --all --output-dir schemas
 uv run pic provenance create --schema-dir schemas --output provenance.json
 uv run pic provenance verify --manifest provenance.json
 uv run pic routes bindings
+uv run pic routes explain --route adapters.domain.verify_trc_telemetry_calibration
+uv run pic doctor --profile production --required-route adapters.domain.verify_trc_telemetry_calibration --provenance provenance.json --fail-on fail
 uv run pic evidence verify --envelope examples\evidence_envelope.json --profile production
 uv run pic evidence discharge --envelope examples\evidence_envelope.json --obligations examples\external_obligations.json --profile production
 uv run pic demo datacenter
@@ -40,8 +42,10 @@ An agent connector should implement this policy:
 2. Run `pic doctor` in the execution environment before operational use.
 3. Run a checker command before using registry or frontier records.
 4. Treat `declared_status` as metadata and `derived_status` as checker output.
-5. Inspect `finite_checks_passed`, `operationally_usable`, and `settled`;
-   `accepted` alone is not an operational approval.
+5. Inspect `finite_checks_passed`, `finite_scope_usable`,
+   `operationally_usable`, `settled`, `settled_scope`, and
+   `residual_external_obligations`; `accepted` alone is not an operational
+   approval.
 6. Refuse main operational actions when `missing_obligations` is nonempty.
 7. Route external proof obligations through `DischargeRouteBinding`,
    `VerifierEvidenceEnvelope`, `VerifierResolution`, and then a
@@ -58,10 +62,13 @@ For each audit report:
    category, not by informal label text.
 3. For every external item, call `pic explain external <item-id>` and validate
    the result against `TheoryImplementationRecord.schema.json`.
-4. Call the domain adapter only when it can produce an accepted
+4. For every intended verifier route, call `pic routes explain --route
+   <route-id>` and preserve `settled_scope` and
+   `residual_external_obligations`.
+5. Call the domain adapter only when it can produce an accepted
    `VerifierResolution` with evidence artifact ids and a resolution digest.
    Convert it to an `ExternalVerifierHook` only after that provenance exists.
-5. Keep the safe default when the hook is missing, rejected, nondeterministic, or
+6. Keep the safe default when the hook is missing, rejected, nondeterministic, or
    outside the advertised verifier contract.
 
 Minimal unresolved hook shape:
@@ -105,6 +112,13 @@ In the `production` evidence profile, metadata-only artifacts are rejected.
 Every artifact must either point to replayable `content_ref` whose SHA-256 digest
 matches, or be handled by a future crypto/attestation adapter. The core package
 does not accept a bare digest as production evidence.
+
+Release provenance can be verified with a local SHA-256 manifest. GitHub
+artifact-attested releases can additionally require attestation metadata:
+
+```powershell
+uv run pic provenance verify --manifest release-provenance.json --require-attestation
+```
 
 ## ASI-Proxy Framing
 

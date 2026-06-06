@@ -8,12 +8,20 @@ from percolation_inversion_compiler.io.doctor import (
     readiness_profile,
 )
 from percolation_inversion_compiler.io.provenance import (
+    AttestationRecord,
     ProvenanceManifest,
     ProvenanceManifestEntry,
+    ReleaseArtifactManifest,
     SchemaBundleDigest,
     create_provenance_manifest,
     schema_bundle_digest,
     verify_provenance_manifest,
+)
+from percolation_inversion_compiler.io.sbom import (
+    SBOMManifest,
+    build_cyclonedx_sbom,
+    build_pic_sbom,
+    build_sbom_document,
 )
 from percolation_inversion_compiler.io.schema import (
     PortabilitySchemaBundle,
@@ -37,11 +45,14 @@ from percolation_inversion_compiler.io.tex import (
     ExtractedArtifact,
     ExtractedFile,
     MRRecord,
+    StrictTexParseReport,
+    TexGrammarDiagnostic,
     count_mr_records_by_category,
     extract_artifact,
     extract_filecontents,
     extract_mr_records,
     extract_theory_coverage,
+    strict_tex_parse_report,
 )
 from percolation_inversion_compiler.io.zenodo import (
     CANONICAL_RECORDS,
@@ -54,6 +65,7 @@ from percolation_inversion_compiler.io.zenodo import (
 
 __all__ = [
     "CANONICAL_RECORDS",
+    "AttestationRecord",
     "CanonicalManifest",
     "CanonicalManifestRecord",
     "CanonicalRecord",
@@ -63,13 +75,20 @@ __all__ = [
     "PortabilitySchemaBundle",
     "ProvenanceManifest",
     "ProvenanceManifestEntry",
+    "ReleaseArtifactManifest",
+    "SBOMManifest",
     "SchemaBundleDigest",
     "SnapshotAttribution",
     "SnapshotCatalog",
+    "StrictTexParseReport",
+    "TexGrammarDiagnostic",
     "TheorySnapshot",
     "TheorySnapshotItem",
     "audit_theory_source",
+    "build_cyclonedx_sbom",
     "build_operational_readiness_report",
+    "build_pic_sbom",
+    "build_sbom_document",
     "canonical_manifest",
     "count_mr_records_by_category",
     "create_provenance_manifest",
@@ -87,6 +106,7 @@ __all__ = [
     "schema_bundle_digest",
     "schema_by_type",
     "snapshot_delta",
+    "strict_tex_parse_report",
     "validate_canonical_source",
     "validate_data",
     "verify_provenance_manifest",

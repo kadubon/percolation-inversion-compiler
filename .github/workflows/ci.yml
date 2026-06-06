@@ -48,7 +48,7 @@ jobs:
         run: uv run mypy src scripts
 
       - name: Test
-        run: uv run pytest --cov=percolation_inversion_compiler --cov-report=term-missing --cov-fail-under=82
+        run: uv run pytest --cov=percolation_inversion_compiler --cov-report=term-missing --cov-fail-under=84
 
       - name: Build package
         run: uv build
@@ -67,18 +67,24 @@ jobs:
           uv run pic snapshot verify --artifact trc
           uv run pic snapshot routes
           uv run pic routes bindings
+          uv run pic routes explain --route adapters.domain.verify_trc_telemetry_calibration
           uv run pic explain external def:null-channel-routing --from-snapshot
           uv run pic doctor --fail-on never
+          uv run pic doctor --profile production --required-route adapters.domain.verify_trc_telemetry_calibration --fail-on never
           uv run pic doctor --profile production --fail-on never
           uv run pic doctor --profile production --provenance "$RUNNER_TEMP/provenance.json" --fail-on fail
+          ! uv run pic provenance verify --manifest "$RUNNER_TEMP/provenance.json" --require-attestation
           uv run pic validate --registry examples/minimal_registry.json
           uv run pic evidence verify --envelope examples/evidence_envelope.json --profile production
           uv run pic evidence discharge --envelope examples/evidence_envelope.json --obligations examples/external_obligations.json --profile production
           uv run pic check --source tests/fixtures/minimal_claims.tex --strict-projection --derive-status
+          uv run pic parse audit --source tests/fixtures/minimal_claims.tex --strict-grammar
           uv run pic audit theory --source tests/fixtures/minimal_claims.tex --fail-on projection
+          uv run pic audit theory --source tests/fixtures/minimal_claims.tex --strict-grammar --fail-on projection
           uv run pic compile --records examples/frontier_records.json --archive-cap 8
           uv run pic demo datacenter
-          uv run python scripts/generate_sbom.py --output "$RUNNER_TEMP/pic.sbom.json"
+          uv run pic sbom create --format pic --output "$RUNNER_TEMP/pic.sbom.json"
+          uv run pic sbom create --format cyclonedx --output "$RUNNER_TEMP/cyclonedx.sbom.json"
 
       - name: Validate citation metadata
         run: uv run python scripts/validate_citation.py

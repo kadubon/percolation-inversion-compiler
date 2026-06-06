@@ -129,6 +129,9 @@ class ExternalVerifierHook(BaseModel):
     rejected_obligation_ids: set[str] = Field(default_factory=set)
     failure_modes: dict[str, str] = Field(default_factory=dict)
     residual_coordinates: dict[str, float] = Field(default_factory=dict)
+    settled_scope: list[str] = Field(default_factory=list)
+    residual_external_obligations: set[str] = Field(default_factory=set)
+    domain_witness_required: bool = False
     resolution_id: str | None = None
     resolution_digest: str | None = None
     evidence_envelope_id: str | None = None

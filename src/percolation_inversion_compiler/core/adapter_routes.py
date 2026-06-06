@@ -172,6 +172,10 @@ class VerifierResolution(BaseModel):
     evidence_envelope_id: str | None = None
     evidence_artifact_ids: list[str] = Field(default_factory=list)
     resolution_digest: str
+    settled_scope: list[str] = Field(default_factory=list)
+    finite_scope_usable: bool = False
+    residual_external_obligations: list[str] = Field(default_factory=list)
+    domain_witness_required: bool = False
     operationally_usable: bool = False
     settled: bool = False
     accepted_obligation_ids: list[str] = Field(default_factory=list)
@@ -200,10 +204,13 @@ class VerifierResolution(BaseModel):
             hook_id=f"hook:{self.resolution_id}",
             verifier_route=self.route_id,
             obligation_ids=set(self.accepted_obligation_ids + self.rejected_obligation_ids),
-            accepted_obligation_ids=set(self.accepted_obligation_ids),
-            rejected_obligation_ids=set(self.rejected_obligation_ids),
+            accepted_obligation_ids=set(self.accepted_obligation_ids if self.settled else []),
+            rejected_obligation_ids=set(self.rejected_obligation_ids if not self.settled else []),
             residual_policy=self.safe_default,
             safe_default=self.safe_default,
+            settled_scope=self.settled_scope,
+            residual_external_obligations=set(self.residual_external_obligations),
+            domain_witness_required=self.domain_witness_required,
             resolution_id=self.resolution_id,
             resolution_digest=self.resolution_digest,
             evidence_envelope_id=self.evidence_envelope_id,
@@ -223,8 +230,10 @@ class DischargeRouteBinding(BaseModel):
     implemented_verifier_route: str
     obligation_category: str
     discharge_level: DischargeLevel
+    settlement_scope: list[str] = Field(default_factory=list)
     evidence_kind_map: dict[str, str] = Field(default_factory=dict)
     unresolved_domain_obligations: list[str] = Field(default_factory=list)
+    residual_external_obligation_refs: list[str] = Field(default_factory=list)
     residual_policy: str
     safe_default: str
 
@@ -450,6 +459,13 @@ def _binding_for_contract_spec(
         else kind
         for index, kind in enumerate(spec.required_evidence_kind)
     }
+    scope_prefix = {
+        DischargeLevel.FINITE_VALUE_CHECK: "finite-value",
+        DischargeLevel.REPLAY_CHECK: "finite-replay",
+        DischargeLevel.CONTRACT_ENFORCED: "contract-envelope",
+        DischargeLevel.EXTERNAL_DOMAIN_REQUIRED: "routing-contract",
+    }[discharge_level]
+    settlement_scope = [f"{scope_prefix}:{implemented_route_id}"]
     return DischargeRouteBinding(
         binding_id=f"binding:{spec.route_id}->{implemented_route_id}",
         canonical_route_id=spec.route_id,
@@ -458,8 +474,10 @@ def _binding_for_contract_spec(
         implemented_verifier_route=implemented.verifier_route,
         obligation_category=spec.obligation_category,
         discharge_level=discharge_level,
+        settlement_scope=settlement_scope,
         evidence_kind_map=evidence_kind_map,
         unresolved_domain_obligations=sorted(unresolved),
+        residual_external_obligation_refs=sorted(unresolved),
         residual_policy=spec.residual_policy,
         safe_default=spec.safe_default,
     )
@@ -579,18 +597,41 @@ def resolve_adapter_route(
     discharge_level = (
         active_binding.discharge_level if active_binding is not None else spec.discharge_level
     )
-    settled = accepted and discharge_level != DischargeLevel.EXTERNAL_DOMAIN_REQUIRED
+    residual_external_obligations = (
+        active_binding.residual_external_obligation_refs if active_binding is not None else []
+    )
+    if (
+        discharge_level == DischargeLevel.EXTERNAL_DOMAIN_REQUIRED
+        and not residual_external_obligations
+    ):
+        residual_external_obligations = ["external-domain-witness"]
+    settled_scope = (
+        active_binding.settlement_scope
+        if active_binding is not None
+        else [f"{discharge_level.value}:{spec.route_id}"]
+    )
+    finite_scope_usable = accepted and bool(settled_scope)
+    domain_witness_required = bool(residual_external_obligations) or (
+        discharge_level == DischargeLevel.EXTERNAL_DOMAIN_REQUIRED
+    )
+    settled = accepted and not domain_witness_required
+    accepted_obligation_ids = evidence.obligation_ids if settled else []
+    rejected_obligation_ids = [] if settled else evidence.obligation_ids
     resolution_payload = {
         "accepted": accepted,
-        "accepted_obligation_ids": evidence.obligation_ids if accepted else [],
+        "accepted_obligation_ids": accepted_obligation_ids,
         "artifact_ids": [artifact.artifact_id for artifact in evidence.evidence_artifacts],
         "binding_id": None if active_binding is None else active_binding.binding_id,
+        "domain_witness_required": domain_witness_required,
         "discharge_level": discharge_level.value,
         "envelope_id": evidence.envelope_id,
+        "finite_scope_usable": finite_scope_usable,
         "profile": active_policy.profile.value,
         "reasons": sorted(set(reasons)),
-        "rejected_obligation_ids": [] if accepted else evidence.obligation_ids,
+        "rejected_obligation_ids": rejected_obligation_ids,
+        "residual_external_obligations": residual_external_obligations,
         "route_id": spec.route_id,
+        "settled_scope": settled_scope if accepted else [],
         "settled": settled,
     }
     digest = _resolution_digest(resolution_payload)
@@ -610,10 +651,14 @@ def resolve_adapter_route(
         evidence_envelope_id=evidence.envelope_id,
         evidence_artifact_ids=[artifact.artifact_id for artifact in evidence.evidence_artifacts],
         resolution_digest=digest,
+        settled_scope=settled_scope if accepted else [],
+        finite_scope_usable=finite_scope_usable,
+        residual_external_obligations=residual_external_obligations,
+        domain_witness_required=domain_witness_required,
         operationally_usable=settled,
         settled=settled,
-        accepted_obligation_ids=evidence.obligation_ids if accepted else [],
-        rejected_obligation_ids=[] if accepted else evidence.obligation_ids,
+        accepted_obligation_ids=accepted_obligation_ids,
+        rejected_obligation_ids=rejected_obligation_ids,
         missing_evidence_kind=missing,
         reasons=sorted(set(reasons)),
         residual_ledger=residual,

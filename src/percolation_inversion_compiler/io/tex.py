@@ -45,6 +45,25 @@ class MRRecord(BaseModel):
     line_number: int
 
 
+class TexGrammarDiagnostic(BaseModel):
+    """Strict TeX grammar diagnostic for fail-closed source audits."""
+
+    diagnostic_id: str
+    kind: str
+    severity: str = "error"
+    line_number: int
+    message: str
+    raw: str
+
+
+class StrictTexParseReport(BaseModel):
+    """Strict parse report for theorem-like and MRRecord syntax."""
+
+    source: str
+    accepted: bool
+    diagnostics: list[TexGrammarDiagnostic] = Field(default_factory=list)
+
+
 class ExtractedArtifact(BaseModel):
     """Machine-readable projection extracted from a TeX artifact."""
 
@@ -94,6 +113,16 @@ _DEFINITION_RE = re.compile(r"\\begin\{definition\}\[(.*?)\](?:\\label\{([^}]+)\
 _CLAIM_RE = re.compile(
     r"\\begin\{(theorem|proposition|lemma|corollary)\}\[(.*?)\](?:\\label\{([^}]+)\})?"
 )
+_ALLOWED_ITEM_ENVIRONMENTS = {"definition", "theorem", "proposition", "lemma", "corollary"}
+_BEGIN_ENV_RE = re.compile(r"\\begin\{([^}]+)\}")
+_LABEL_RE = re.compile(r"\\label\{([^}]+)\}")
+_MR_ARITY = {
+    "MRRecord": 3,
+    "MRClaim": 2,
+    "MRWitness": 2,
+    "MRDepends": 2,
+    "MRCitation": 3,
+}
 
 
 def extract_filecontents(source_text: str) -> list[ExtractedFile]:
@@ -231,6 +260,117 @@ def extract_mr_records(source_text: str) -> list[MRRecord]:
                     )
                 )
     return records
+
+
+def strict_tex_parse_report(source: str | Path) -> StrictTexParseReport:
+    """Diagnose claim-like TeX shapes that the extractor would otherwise ignore."""
+
+    path = Path(source)
+    lines = path.read_text(encoding="utf-8").splitlines()
+    diagnostics: list[TexGrammarDiagnostic] = []
+    seen_item_ids: dict[str, int] = {}
+    for index, line in enumerate(lines, start=1):
+        stripped = line.strip()
+        if begin_match := _BEGIN_ENV_RE.search(stripped):
+            environment = begin_match.group(1)
+            if environment in {"claim", "conjecture", "axiom", "assumption"}:
+                diagnostics.append(
+                    TexGrammarDiagnostic(
+                        diagnostic_id=f"tex-unknown-theorem-env:{index}",
+                        kind="unknown-theorem-environment",
+                        line_number=index,
+                        message=f"unsupported theorem-like environment {environment!r}",
+                        raw=stripped,
+                    )
+                )
+            if environment in _ALLOWED_ITEM_ENVIRONMENTS:
+                if environment == "definition":
+                    parsed = _DEFINITION_RE.search(stripped)
+                else:
+                    parsed = _CLAIM_RE.search(stripped)
+                if parsed is None:
+                    diagnostics.append(
+                        TexGrammarDiagnostic(
+                            diagnostic_id=f"tex-unparsed-item:{index}",
+                            kind="unparsed-claim-like-line",
+                            line_number=index,
+                            message="claim-like environment could not be parsed by strict grammar",
+                            raw=stripped,
+                        )
+                    )
+                    if index < len(lines) and _LABEL_RE.search(lines[index]):
+                        diagnostics.append(
+                            TexGrammarDiagnostic(
+                                diagnostic_id=f"tex-multiline-label:{index + 1}",
+                                kind="multi-line-label-parse-failure",
+                                line_number=index + 1,
+                                message="label was split away from theorem header",
+                                raw=lines[index].strip(),
+                            )
+                        )
+                else:
+                    label = parsed.groups()[-1]
+                    if label is None and index < len(lines) and _LABEL_RE.search(lines[index]):
+                        diagnostics.append(
+                            TexGrammarDiagnostic(
+                                diagnostic_id=f"tex-multiline-label:{index + 1}",
+                                kind="multi-line-label-parse-failure",
+                                line_number=index + 1,
+                                message="label was split away from theorem header",
+                                raw=lines[index].strip(),
+                            )
+                        )
+                    if label is not None:
+                        if label in seen_item_ids:
+                            diagnostics.append(
+                                TexGrammarDiagnostic(
+                                    diagnostic_id=f"tex-duplicate-label:{index}",
+                                    kind="duplicate-item-id",
+                                    line_number=index,
+                                    message=(
+                                        f"duplicate item id {label!r}; first seen at line "
+                                        f"{seen_item_ids[label]}"
+                                    ),
+                                    raw=stripped,
+                                )
+                            )
+                        seen_item_ids[label] = index
+        labels = _LABEL_RE.findall(stripped)
+        if labels and _BEGIN_ENV_RE.search(stripped) is None:
+            for label in labels:
+                if label.startswith(("def:", "thm:", "lem:", "prop:", "cor:")):
+                    diagnostics.append(
+                        TexGrammarDiagnostic(
+                            diagnostic_id=f"tex-orphan-label:{index}:{label}",
+                            kind="orphan-label",
+                            line_number=index,
+                            message=f"item label {label!r} is not attached to a parsed header",
+                            raw=stripped,
+                        )
+                    )
+        if stripped.startswith("\\MR"):
+            for macro_name, required_arity in _MR_ARITY.items():
+                if stripped.startswith(f"\\{macro_name}"):
+                    args = _parse_macro_args(stripped, macro_name)
+                    if len(args) != required_arity:
+                        diagnostics.append(
+                            TexGrammarDiagnostic(
+                                diagnostic_id=f"tex-mr-arity:{index}:{macro_name}",
+                                kind="mr-macro-arity-mismatch",
+                                line_number=index,
+                                message=(
+                                    f"{macro_name} expected {required_arity} arguments, "
+                                    f"parsed {len(args)}"
+                                ),
+                                raw=stripped,
+                            )
+                        )
+                    break
+    return StrictTexParseReport(
+        source=str(path),
+        accepted=not any(diagnostic.severity == "error" for diagnostic in diagnostics),
+        diagnostics=diagnostics,
+    )
 
 
 def count_mr_records_by_category(records: list[MRRecord]) -> dict[str, int]:

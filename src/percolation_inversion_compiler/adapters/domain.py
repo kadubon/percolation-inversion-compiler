@@ -1,4 +1,4 @@
-"""Deterministic finite domain-adapter checks for v0.2.1 evidence routes."""
+"""Deterministic finite domain-adapter checks for production evidence routes."""
 
 from __future__ import annotations
 

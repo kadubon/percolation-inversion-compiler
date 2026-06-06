@@ -12,6 +12,7 @@ from typing import Any
 
 from percolation_inversion_compiler import __version__
 from percolation_inversion_compiler.core.adapter_routes import (
+    DischargeLevel,
     list_adapter_route_specs,
     list_discharge_route_bindings,
 )
@@ -76,6 +77,7 @@ def build_operational_readiness_report(
     *,
     profile: str = "development",
     provenance: str | Path | None = None,
+    required_routes: list[str] | None = None,
 ) -> OperationalReadinessReport:
     """Build a deterministic readiness report without mutating local state."""
 
@@ -138,6 +140,24 @@ def build_operational_readiness_report(
 
     route_specs = list_adapter_route_specs()
     route_bindings = list_discharge_route_bindings()
+    required_route_ids = sorted(set(required_routes or []))
+    specs_by_id_or_route = {
+        key: spec for spec in route_specs for key in {spec.route_id, spec.verifier_route}
+    }
+    missing_required_routes = [
+        route_id for route_id in required_route_ids if route_id not in specs_by_id_or_route
+    ]
+    required_specs = [
+        specs_by_id_or_route[route_id]
+        for route_id in required_route_ids
+        if route_id in specs_by_id_or_route
+    ]
+    required_spec_ids = {spec.route_id for spec in required_specs}
+    for binding in route_bindings:
+        if binding.canonical_route_id in required_spec_ids:
+            implemented = specs_by_id_or_route.get(binding.implemented_route_id)
+            if implemented is not None:
+                required_specs.append(implemented)
     route_ids = {spec.verifier_route for spec in route_specs}
     binding_route_ids = {binding.canonical_route_id for binding in route_bindings}
     missing_routes: list[str] = []
@@ -151,10 +171,22 @@ def build_operational_readiness_report(
     )
     discharge_level_summary: dict[str, int] = {}
     unresolved_domain_obligations = 0
+    external_domain_required_routes: list[str] = []
+    contract_enforced_routes: list[str] = []
+    replay_residual_routes: list[str] = []
     for binding in route_bindings:
         key = binding.discharge_level.value
         discharge_level_summary[key] = discharge_level_summary.get(key, 0) + 1
         unresolved_domain_obligations += len(binding.unresolved_domain_obligations)
+        if binding.discharge_level == DischargeLevel.EXTERNAL_DOMAIN_REQUIRED:
+            external_domain_required_routes.append(binding.canonical_route_id)
+        if binding.discharge_level == DischargeLevel.CONTRACT_ENFORCED:
+            contract_enforced_routes.append(binding.canonical_route_id)
+        if (
+            binding.discharge_level == DischargeLevel.REPLAY_CHECK
+            and binding.residual_external_obligation_refs
+        ):
+            replay_residual_routes.append(binding.canonical_route_id)
     external_totals: dict[str, int] = {}
     for snapshot in snapshots:
         catalog = snapshot.external_obligation_catalog
@@ -169,6 +201,7 @@ def build_operational_readiness_report(
             "adapter-route-catalog",
             "fail"
             if missing_routes
+            or missing_required_routes
             or (policy.require_available_external_routes and unavailable_routes)
             or unbound_contract_routes
             else "pass",
@@ -178,13 +211,18 @@ def build_operational_readiness_report(
             missing_routes=sorted(set(missing_routes)),
             unavailable_routes=unavailable_routes,
             unbound_contract_routes=unbound_contract_routes,
+            missing_required_routes=missing_required_routes,
             discharge_level_summary=discharge_level_summary,
             unresolved_domain_obligation_count=unresolved_domain_obligations,
+            external_domain_required_routes=sorted(external_domain_required_routes),
+            contract_enforced_routes=sorted(contract_enforced_routes),
+            replay_residual_routes=sorted(replay_residual_routes),
         )
     )
 
+    dependency_scope = required_specs if required_specs else route_specs
     optional_dependencies = sorted(
-        {spec.optional_dependency for spec in route_specs if spec.optional_dependency}
+        {spec.optional_dependency for spec in dependency_scope if spec.optional_dependency}
     )
     dependency_status = {
         dependency: "installed" if find_spec(dependency) is not None else "missing"
@@ -316,11 +354,16 @@ def build_operational_readiness_report(
         checks=checks,
         summary={
             "profile": policy.profile,
+            "required_routes": required_route_ids,
             "schema_count": len(schemas),
             "snapshot_count": len(snapshots),
             "adapter_route_count": len(route_specs),
             "discharge_route_binding_count": len(route_bindings),
             "discharge_level_summary": discharge_level_summary,
+            "external_domain_required_routes": sorted(external_domain_required_routes),
+            "contract_enforced_routes": sorted(contract_enforced_routes),
+            "replay_residual_routes": sorted(replay_residual_routes),
+            "residual_external_obligation_count": unresolved_domain_obligations,
             "external_obligation_totals": external_totals,
             "optional_dependency_status": dependency_status,
             "canonical_manifest_records": len(canonical.records),

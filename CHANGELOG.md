@@ -1,5 +1,13 @@
 # Changelog
 
+## v0.2.2 - 2026-06-06
+
+- Adds settlement scope semantics to verifier resolutions and route bindings so finite replay/contract scope is separated from residual physical, oracle, policy, or domain obligations.
+- Adds route-scoped production doctor checks and `pic routes explain` for agent-selected verifier route sets.
+- Adds GitHub artifact-attestation metadata support in provenance manifests and `pic provenance verify --require-attestation`.
+- Adds CycloneDX SBOM generation through `pic sbom create --format cyclonedx`.
+- Adds strict TeX grammar diagnostics and `pic parse audit` so unknown theorem-like shapes and malformed MR macros are not silently ignored.
+
 ## v0.2.1 - 2026-06-06
 
 - Adds canonical-to-implementation discharge route bindings for external verifier routes.

@@ -47,7 +47,7 @@ def _artifact(*, content_ref: str | None = None, sha256: str | None = None) -> E
         producer_id="producer",
         produced_at="2026-06-06T00:00:00Z",
         verifier_id="verifier",
-        verifier_version="0.2.1",
+        verifier_version="0.2.2",
         content_ref=content_ref,
     )
 

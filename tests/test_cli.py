@@ -96,6 +96,9 @@ def test_cli_schema_bundle(tmp_path) -> None:  # type: ignore[no-untyped-def]
     assert (output_dir / "EvidenceVerificationProfile.schema.json").exists()
     assert (output_dir / "ProvenanceManifest.schema.json").exists()
     assert (output_dir / "SchemaBundleDigest.schema.json").exists()
+    assert (output_dir / "AttestationRecord.schema.json").exists()
+    assert (output_dir / "SBOMManifest.schema.json").exists()
+    assert (output_dir / "StrictTexParseReport.schema.json").exists()
     assert (output_dir / "schema-digest.json").exists()
     bundle = json.loads((output_dir / "bundle.schema.json").read_text(encoding="utf-8"))
     assert "AgentConnectorSpec" in bundle["schemas"]
@@ -110,6 +113,11 @@ def test_cli_schema_bundle(tmp_path) -> None:  # type: ignore[no-untyped-def]
     assert "EvidenceVerificationProfile" in bundle["schemas"]
     assert "ProvenanceManifest" in bundle["schemas"]
     assert "SchemaBundleDigest" in bundle["schemas"]
+    assert "AttestationRecord" in bundle["schemas"]
+    assert "SBOMManifest" in bundle["schemas"]
+    assert "StrictTexParseReport" in bundle["schemas"]
+    assert "settled_scope" in bundle["schemas"]["VerifierResolution"]["properties"]
+    assert "residual_external_obligations" in bundle["schemas"]["VerifierResolution"]["properties"]
     assert "CheckResult" in bundle["schemas"]
     assert "LedgerCoordinate" in bundle["schemas"]
     assert "OperationalReadinessReport" in bundle["schemas"]
@@ -273,8 +281,18 @@ def test_cli_snapshot_list_show_and_routes() -> None:
     assert any(
         binding["canonical_verifier_route"] == "trc.adapters.physical_hybrid.verify_envelope"
         and binding["discharge_level"] == "replay_check"
+        and binding["residual_external_obligation_refs"]
         for binding in binding_data["bindings"]
     )
+
+    explained = runner.invoke(
+        app,
+        ["routes", "explain", "--route", "adapters.domain.replay_trc_physical_trace"],
+    )
+    assert explained.exit_code == 0
+    explained_data = json.loads(explained.output)
+    assert explained_data["binding"]["discharge_level"] == "replay_check"
+    assert "continuous-physics-envelope" in explained_data["residual_external_obligations"]
 
     verified = runner.invoke(app, ["snapshot", "verify", "--artifact", "trc"])
     assert verified.exit_code == 0
@@ -345,6 +363,13 @@ def test_cli_provenance_create_verify_and_doctor(tmp_path) -> None:  # type: ign
     assert verify.exit_code == 0
     verify_data = json.loads(verify.output)
     assert verify_data["valid"]
+    require_attestation = runner.invoke(
+        app,
+        ["provenance", "verify", "--manifest", str(manifest_path), "--require-attestation"],
+    )
+    assert require_attestation.exit_code != 0
+    require_data = json.loads(require_attestation.output)
+    assert not require_data["valid"]
     doctor = runner.invoke(
         app,
         [
@@ -358,6 +383,30 @@ def test_cli_provenance_create_verify_and_doctor(tmp_path) -> None:  # type: ign
         ],
     )
     assert doctor.exit_code == 0
+
+
+def test_cli_sbom_and_strict_parse(tmp_path) -> None:  # type: ignore[no-untyped-def]
+    sbom_path = tmp_path / "cyclonedx.json"
+    sbom = runner.invoke(
+        app,
+        ["sbom", "create", "--format", "cyclonedx", "--output", str(sbom_path)],
+    )
+    assert sbom.exit_code == 0
+    sbom_data = json.loads(sbom_path.read_text(encoding="utf-8"))
+    assert sbom_data["bomFormat"] == "CycloneDX"
+    assert sbom_data["components"]
+
+    bad_source = tmp_path / "bad.tex"
+    bad_source.write_text(r"\begin{claim}[X]\label{claim:x}", encoding="utf-8")
+    parse = runner.invoke(app, ["parse", "audit", "--source", str(bad_source)])
+    assert parse.exit_code != 0
+    parse_data = json.loads(parse.output)
+    assert not parse_data["accepted"]
+    audit = runner.invoke(
+        app,
+        ["audit", "theory", "--source", str(bad_source), "--strict-grammar"],
+    )
+    assert audit.exit_code != 0
 
 
 def test_cli_compile_fail_fast_for_invalid_main() -> None:

@@ -133,7 +133,7 @@ def test_evidence_artifact_provenance_accepts_attested_digest() -> None:
                     producer_id="producer",
                     produced_at="2026-06-06T00:00:00Z",
                     verifier_id="verifier",
-                    verifier_version="0.2.1",
+                    verifier_version="0.2.2",
                 )
             ],
         ),
@@ -170,7 +170,7 @@ def test_evidence_artifact_hash_mismatch_is_diagnostic(tmp_path) -> None:  # typ
                     producer_id="producer",
                     produced_at="2026-06-06T00:00:00Z",
                     verifier_id="verifier",
-                    verifier_version="0.2.1",
+                    verifier_version="0.2.2",
                     content_ref=str(evidence_file),
                 )
             ],

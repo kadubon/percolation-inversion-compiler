@@ -1,7 +1,7 @@
 [project]
 name = "percolation-inversion-compiler"
-version = "0.2.1"
-description = "Production verifier SDK for ECPT, BIT, and TRC finite certificates, proof obligations, residual ledgers, and AI agent routing."
+version = "0.2.2"
+description = "Production-oriented finite verifier-routing SDK for ECPT, BIT, and TRC certificates, proof obligations, residual ledgers, typed traces, and AI agent routing."
 readme = "README.md"
 requires-python = ">=3.11"
 license = { text = "Apache-2.0" }
@@ -92,7 +92,7 @@ testpaths = ["tests"]
 addopts = "-q"
 
 [tool.coverage.report]
-fail_under = 82
+fail_under = 84
 
 [tool.bandit]
 exclude_dirs = ["tests", ".venv", "build", "dist"]

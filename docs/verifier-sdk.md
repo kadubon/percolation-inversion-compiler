@@ -12,6 +12,7 @@ Use:
 ```powershell
 uv run pic snapshot routes
 uv run pic routes bindings
+uv run pic routes explain --route adapters.domain.verify_trc_telemetry_calibration
 ```
 
 `AdapterRouteSpec` describes a route contract. `DischargeRouteBinding` states how
@@ -24,6 +25,14 @@ a canonical paper route maps to an implemented route and which
   route-specific domain witness may still be needed.
 - `external_domain_required`: the package can route and charge residuals, but it
   cannot settle the domain claim by itself.
+
+v0.2.2 makes settlement scope explicit. `VerifierResolution.settled_scope`
+lists the finite scope that the route actually discharged.
+`finite_scope_usable` can be true even when `settled` is false; this happens for
+replay and contract routes whose finite envelope is useful but whose continuous
+physics, oracle, policy, or domain witness remains in
+`residual_external_obligations`. A route is globally `settled` only when the
+accepted resolution leaves no residual external obligations.
 
 ## Evidence Flow
 
@@ -48,10 +57,11 @@ bypassing evidence provenance.
 Agents should only use a verifier result operationally when:
 
 - `accepted` is true;
-- `operationally_usable` is true;
-- `settled` is true;
+- `finite_scope_usable` is true for the finite route segment they intend to use;
 - `missing_evidence_kind` is empty;
-- the `discharge_level` is not `external_domain_required`;
+- `settled` is true only if they need the whole route to be discharged;
+- `residual_external_obligations` is preserved when `settled` is false;
+- `domain_witness_required` is false before claiming global settlement;
 - the residual ledger is preserved in downstream planning state.
 
 This lets agents use the OSS to accelerate ASI-proxy phase-control workflows

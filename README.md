@@ -1,10 +1,11 @@
 # Percolation Inversion Compiler
 
-`percolation-inversion-compiler` is a Python reference implementation of a
-JSON-first finite certificate and obligation ledger compiler for ECPT, BIT, and TRC. It turns
-machine-readable mathematical artifacts into finite checker judgments: proof
-obligations, residual ledgers, dependency DAGs, typed trace normal forms,
-frontier extraction records, and portable JSON Schemas for AI agent integration.
+`percolation-inversion-compiler` is a production-oriented finite
+verifier-routing SDK and JSON-first obligation ledger compiler for ECPT, BIT,
+and TRC. It turns machine-readable mathematical artifacts into finite checker
+judgments: proof obligations, residual ledgers, dependency DAGs, typed trace
+normal forms, frontier extraction records, verifier route bindings, provenance
+manifests, SBOMs, and portable JSON Schemas for AI agent integration.
 
 In practical terms, the input is a paper-derived TeX source, registry-like
 JSON/YAML, or a finite certificate record. The output is deterministic JSON that
@@ -41,11 +42,11 @@ What this gives an agent:
 
 - a certificate compiler for ECPT/BIT/TRC artifacts;
 - proof obligation and residual ledger records suitable for planning logs;
-- typed trace normal form checks for TRC frontiers;
+- typed trace normal forms and trace-normal-form checks for TRC frontiers;
 - frontier extraction and audit reports for protocol-relative claims;
 - fail-closed production readiness checks for external verifier routing;
 - SHA-256 evidence provenance envelopes for verifier adapters;
-- canonical-to-implementation discharge route bindings for external obligations;
+- canonical-to-implementation discharge route bindings with settlement scope;
 - deterministic schema/provenance manifests and SBOM-ready release assets;
 - derived non-vendored snapshots for users who do not have the TeX sources;
 - schema bundles for ports to Rust, TypeScript, Julia, Go, or other runtimes.
@@ -87,6 +88,7 @@ uv run pic snapshot verify --artifact trc
 uv run pic evidence verify --envelope examples/evidence_envelope.json
 uv run pic evidence verify --envelope examples/evidence_envelope.json --profile production
 uv run pic evidence discharge --envelope examples/evidence_envelope.json --obligations examples/external_obligations.json --profile production
+uv run pic routes explain --route adapters.domain.verify_trc_telemetry_calibration
 uv run pic doctor --fail-on never
 uv run pic doctor --profile production --fail-on never
 uv run pic demo datacenter
@@ -101,6 +103,8 @@ uv run pic check --source "$env:PIC_CANONICAL_TEX_DIR\Executable Capability Perc
 uv run pic validate --registry registry.json
 uv run pic coverage --source "$env:PIC_CANONICAL_TEX_DIR\Typed Reality Compilation.tex"
 uv run pic audit theory --source "$env:PIC_CANONICAL_TEX_DIR\Typed Reality Compilation.tex" --canonical-key trc
+uv run pic audit theory --source "$env:PIC_CANONICAL_TEX_DIR\Typed Reality Compilation.tex" --canonical-key trc --strict-grammar
+uv run pic parse audit --source "$env:PIC_CANONICAL_TEX_DIR\Typed Reality Compilation.tex" --strict-grammar
 uv run pic schema --type TheoryAuditReport
 uv run pic schema --all --output-dir schemas
 uv run pic check --source "$env:PIC_CANONICAL_TEX_DIR\Typed Reality Compilation.tex" --strict-projection --derive-status
@@ -119,10 +123,13 @@ uv run pic provenance verify --manifest provenance.json
 uv run pic doctor --profile production --provenance provenance.json --fail-on fail
 uv run pic snapshot routes
 uv run pic routes bindings
+uv run pic routes explain --route adapters.domain.verify_trc_telemetry_calibration
+uv run pic doctor --profile production --required-route adapters.domain.verify_trc_telemetry_calibration --provenance provenance.json --fail-on fail
 uv run pic doctor --fail-on warn
 uv run pic evidence verify --envelope examples\evidence_envelope.json --profile production
 uv run pic validate --registry examples\minimal_registry.json
 uv run pic compile --records examples\frontier_records.json
+uv run pic sbom create --format cyclonedx --output cyclonedx.sbom.json
 ```
 
 For fixture-only smoke tests:
@@ -130,6 +137,7 @@ For fixture-only smoke tests:
 ```powershell
 uv run pic check --source tests\fixtures\minimal_claims.tex --strict-projection --derive-status
 uv run pic audit theory --source tests\fixtures\minimal_claims.tex --fail-on projection
+uv run pic parse audit --source tests\fixtures\minimal_claims.tex --strict-grammar
 uv run pic schema --all --output-dir schemas
 ```
 

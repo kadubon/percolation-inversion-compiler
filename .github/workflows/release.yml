@@ -1,0 +1,84 @@
+name: Release Artifacts
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+  attestations: write
+
+jobs:
+  attest-release-artifacts:
+    runs-on: ubuntu-latest
+    env:
+      UV_PYTHON: "3.11"
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
+        with:
+          python-version: "3.11"
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          enable-cache: false
+
+      - name: Install dependencies
+        run: uv sync --all-extras --dev --python 3.11
+
+      - name: Prepare release assets
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          echo "VERSION=${VERSION}" >> "$GITHUB_ENV"
+          uv build
+          uv run pic schema --all --output-dir "dist/schemas-${GITHUB_REF_NAME}"
+          (cd dist && zip -qr "percolation-inversion-compiler-${VERSION}.schemas.zip" "schemas-${GITHUB_REF_NAME}")
+          uv run pic sbom create --format pic --output "dist/percolation-inversion-compiler-${VERSION}.sbom.json"
+          uv run pic sbom create --format cyclonedx --output "dist/percolation-inversion-compiler-${VERSION}.cyclonedx.json"
+          uv run pic provenance create \
+            --schema-dir "dist/schemas-${GITHUB_REF_NAME}" \
+            --sbom-ref "dist/percolation-inversion-compiler-${VERSION}.sbom.json" \
+            --artifact-ref "dist/percolation_inversion_compiler-${VERSION}-py3-none-any.whl" \
+            --artifact-ref "dist/percolation_inversion_compiler-${VERSION}.tar.gz" \
+            --artifact-ref "dist/percolation-inversion-compiler-${VERSION}.schemas.zip" \
+            --artifact-ref "dist/percolation-inversion-compiler-${VERSION}.cyclonedx.json" \
+            --output "dist/percolation-inversion-compiler-${VERSION}.provenance.json"
+          uv run pic provenance verify --manifest "dist/percolation-inversion-compiler-${VERSION}.provenance.json"
+
+      - name: Attest wheel
+        uses: actions/attest@59d89421af93a897026c735860bf21b6eb4f7b26 # v4
+        with:
+          subject-path: dist/percolation_inversion_compiler-${{ env.VERSION }}-py3-none-any.whl
+
+      - name: Attest source distribution
+        uses: actions/attest@59d89421af93a897026c735860bf21b6eb4f7b26 # v4
+        with:
+          subject-path: dist/percolation_inversion_compiler-${{ env.VERSION }}.tar.gz
+
+      - name: Attest schema bundle
+        uses: actions/attest@59d89421af93a897026c735860bf21b6eb4f7b26 # v4
+        with:
+          subject-path: dist/percolation-inversion-compiler-${{ env.VERSION }}.schemas.zip
+
+      - name: Attest provenance manifest
+        uses: actions/attest@59d89421af93a897026c735860bf21b6eb4f7b26 # v4
+        with:
+          subject-path: dist/percolation-inversion-compiler-${{ env.VERSION }}.provenance.json
+
+      - name: Attest PIC SBOM
+        uses: actions/attest@59d89421af93a897026c735860bf21b6eb4f7b26 # v4
+        with:
+          subject-path: dist/percolation-inversion-compiler-${{ env.VERSION }}.sbom.json
+
+      - name: Attest CycloneDX SBOM
+        uses: actions/attest@59d89421af93a897026c735860bf21b6eb4f7b26 # v4
+        with:
+          subject-path: dist/percolation-inversion-compiler-${{ env.VERSION }}.cyclonedx.json

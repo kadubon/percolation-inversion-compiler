@@ -13,7 +13,7 @@
       "schema_uri": "https://github.com/kadubon/percolation-inversion-compiler/schemas/VerifierEvidenceEnvelope",
       "sha256": "a0774a3c0b3b2f3f81a726d70d30ab4c5add8203afa96b27ad170527a30d0fe6",
       "verifier_id": "pic-core-envelope-checker",
-      "verifier_version": "0.2.1"
+      "verifier_version": "0.2.2"
     }
   ],
   "evidence_kind": [

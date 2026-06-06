@@ -14,6 +14,7 @@ from percolation_inversion_compiler import __version__
 from percolation_inversion_compiler.core import (
     ExternalProofObligation,
     VerifierEvidenceEnvelope,
+    binding_for_route,
     check_external_verifier_hook,
     list_adapter_route_specs,
     list_discharge_route_bindings,
@@ -23,6 +24,7 @@ from percolation_inversion_compiler.core.frontier import FrontierRecord
 from percolation_inversion_compiler.io import (
     audit_theory_source,
     build_operational_readiness_report,
+    build_sbom_document,
     canonical_manifest,
     count_mr_records_by_category,
     create_provenance_manifest,
@@ -35,6 +37,7 @@ from percolation_inversion_compiler.io import (
     schema_bundle,
     schema_bundle_digest,
     schema_by_type,
+    strict_tex_parse_report,
     validate_canonical_source,
     validate_data,
     verify_provenance_manifest,
@@ -53,12 +56,16 @@ snapshot_app = typer.Typer(help="Inspect bundled derived theory snapshots.")
 evidence_app = typer.Typer(help="Verify external evidence envelopes.")
 routes_app = typer.Typer(help="Inspect verifier route bindings.")
 provenance_app = typer.Typer(help="Create and verify release provenance manifests.")
+sbom_app = typer.Typer(help="Create deterministic release SBOM documents.")
+parse_app = typer.Typer(help="Run strict TeX parser diagnostics.")
 app.add_typer(demo_app, name="demo")
 app.add_typer(audit_app, name="audit")
 app.add_typer(snapshot_app, name="snapshot")
 app.add_typer(evidence_app, name="evidence")
 app.add_typer(routes_app, name="routes")
 app.add_typer(provenance_app, name="provenance")
+app.add_typer(sbom_app, name="sbom")
+app.add_typer(parse_app, name="parse")
 console = Console()
 
 
@@ -99,6 +106,13 @@ def doctor(
         Path | None,
         typer.Option("--provenance", help="Verified provenance manifest JSON."),
     ] = None,
+    required_route: Annotated[
+        list[str] | None,
+        typer.Option(
+            "--required-route",
+            help="Route id or verifier_route that must be production-ready for this run.",
+        ),
+    ] = None,
     output: Annotated[
         Path | None, typer.Option("--output", "-o", help="Write JSON output.")
     ] = None,
@@ -108,7 +122,11 @@ def doctor(
     if fail_on not in {"fail", "warn", "never"}:
         console.print("Error: --fail-on must be one of: fail, warn, never")
         raise typer.Exit(2)
-    report = build_operational_readiness_report(profile=profile, provenance=provenance)
+    report = build_operational_readiness_report(
+        profile=profile,
+        provenance=provenance,
+        required_routes=required_route,
+    )
     _dump(report.model_dump(mode="json"), output)
     if fail_on == "fail" and report.overall_status == "fail":
         raise typer.Exit(1)
@@ -311,6 +329,13 @@ def audit_theory(
             help="Treat maturity/provenance downgrades as audit-relevant metadata.",
         ),
     ] = False,
+    strict_grammar: Annotated[
+        bool,
+        typer.Option(
+            "--strict-grammar/--no-strict-grammar",
+            help="Diagnose unsupported theorem-like or MRRecord source syntax.",
+        ),
+    ] = False,
     fail_on: Annotated[
         list[str] | None,
         typer.Option(
@@ -334,6 +359,9 @@ def audit_theory(
     )
     data = report.model_dump(mode="json")
     data["strict_maturity"] = strict_maturity
+    grammar_report = strict_tex_parse_report(source) if strict_grammar else None
+    if grammar_report is not None:
+        data["strict_grammar"] = grammar_report.model_dump(mode="json")
     _dump(data, output)
     fail_reasons = set(fail_on or [])
     fail = not report.accepted
@@ -359,6 +387,8 @@ def audit_theory(
     if "provenance" in fail_reasons and (
         report.canonical is None or not bool(report.canonical.get("matches", False))
     ):
+        fail = True
+    if grammar_report is not None and not grammar_report.accepted:
         fail = True
     if fail:
         raise typer.Exit(1)
@@ -441,6 +471,44 @@ def route_bindings(
     )
 
 
+@routes_app.command("explain")
+def route_explain(
+    route: Annotated[
+        str,
+        typer.Option("--route", help="Route id or verifier_route to explain."),
+    ],
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Explain one verifier route binding and its settlement scope."""
+
+    specs = {
+        key: spec
+        for spec in list_adapter_route_specs()
+        for key in {spec.route_id, spec.verifier_route}
+    }
+    spec = specs.get(route)
+    if spec is None:
+        raise typer.BadParameter(f"unknown adapter route {route!r}")
+    binding = binding_for_route(spec.route_id)
+    data = {
+        "route": spec.model_dump(mode="json"),
+        "binding": None if binding is None else binding.model_dump(mode="json"),
+        "settled_scope": [] if binding is None else binding.settlement_scope,
+        "finite_scope_usable": (
+            spec.discharge_level.value != "external_domain_required"
+            if binding is None
+            else binding.discharge_level.value != "external_domain_required"
+        ),
+        "residual_external_obligations": []
+        if binding is None
+        else binding.residual_external_obligation_refs,
+        "required_evidence_kind": spec.required_evidence_kind,
+    }
+    _dump(data, output)
+
+
 @provenance_app.command("create")
 def provenance_create(
     schema_dir: Annotated[
@@ -451,13 +519,24 @@ def provenance_create(
         str | None,
         typer.Option("--sbom-ref", help="Optional SBOM release-asset reference."),
     ] = None,
+    artifact_ref: Annotated[
+        list[str] | None,
+        typer.Option(
+            "--artifact-ref",
+            help="Additional release artifact path to include in the manifest.",
+        ),
+    ] = None,
     output: Annotated[
         Path | None, typer.Option("--output", "-o", help="Write provenance manifest JSON.")
     ] = None,
 ) -> None:
     """Create a deterministic SHA-256 provenance manifest."""
 
-    manifest = create_provenance_manifest(schema_dir=schema_dir, sbom_ref=sbom_ref)
+    manifest = create_provenance_manifest(
+        schema_dir=schema_dir,
+        sbom_ref=sbom_ref,
+        artifact_refs=artifact_ref,
+    )
     _dump(manifest.model_dump(mode="json"), output)
 
 
@@ -467,6 +546,13 @@ def provenance_verify(
         Path,
         typer.Option("--manifest", "-m", help="Provenance manifest JSON."),
     ],
+    require_attestation: Annotated[
+        bool,
+        typer.Option(
+            "--require-attestation/--no-require-attestation",
+            help="Require attestation metadata in addition to local SHA-256 checks.",
+        ),
+    ] = False,
     output: Annotated[
         Path | None, typer.Option("--output", "-o", help="Write verification JSON.")
     ] = None,
@@ -475,8 +561,19 @@ def provenance_verify(
 
     data = load_data(manifest)
     parsed = ProvenanceManifest.model_validate(data)
-    valid, reasons = verify_provenance_manifest(parsed)
-    _dump({"manifest": str(manifest), "valid": valid, "reasons": reasons}, output)
+    valid, reasons = verify_provenance_manifest(
+        parsed,
+        require_attestation=require_attestation,
+    )
+    _dump(
+        {
+            "manifest": str(manifest),
+            "require_attestation": require_attestation,
+            "valid": valid,
+            "reasons": reasons,
+        },
+        output,
+    )
     if not valid:
         raise typer.Exit(1)
 
@@ -511,6 +608,47 @@ def snapshot_verify(
     }
     _dump(data, output)
     if not valid:
+        raise typer.Exit(1)
+
+
+@sbom_app.command("create")
+def sbom_create(
+    format_name: Annotated[
+        str,
+        typer.Option("--format", help="SBOM format: pic or cyclonedx."),
+    ] = "pic",
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write SBOM JSON output.")
+    ] = None,
+) -> None:
+    """Create a deterministic SBOM document."""
+
+    try:
+        document = build_sbom_document(format_name)
+    except ValueError as exc:
+        raise typer.BadParameter(str(exc)) from exc
+    _dump(document, output)
+
+
+@parse_app.command("audit")
+def parse_audit(
+    source: Annotated[Path, typer.Option("--source", "-s", help="TeX source artifact.")],
+    strict_grammar: Annotated[
+        bool,
+        typer.Option(
+            "--strict-grammar/--no-strict-grammar",
+            help="Exit nonzero on strict grammar diagnostics.",
+        ),
+    ] = True,
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Run strict TeX parser diagnostics."""
+
+    report = strict_tex_parse_report(source)
+    _dump(report.model_dump(mode="json"), output)
+    if strict_grammar and not report.accepted:
         raise typer.Exit(1)
 
 

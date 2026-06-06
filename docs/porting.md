@@ -18,6 +18,10 @@ portable schemas, not as the normative wire format.
 - Preserve `accepted`, `finite_checks_passed`, `operationally_usable`, and
   `settled` as distinct booleans. `accepted` alone is not enough for autonomous
   operational use.
+- Preserve `finite_scope_usable`, `settled_scope`,
+  `residual_external_obligations`, and `domain_witness_required` on
+  `VerifierResolution`. A replay or contract route may expose useful finite
+  scope while still being globally unsettled.
 - Never promote a registry status to `settled` without checker-derived
   obligations.
 - Keep non-finite, simulator-dependent, physical-domain, or oracle-dependent
@@ -52,6 +56,29 @@ Recommended connector behavior:
   derive status.
 - Treat `pic explain external <item-id>` as the portable adapter contract for
   unresolved physical, oracle, simulator, or domain-specific obligations.
+- Treat `pic routes explain --route <route-id>` as the portable route binding
+  contract for settlement scope, discharge level, required evidence kind, and
+  residual external obligations.
 - Treat `TheorySnapshot`, `SnapshotCatalog`, `AdapterRouteSpec`,
   `EvidenceArtifact`, `VerifierEvidenceEnvelope`, `VerifierResolution`, and
   `OperationalReadinessReport` as stable wire contracts.
+
+## Provenance And SBOM Ports
+
+Ports should implement the hash-based `ProvenanceManifest` verifier before
+accepting schema bundles, snapshots, examples, or release metadata. If
+attestation is required, validate `AttestationRecord` subject names and
+SHA-256 subject digests against the manifest entries, and then delegate full
+Sigstore or platform attestation verification to the host runtime.
+
+`SBOMManifest` preserves the PIC-SBOM compatibility format. Release assets also
+include CycloneDX JSON. A port does not need to generate byte-identical Python
+dependency inventories, but it should keep component names, versions, licenses,
+and package URLs deterministic.
+
+## Strict TeX Parsing
+
+`StrictTexParseReport` and `TexGrammarDiagnostic` are fail-closed parser
+contracts. Ports should not silently ignore unknown theorem-like environments,
+malformed MR macros, duplicate labels, orphan labels, or multi-line label parse
+failures when strict grammar mode is requested.

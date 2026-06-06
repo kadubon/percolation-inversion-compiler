@@ -24,9 +24,12 @@ fields separate:
 
 - `declared_status`: what an external source or registry says;
 - `derived_status`: what the checker derives from finite obligations;
-- `finite_checks_passed`, `operationally_usable`, and `settled`: v0.2.1
-  fail-closed booleans that separate finite shape acceptance from usable settled
-  output;
+- `finite_checks_passed`, `finite_scope_usable`, `operationally_usable`, and
+  `settled`: fail-closed booleans that separate finite envelope usability from
+  whole-route settlement;
+- `settled_scope` and `residual_external_obligations`: route-level boundaries
+  that prevent replay/contract checks from erasing physical, policy, oracle, or
+  domain-witness debt;
 - `proof_obligations`: what remains unverified or domain-specific;
 - `residual_ledger`: what is charged rather than erased.
 
@@ -51,6 +54,8 @@ counts, item-id mappings, and external route contracts without vendoring paper
 source files.
 `pic doctor` combines schema, snapshot, adapter-route, optional-dependency, and
 canonical-TeX checks into one JSON readiness report for CI and agent runners.
+`--required-route` makes that report route-scoped so unused optional adapters do
+not block a deployment that only needs a smaller verifier route set.
 
 ## Checker Discipline
 

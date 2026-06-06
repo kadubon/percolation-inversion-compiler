@@ -192,6 +192,10 @@ def check_external_verifier_hook(
         or not hook.evidence_artifact_ids
     ):
         reasons.append("accepted external verifier hook requires resolution provenance")
+    if hook.accepted_obligation_ids and (
+        hook.domain_witness_required or hook.residual_external_obligations
+    ):
+        reasons.append("accepted external verifier hook exceeds settled scope")
     for name, value in hook.residual_coordinates.items():
         if value < 0:
             reasons.append("external verifier residual coordinate is negative")

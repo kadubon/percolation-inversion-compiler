@@ -104,16 +104,20 @@ from percolation_inversion_compiler.ecpt.records import (
     SettlementReturnRAFCertificate,
 )
 from percolation_inversion_compiler.io.provenance import (
+    AttestationRecord,
     ProvenanceManifest,
     ProvenanceManifestEntry,
+    ReleaseArtifactManifest,
     SchemaBundleDigest,
 )
+from percolation_inversion_compiler.io.sbom import SBOMManifest
 from percolation_inversion_compiler.io.snapshots import (
     SnapshotAttribution,
     SnapshotCatalog,
     TheorySnapshot,
     TheorySnapshotItem,
 )
+from percolation_inversion_compiler.io.tex import StrictTexParseReport, TexGrammarDiagnostic
 from percolation_inversion_compiler.io.zenodo import CanonicalManifest, CanonicalManifestRecord
 from percolation_inversion_compiler.trc.records import (
     ActionabilityVector,
@@ -167,6 +171,7 @@ def schema_model_map() -> dict[str, type[BaseModel]]:
         "ActionGrammar": ActionGrammar,
         "ActionabilityVector": ActionabilityVector,
         "ActivationThresholdCertificate": ActivationThresholdCertificate,
+        "AttestationRecord": AttestationRecord,
         "BoundaryGeneratorRecord": BoundaryGeneratorRecord,
         "BoundaryScriptRecord": BoundaryScriptRecord,
         "BudgetedToleranceScheduler": BudgetedToleranceScheduler,
@@ -221,6 +226,7 @@ def schema_model_map() -> dict[str, type[BaseModel]]:
         "PortabilitySchemaBundle": PortabilitySchemaBundle,
         "ProvenanceManifest": ProvenanceManifest,
         "ProvenanceManifestEntry": ProvenanceManifestEntry,
+        "ReleaseArtifactManifest": ReleaseArtifactManifest,
         "ProductOrder": ProductOrder,
         "ProductionReadinessProfile": ProductionReadinessProfile,
         "ProcessGrammarRecord": ProcessGrammarRecord,
@@ -239,9 +245,11 @@ def schema_model_map() -> dict[str, type[BaseModel]]:
         "SelectiveCUPCertificate": SelectiveCUPCertificate,
         "SettlementReturnRAFCertificate": SettlementReturnRAFCertificate,
         "SinkhornCertificate": SinkhornCertificate,
+        "SBOMManifest": SBOMManifest,
         "SplitCertificate": SplitCertificate,
         "StatusAlgebraRecord": StatusAlgebraRecord,
         "StoppedEvidenceSheafCertificate": StoppedEvidenceSheafCertificate,
+        "StrictTexParseReport": StrictTexParseReport,
         "TRCStateRecord": TRCStateRecord,
         "TRCCompileResult": TRCCompileResult,
         "ToleranceAllocationCertificate": ToleranceAllocationCertificate,
@@ -249,6 +257,7 @@ def schema_model_map() -> dict[str, type[BaseModel]]:
         "TheoryImplementationRecord": TheoryImplementationRecord,
         "TheorySnapshot": TheorySnapshot,
         "TheorySnapshotItem": TheorySnapshotItem,
+        "TexGrammarDiagnostic": TexGrammarDiagnostic,
         "TraceNormalizationCertificate": TraceNormalizationCertificate,
         "TypedTraceTransducerRecord": TypedTraceTransducerRecord,
         "VectorCompatibleFamily": VectorCompatibleFamily,

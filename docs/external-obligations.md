@@ -51,6 +51,7 @@ Agents should inspect external obligations before operational use:
 ```powershell
 uv run pic audit theory --source "path\to\Typed Reality Compilation.tex" --canonical-key trc
 uv run pic explain external def:null-channel-routing
+uv run pic routes explain --route trc.adapters.physical_hybrid.verify_envelope
 ```
 
 An unresolved verifier hook must return diagnostic or provisional handling. It
@@ -65,7 +66,7 @@ hook shape.
 
 `pic snapshot routes` emits `AdapterRouteSpec` records, and `pic routes bindings`
 emits the reviewed `DischargeRouteBinding` records that connect canonical
-paper routes to implemented adapter contracts. In v0.2.1, canonical ECPT/TRC
+paper routes to implemented adapter contracts. In v0.2.2, canonical ECPT/TRC
 external routes are no longer left as opaque `unavailable` entries. Each route
 has a fail-closed binding and one of these discharge levels:
 
@@ -84,14 +85,21 @@ for agent routing, but they do not make the underlying external claim `settled`
 unless a finite accepted `VerifierResolution` with provenance discharges the
 matching obligation.
 
+`DischargeRouteBinding.settlement_scope` names the finite part of the route that
+the package can discharge. `residual_external_obligation_refs` names the
+external domain evidence that remains. For `replay_check` and
+`contract_enforced` routes, agents may use `finite_scope_usable` while still
+carrying those residual obligations forward.
+
 ## Evidence Envelopes
 
 Adapters consume `VerifierEvidenceEnvelope` records: route id, obligation ids,
 evidence kinds, evidence references, deterministic flag, residual coordinates,
-and v0.2.1 `EvidenceArtifact` provenance. Each artifact carries SHA-256
+and v0.2.2 `EvidenceArtifact` provenance. Each artifact carries SHA-256
 identity, schema digest, producer identity, verifier identity, verifier version,
 timestamp, and optional signature or attestation references. A resolver returns
-`VerifierResolution` with accepted/rejected obligation ids and residual ledger
+`VerifierResolution` with accepted/rejected obligation ids, settled scope,
+finite-scope usability, residual external obligations, and residual ledger
 entries. Agent connectors should log both records so downstream planning can
 preserve the missing evidence boundary.
 
