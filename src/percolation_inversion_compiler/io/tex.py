@@ -114,6 +114,7 @@ _CLAIM_RE = re.compile(
     r"\\begin\{(theorem|proposition|lemma|corollary)\}\[(.*?)\](?:\\label\{([^}]+)\})?"
 )
 _ALLOWED_ITEM_ENVIRONMENTS = {"definition", "theorem", "proposition", "lemma", "corollary"}
+_KNOWN_NONEXTRACTED_THEOREM_ENVIRONMENTS = {"axiom", "assumption"}
 _BEGIN_ENV_RE = re.compile(r"\\begin\{([^}]+)\}")
 _LABEL_RE = re.compile(r"\\label\{([^}]+)\}")
 _MR_ARITY = {
@@ -273,7 +274,7 @@ def strict_tex_parse_report(source: str | Path) -> StrictTexParseReport:
         stripped = line.strip()
         if begin_match := _BEGIN_ENV_RE.search(stripped):
             environment = begin_match.group(1)
-            if environment in {"claim", "conjecture", "axiom", "assumption"}:
+            if environment in {"claim", "conjecture"}:
                 diagnostics.append(
                     TexGrammarDiagnostic(
                         diagnostic_id=f"tex-unknown-theorem-env:{index}",
@@ -283,6 +284,24 @@ def strict_tex_parse_report(source: str | Path) -> StrictTexParseReport:
                         raw=stripped,
                     )
                 )
+            if environment in _KNOWN_NONEXTRACTED_THEOREM_ENVIRONMENTS:
+                label_match = _LABEL_RE.search(stripped)
+                if label_match is not None and label_match.group(1) in seen_item_ids:
+                    label_id = label_match.group(1)
+                    diagnostics.append(
+                        TexGrammarDiagnostic(
+                            diagnostic_id=f"tex-duplicate-label:{index}",
+                            kind="duplicate-item-id",
+                            line_number=index,
+                            message=(
+                                f"duplicate item id {label_id!r}; first seen at line "
+                                f"{seen_item_ids[label_id]}"
+                            ),
+                            raw=stripped,
+                        )
+                    )
+                if label_match is not None:
+                    seen_item_ids[label_match.group(1)] = index
             if environment in _ALLOWED_ITEM_ENVIRONMENTS:
                 if environment == "definition":
                     parsed = _DEFINITION_RE.search(stripped)

@@ -21,6 +21,20 @@ from percolation_inversion_compiler.core import (
     resolve_adapter_route,
 )
 from percolation_inversion_compiler.core.frontier import FrontierRecord
+from percolation_inversion_compiler.ecology import (
+    PacketSourceKind,
+    PsiDashboard,
+    build_bottleneck_plan,
+    build_edge_witnesses,
+    build_packet_registry,
+    build_psi_dashboard,
+    closed_loop_iteration,
+    infer_live_kind,
+    ingest_agent_output,
+    ingest_live_source,
+    ingest_local_file,
+    registry_from_json,
+)
 from percolation_inversion_compiler.ecpt import (
     ASIProxyTargetContract,
     PhaseControlAction,
@@ -52,10 +66,15 @@ from percolation_inversion_compiler.io import (
 )
 from percolation_inversion_compiler.io.provenance import ProvenanceManifest
 from percolation_inversion_compiler.io.schema import load_data
+from percolation_inversion_compiler.sqot import (
+    DiagnosticReservePolicy,
+    SalienceQueueRecord,
+    build_salience_schedule,
+)
 from percolation_inversion_compiler.trc import compile_frontier, datacenter_demo
 
 app = typer.Typer(
-    help="Finite certificate compiler toolkit for ECPT, BIT, and TRC.",
+    help="Finite certificate compiler toolkit for ECPT, BIT, TRC, and SQOT.",
     invoke_without_command=True,
 )
 demo_app = typer.Typer(help="Run bundled finite examples.")
@@ -67,6 +86,8 @@ provenance_app = typer.Typer(help="Create and verify release provenance manifest
 sbom_app = typer.Typer(help="Create deterministic release SBOM documents.")
 parse_app = typer.Typer(help="Run strict TeX parser diagnostics.")
 ecpt_app = typer.Typer(help="Run ECPT active phase-control planning tools.")
+sqot_app = typer.Typer(help="Run SQOT salience-queue scheduling tools.")
+ecology_app = typer.Typer(help="Run ECPT capability packet ecology tools.")
 app.add_typer(demo_app, name="demo")
 app.add_typer(audit_app, name="audit")
 app.add_typer(snapshot_app, name="snapshot")
@@ -76,12 +97,15 @@ app.add_typer(provenance_app, name="provenance")
 app.add_typer(sbom_app, name="sbom")
 app.add_typer(parse_app, name="parse")
 app.add_typer(ecpt_app, name="ecpt")
+app.add_typer(sqot_app, name="sqot")
+app.add_typer(ecology_app, name="ecology")
 console = Console()
 
 
 def _dump(data: Any, output: Path | None = None) -> None:
     text = json.dumps(data, indent=2, sort_keys=True, default=str)
     if output is not None:
+        output.parent.mkdir(parents=True, exist_ok=True)
         output.write_text(text + "\n", encoding="utf-8")
     else:
         console.print_json(text)
@@ -127,6 +151,50 @@ def _load_phase_objective(path: Path, budget_data: dict[str, Any]) -> PhaseContr
         risk_tolerance=float(budget_data.get("risk_tolerance", 0.0)),
         route_preferences=list(budget_data.get("route_preferences", [])),
     )
+
+
+def _load_salience_records(path: Path) -> list[SalienceQueueRecord]:
+    data = load_data(path)
+    raw_records = data.get("records", data.get("queue", data.get("packets", [])))
+    if not isinstance(raw_records, list):
+        raise typer.BadParameter("salience input must contain records, queue, or packets list")
+    records: list[SalienceQueueRecord] = []
+    for item in raw_records:
+        if not isinstance(item, dict):
+            raise typer.BadParameter("salience records must be JSON objects")
+        if "record_id" in item:
+            records.append(SalienceQueueRecord.model_validate(item))
+            continue
+        packet_id = str(item.get("packet_id", item.get("id", "packet")))
+        records.append(
+            SalienceQueueRecord(
+                record_id=packet_id,
+                item_type="packet",
+                salience_class=str(item.get("salience_class", "packet")),
+                expected_downstream_gain=float(item.get("expected_downstream_gain", 0.0)),
+                residual_reduction=max(0.0, 1.0 - float(item.get("residual_charge", 1.0))),
+                verification_cost=float(item.get("verification_cost", 0.0)),
+                freshness=float(item.get("freshness", 1.0)),
+                obligation_ids=[str(value) for value in item.get("obligation_ids", [])],
+                verifier_routes=[str(value) for value in item.get("verifier_routes", [])],
+            )
+        )
+    return records
+
+
+def _threshold_from_file(path: Path) -> dict[str, float]:
+    data = load_data(path)
+    raw_threshold = data.get("threshold", data)
+    if not isinstance(raw_threshold, dict):
+        raise typer.BadParameter("threshold file must contain an object")
+    return {str(key): float(value) for key, value in raw_threshold.items()}
+
+
+def _read_text_or_literal(source: str) -> str:
+    path = Path(source)
+    if path.exists() and path.is_file():
+        return path.read_text(encoding="utf-8")
+    return source
 
 
 @app.callback()
@@ -476,7 +544,7 @@ def snapshot_list(
 def snapshot_show(
     artifact: Annotated[
         str,
-        typer.Option("--artifact", "-a", help="Snapshot artifact key: ecpt, bit, or trc."),
+        typer.Option("--artifact", "-a", help="Snapshot artifact key: ecpt, bit, trc, or sqot."),
     ],
     output: Annotated[
         Path | None, typer.Option("--output", "-o", help="Write JSON output.")
@@ -634,7 +702,7 @@ def provenance_verify(
 def snapshot_verify(
     artifact: Annotated[
         str,
-        typer.Option("--artifact", "-a", help="Snapshot artifact key: ecpt, bit, or trc."),
+        typer.Option("--artifact", "-a", help="Snapshot artifact key: ecpt, bit, trc, or sqot."),
     ],
     output: Annotated[
         Path | None, typer.Option("--output", "-o", help="Write JSON output.")
@@ -702,6 +770,229 @@ def parse_audit(
     _dump(report.model_dump(mode="json"), output)
     if strict_grammar and not report.accepted:
         raise typer.Exit(1)
+
+
+@sqot_app.command("audit")
+def sqot_audit(
+    source: Annotated[Path, typer.Option("--source", "-s", help="SQOT TeX source artifact.")],
+    strict_grammar: Annotated[
+        bool,
+        typer.Option(
+            "--strict-grammar/--no-strict-grammar",
+            help="Exit nonzero on strict grammar diagnostics.",
+        ),
+    ] = True,
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Audit SQOT source coverage and strict parser compatibility."""
+
+    grammar = strict_tex_parse_report(source)
+    coverage_record = extract_theory_coverage(source)
+    canonical_key = "sqot" if source.name == "Salience-Queue Occupation Theory.tex" else None
+    audit = audit_theory_source(source, canonical_key=canonical_key, strict_projection=True)
+    data = {
+        "source": str(source),
+        "strict_grammar": grammar.model_dump(mode="json"),
+        "coverage": coverage_record.model_dump(mode="json"),
+        "coverage_counts": coverage_record.counts_by_status(),
+        "audit": audit.model_dump(mode="json"),
+    }
+    _dump(data, output)
+    if strict_grammar and not grammar.accepted:
+        raise typer.Exit(1)
+
+
+@sqot_app.command("schedule")
+def sqot_schedule(
+    packets: Annotated[
+        Path,
+        typer.Option("--packets", help="JSON/YAML queue records or packet candidates."),
+    ],
+    obligations: Annotated[
+        Path | None,
+        typer.Option("--obligations", help="Optional JSON/YAML obligations list."),
+    ] = None,
+    profile: Annotated[
+        str,
+        typer.Option("--profile", help="Scheduler profile: development, research, or production."),
+    ] = "development",
+    attention_budget: Annotated[
+        float,
+        typer.Option("--attention-budget", help="Finite attention budget for this queue run."),
+    ] = 1.0,
+    risk_budget: Annotated[
+        float,
+        typer.Option("--risk-budget", help="Finite risk budget for this queue run."),
+    ] = 1.0,
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Schedule packet, obligation, and verifier tasks with SQOT reserve rules."""
+
+    records = _load_salience_records(packets)
+    if obligations is not None:
+        obligation_data = load_data(obligations)
+        raw_obligations = obligation_data.get("obligations", [])
+        if isinstance(raw_obligations, list):
+            for obligation in raw_obligations:
+                if not isinstance(obligation, dict):
+                    continue
+                records.append(
+                    SalienceQueueRecord(
+                        record_id=str(obligation.get("obligation_id", obligation.get("item_id"))),
+                        item_type="obligation",
+                        salience_class="diagnostic",
+                        expected_downstream_gain=0.1,
+                        residual_reduction=1.0,
+                        verification_cost=0.1,
+                        obligation_ids=[str(obligation.get("obligation_id", ""))],
+                        verifier_routes=[str(obligation.get("verifier_hint", ""))],
+                    )
+                )
+    report = build_salience_schedule(
+        records,
+        attention_budget=attention_budget,
+        diagnostic_reserve=DiagnosticReservePolicy(),
+        risk_budget=risk_budget,
+        profile=profile,
+    )
+    _dump(report.model_dump(mode="json"), output)
+
+
+@ecology_app.command("ingest")
+def ecology_ingest(
+    source: Annotated[
+        str,
+        typer.Option("--source", help="Local path, URL, repo slug, or literal agent output."),
+    ],
+    kind: Annotated[
+        str,
+        typer.Option("--kind", help="local, github, zenodo, arxiv, agent-output, or auto."),
+    ] = "auto",
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Ingest a source into capability packet candidates."""
+
+    packet_kind = PacketSourceKind(kind)
+    if packet_kind == PacketSourceKind.AUTO:
+        packet_kind = infer_live_kind(source)
+    if packet_kind == PacketSourceKind.LOCAL:
+        report = ingest_local_file(Path(source))
+    elif packet_kind == PacketSourceKind.AGENT_OUTPUT:
+        report = ingest_agent_output(_read_text_or_literal(source))
+    else:
+        token = os.environ.get("GITHUB_TOKEN") if packet_kind == PacketSourceKind.GITHUB else None
+        report = ingest_live_source(
+            source,
+            kind=packet_kind,
+            token=token,
+        )
+    _dump(report.model_dump(mode="json"), output)
+    if not report.accepted:
+        raise typer.Exit(1)
+
+
+@ecology_app.command("build-edges")
+def ecology_build_edges(
+    packets: Annotated[
+        Path,
+        typer.Option("--packets", help="JSON/YAML packet list or registry."),
+    ],
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Build finite packet edge witnesses and return a registry."""
+
+    data = load_data(packets)
+    registry = registry_from_json(data)
+    edges = build_edge_witnesses(registry.packets)
+    updated = build_packet_registry(registry.packets, edges, registry_id=registry.registry_id)
+    _dump(updated.model_dump(mode="json"), output)
+
+
+@ecology_app.command("psi")
+def ecology_psi(
+    registry: Annotated[
+        Path,
+        typer.Option("--registry", help="CapabilityPacketRegistry JSON/YAML."),
+    ],
+    threshold: Annotated[
+        Path | None,
+        typer.Option("--threshold", help="Optional Psi threshold JSON/YAML."),
+    ] = None,
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Compute a finite ASI-proxy Psi dashboard."""
+
+    parsed = registry_from_json(load_data(registry))
+    thresholds = _threshold_from_file(threshold) if threshold is not None else None
+    dashboard = build_psi_dashboard(parsed, threshold=thresholds)
+    _dump(dashboard.model_dump(mode="json"), output)
+
+
+@ecology_app.command("plan")
+def ecology_plan(
+    registry: Annotated[
+        Path,
+        typer.Option("--registry", help="CapabilityPacketRegistry JSON/YAML."),
+    ],
+    psi: Annotated[
+        Path,
+        typer.Option("--psi", help="PsiDashboard JSON/YAML."),
+    ],
+    profile: Annotated[
+        str,
+        typer.Option("--profile", help="Planner profile: development, research, or production."),
+    ] = "development",
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Rank bottleneck-inversion interventions from a Psi dashboard."""
+
+    parsed_registry = registry_from_json(load_data(registry))
+    dashboard = PsiDashboard.model_validate(load_data(psi))
+    plan = build_bottleneck_plan(parsed_registry, dashboard, profile=profile)
+    _dump(plan.model_dump(mode="json"), output)
+
+
+@ecology_app.command("loop")
+def ecology_loop(
+    state: Annotated[
+        Path,
+        typer.Option("--state", help="JSON/YAML state with optional threshold object."),
+    ],
+    agent_output: Annotated[
+        str,
+        typer.Option("--agent-output", help="Path or literal output from an agent."),
+    ],
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Run one deterministic agent-output to packet-ecology planning loop."""
+
+    state_data = load_data(state)
+    threshold = state_data.get("threshold")
+    thresholds = (
+        {str(key): float(value) for key, value in threshold.items()}
+        if isinstance(threshold, dict)
+        else None
+    )
+    iteration = closed_loop_iteration(
+        state_id=str(state_data.get("state_id", "ecology-state")),
+        agent_output=_read_text_or_literal(agent_output),
+        threshold=thresholds,
+    )
+    _dump(iteration.model_dump(mode="json"), output)
 
 
 @ecpt_app.command("plan")

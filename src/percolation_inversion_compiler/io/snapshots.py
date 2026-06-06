@@ -17,14 +17,15 @@ from percolation_inversion_compiler.core.coverage import (
 
 
 class SnapshotAttribution(BaseModel):
-    """CC-BY attribution metadata for a derived non-vendored snapshot."""
+    """Attribution metadata for a derived non-vendored snapshot."""
 
     author: str
     year: int
     title: str
-    doi: str
+    doi: str | None = None
     license_id: str
     source_tex_md5: str
+    source_tex_sha256: str | None = None
     derived_from: str = "canonical TeX metadata extraction"
 
 
@@ -81,7 +82,7 @@ def load_theory_snapshot(artifact_key: str) -> TheorySnapshot:
 
 def list_theory_snapshots() -> list[TheorySnapshot]:
     snapshots: list[TheorySnapshot] = []
-    for key in ("ecpt", "bit", "trc"):
+    for key in ("ecpt", "bit", "trc", "sqot"):
         snapshots.append(load_theory_snapshot(key))
     return snapshots
 
@@ -123,6 +124,7 @@ def snapshot_item_override(
         "Executable Capability Percolation Theory.tex": "ecpt",
         "Bottleneck Inversion Theory.tex": "bit",
         "Typed Reality Compilation.tex": "trc",
+        "Salience-Queue Occupation Theory.tex": "sqot",
     }
     key = artifact_to_key.get(Path(artifact).name)
     if key is None:

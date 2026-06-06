@@ -1,6 +1,6 @@
 # Mathematical Contracts
 
-This project implements finite, checkable fragments of ECPT, BIT, and TRC. It
+This project implements finite, checkable fragments of ECPT, BIT, TRC, and SQOT. It
 does not claim automatic proof of non-finite theorems or unobserved physical
 claims.
 

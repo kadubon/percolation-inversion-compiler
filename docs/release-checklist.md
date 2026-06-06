@@ -7,6 +7,8 @@
 - Verify `pic routes bindings`, `pic evidence verify --profile production`,
   `pic evidence discharge --profile production`, and
   `pic doctor --profile production --provenance <manifest> --fail-on fail`.
+- Verify `pic sqot schedule`, `pic ecology build-edges`, `pic ecology psi`,
+  `pic ecology plan`, and `pic ecology loop` smoke tests.
 - Confirm no canonical TeX/PDF files, local paths, secrets, private keys, or build artifacts are staged.
 - Confirm certificate, residual-ledger, and `ExternalProofObligation` wording remains
   protocol-relative and does not claim unobserved physical or ASI proof.

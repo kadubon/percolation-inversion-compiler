@@ -1,0 +1,30 @@
+{
+  "packets": [
+    {
+      "claim": "SQOT scheduler preserves diagnostic reserve for verifier queues.",
+      "content_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "expected_downstream_gain": 0.8,
+      "packet_id": "packet:sqot-reserve",
+      "receiver_family": ["agent", "verifier"],
+      "source_kind": "agent-output",
+      "source_ref": "example-agent-output",
+      "tags": ["sqot", "queue", "verifier"],
+      "verification_cost": 0.2,
+      "verifier_routes": ["sqot.adapters.salience.verify_queue_policy"]
+    },
+    {
+      "claim": "ECPT packet edge witness increases finite ASI-proxy path density.",
+      "content_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "dependencies": ["packet:sqot-reserve"],
+      "expected_downstream_gain": 0.9,
+      "packet_id": "packet:ecpt-edge-witness",
+      "receiver_family": ["agent", "verifier"],
+      "source_kind": "agent-output",
+      "source_ref": "example-agent-output",
+      "tags": ["ecpt", "packet", "verifier"],
+      "verification_cost": 0.25,
+      "verifier_routes": ["ecpt.adapters.proxy.verify_target_contract"]
+    }
+  ],
+  "registry_id": "example-ecpt-packet-registry"
+}

@@ -11,6 +11,7 @@ packages suitable for Apache-2.0 distribution:
 
 Optional extras:
 
+- HTTPX: BSD-3-Clause
 - NumPy: BSD-3-Clause
 - SciPy: BSD-3-Clause
 - NetworkX: BSD-3-Clause
@@ -38,5 +39,6 @@ current, and release preparation should re-check upstream licenses for
 `github/codeql-action`, `actions/dependency-review-action`, `gitleaks`, and
 `zizmor`.
 
-The ECPT, BIT, and TRC Zenodo papers are CC-BY-4.0 according to Zenodo metadata.
-They are cited in `NOTICE` and are not included as vendored source files.
+The ECPT, BIT, TRC, and SQOT Zenodo papers are CC-BY-4.0 according to Zenodo
+metadata. They are cited in `NOTICE` and are not included as vendored source
+files.

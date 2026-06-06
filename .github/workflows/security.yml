@@ -53,6 +53,9 @@ jobs:
           uv run pic sbom create --format pic --output "$RUNNER_TEMP/pic.sbom.json"
           uv run pic sbom create --format cyclonedx --output "$RUNNER_TEMP/cyclonedx.sbom.json"
           uv run pic parse audit --source tests/fixtures/minimal_claims.tex --strict-grammar
+          uv run pic snapshot verify --artifact sqot
+          uv run pic sqot schedule --packets examples/sqot_queue.json --profile production
+          uv run pic ecology build-edges --packets examples/ecology_packets.json --output "$RUNNER_TEMP/ecology-registry.json"
 
   dependency-review:
     if: github.event_name == 'pull_request'

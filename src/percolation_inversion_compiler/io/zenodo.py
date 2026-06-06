@@ -59,6 +59,14 @@ CANONICAL_RECORDS: dict[str, CanonicalRecord] = {
         tex_md5="dfd71f38380e0db87f5537f65f035c32",
         tex_sha256="cd236045dd7d6608bbf031878d6c4083c8209ebdba60916ec6d550858f6bf79e",
     ),
+    "sqot": CanonicalRecord(
+        doi="10.5281/zenodo.20526451",
+        record_id=20526451,
+        title="Salience-Queue Occupation Theory",
+        tex_filename="Salience-Queue Occupation Theory.tex",
+        tex_md5="c626c1b78301e33c7805e6020cf5bda2",
+        tex_sha256="73d3448d09b6e72ce7600c136b86b8064d8f71010f4cc8e9a2383d4c6e714958",
+    ),
 }
 
 

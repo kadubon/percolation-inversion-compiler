@@ -22,6 +22,11 @@ uv run pic routes explain --route adapters.domain.verify_trc_telemetry_calibrati
 uv run pic routes explain --route ecpt.adapters.proxy.verify_target_contract
 uv run pic ecpt plan --state examples\ecpt_phase_control_state.json --target examples\ecpt_asi_proxy_target.json --budget examples\ecpt_phase_control_budget.json --profile production
 uv run pic ecpt simulate --state examples\ecpt_phase_control_state.json --actions examples\ecpt_phase_control_actions.json
+uv run pic sqot schedule --packets examples\sqot_queue.json --profile production
+uv run pic ecology build-edges --packets examples\ecology_packets.json --output ecology-registry.json
+uv run pic ecology psi --registry ecology-registry.json --threshold examples\ecology_threshold.json --output ecology-psi.json
+uv run pic ecology plan --registry ecology-registry.json --psi ecology-psi.json --profile production
+uv run pic ecology loop --state examples\ecology_loop_state.json --agent-output "SQOT reserve packet for ECPT active phase-control."
 uv run pic doctor --profile production --required-route adapters.domain.verify_trc_telemetry_calibration --provenance provenance.json --fail-on fail
 uv run pic evidence verify --envelope examples\evidence_envelope.json --profile production
 uv run pic evidence discharge --envelope examples\evidence_envelope.json --obligations examples\external_obligations.json --profile production
@@ -57,6 +62,9 @@ An agent connector should implement this policy:
 9. For ECPT active planning, treat `PhaseControlPlan.selected_actions` as
    ranked finite recommendations and route every `missing_obligations` entry
    before main operational execution.
+10. For v0.2.4 packet ecology, turn agent outputs into packet candidates,
+    schedule them through SQOT, update Psi, and route the next bottleneck task
+    without settling unresolved proof obligations.
 
 ## Routing Recipe
 
@@ -133,8 +141,11 @@ can use the package to organize capability, bottleneck, and cyber-physical
 frontier evidence. They must not treat it as evidence for unobserved ASI,
 unconditional phase transition claims, or uncertified simulator output.
 
-In v0.2.3, `pic ecpt plan` makes this workflow active: it ranks finite
-interventions that can increase a protocol-relative ASI-proxy target under hard
-gates, resource budgets, route bindings, and residual charges. The plan remains
-diagnostic or provisional until verifier evidence discharges the relevant
-external obligations.
+In v0.2.4, the workflow is active at the packet ecology level. `pic ecology
+loop` converts agent output into a packet candidate, builds edge witnesses,
+updates Psi, ranks bottleneck interventions, and emits next tasks. `pic sqot
+schedule` prevents stale, hash-invalid, authority-invalid, or unsafe-route
+packets from occupying the queue. These outputs accelerate protocol-relative
+ASI-proxy phase-control evaluation and routing; they remain diagnostic or
+provisional until verifier evidence discharges the relevant external
+obligations.

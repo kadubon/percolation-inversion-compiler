@@ -578,6 +578,43 @@ _IMPLEMENTED: dict[str, tuple[CoverageStatus, str]] = {
     "escrow": (CoverageStatus.IMPLEMENTED_CHECKER, "trc.check_resource_escrow"),
     "relaxation": (CoverageStatus.IMPLEMENTED_CHECKER, "trc.check_relaxation_schedule"),
     "risk": (CoverageStatus.IMPLEMENTED_CHECKER, "trc.check_risk_gate"),
+    "salience queue": (CoverageStatus.IMPLEMENTED_CHECKER, "sqot.build_salience_schedule"),
+    "attention queue": (CoverageStatus.IMPLEMENTED_CHECKER, "sqot.build_salience_schedule"),
+    "finite attention budget": (
+        CoverageStatus.IMPLEMENTED_CHECKER,
+        "sqot.OccupationLedger",
+    ),
+    "checkable ledger": (CoverageStatus.IMPLEMENTED_SCHEMA, "core.Ledger"),
+    "certificate grammar": (CoverageStatus.IMPLEMENTED_CHECKER, "core.CertificateFamily"),
+    "typed risk": (CoverageStatus.IMPLEMENTED_CHECKER, "sqot.RiskBudgetLedger"),
+    "diagnostic reserve": (
+        CoverageStatus.IMPLEMENTED_CHECKER,
+        "sqot.DiagnosticReservePolicy",
+    ),
+    "quarantine": (CoverageStatus.IMPLEMENTED_CHECKER, "sqot.QuarantineLedger"),
+    "erasure": (CoverageStatus.IMPLEMENTED_CHECKER, "sqot.QuarantineLedger"),
+    "safe ignorance": (CoverageStatus.IMPLEMENTED_CHECKER, "sqot.check_salience_record"),
+    "root checker": (CoverageStatus.IMPLEMENTED_CHECKER, "core.CheckerContext"),
+    "semantic egress": (CoverageStatus.IMPLEMENTED_CHECKER, "ecology.build_edge_witnesses"),
+    "bounded computation": (
+        CoverageStatus.IMPLEMENTED_CHECKER,
+        "sqot.build_salience_schedule",
+    ),
+    "occupation": (CoverageStatus.IMPLEMENTED_CHECKER, "sqot.OccupationLedger"),
+    "distortion": (CoverageStatus.IMPLEMENTED_CHECKER, "sqot.build_salience_schedule"),
+    "verification-cost": (
+        CoverageStatus.IMPLEMENTED_CHECKER,
+        "sqot.build_salience_schedule",
+    ),
+    "verification cost": (
+        CoverageStatus.IMPLEMENTED_CHECKER,
+        "sqot.build_salience_schedule",
+    ),
+    "payoff": (CoverageStatus.IMPLEMENTED_CHECKER, "ecology.build_bottleneck_plan"),
+    "mechanism design": (CoverageStatus.IMPLEMENTED_CHECKER, "ecology.build_bottleneck_plan"),
+    "fragmented": (CoverageStatus.EXTERNAL_OBLIGATION, "core.ExternalProofObligation"),
+    "zero-knowledge": (CoverageStatus.EXTERNAL_OBLIGATION, "core.ExternalProofObligation"),
+    "source attribution": (CoverageStatus.EXTERNAL_OBLIGATION, "core.ExternalProofObligation"),
 }
 
 _PARTIAL: dict[str, str] = {
@@ -657,12 +694,101 @@ _EXTERNAL = {
     "oracle",
     "external",
     "mean-field envelope",
+    "adaptive proof session",
+    "anchor experiment",
+    "adversarial",
+    "counterfactual probe",
+    "encrypted",
+    "fragmented sovereignty",
+    "regularity regimes",
+    "source attribution",
+    "thermodynamic discharge",
+    "transfer information",
+    "zero-knowledge",
 }
 
 
 _EXTERNAL_ROUTE_RULES: list[
     tuple[str, tuple[str, ...], str, tuple[str, ...], str, str, tuple[str, ...]]
 ] = [
+    (
+        "domain-specific-proof",
+        ("__generic-domain-proof-route__",),
+        "core.adapters.external.verify_domain_obligation",
+        ("domain-certificate", "replayable-witness"),
+        "charge-domain-residual-until-specific-verifier-accepted",
+        "diagnostic-with-domain-obligation",
+        (
+            "domain-certificate-missing",
+            "replayable-witness-missing",
+            "specific-verifier-route-not-configured",
+        ),
+    ),
+    (
+        "sqot-salience-queue",
+        ("salience queue", "attention queue", "queue occupation", "priority distortion"),
+        "sqot.adapters.salience.verify_queue_policy",
+        ("queue-policy-certificate", "attention-budget-ledger", "priority-trace"),
+        "charge-salience-queue-residual-until-policy-certified",
+        "diagnostic-with-salience-queue-obligation",
+        (
+            "queue-policy-certificate-missing",
+            "attention-budget-ledger-unverified",
+            "priority-trace-incomplete",
+        ),
+    ),
+    (
+        "sqot-protocol-integrity",
+        ("protocol integrity", "sovereignty", "authority", "source attribution"),
+        "sqot.adapters.integrity.verify_protocol_kernel",
+        ("protocol-kernel-certificate", "authority-ledger", "source-attribution-proof"),
+        "charge-protocol-integrity-residual-until-kernel-certified",
+        "diagnostic-with-protocol-integrity-obligation",
+        (
+            "protocol-kernel-certificate-missing",
+            "authority-ledger-unverified",
+            "source-attribution-proof-missing",
+        ),
+    ),
+    (
+        "sqot-private-rejoin",
+        ("zero-knowledge", "encrypted", "privacy", "rejoin transcript"),
+        "sqot.adapters.privacy.verify_rejoin_transcript",
+        ("zk-rejoin-transcript", "privacy-leakage-bound", "queue-membership-proof"),
+        "charge-privacy-residual-until-rejoin-transcript-accepted",
+        "diagnostic-with-private-rejoin-obligation",
+        (
+            "zk-rejoin-transcript-missing",
+            "privacy-leakage-bound-unverified",
+            "queue-membership-proof-missing",
+        ),
+    ),
+    (
+        "sqot-adversarial-transfer",
+        ("adversarial", "extortion", "transfer information", "counterfactual probe"),
+        "sqot.adapters.adversarial.verify_transfer_game",
+        ("finite-game-certificate", "counterfactual-probe-log", "transfer-bound"),
+        "charge-adversarial-transfer-residual-until-game-certificate-accepted",
+        "diagnostic-with-adversarial-transfer-obligation",
+        (
+            "finite-game-certificate-missing",
+            "counterfactual-probe-log-unverified",
+            "transfer-bound-not-certified",
+        ),
+    ),
+    (
+        "sqot-thermodynamic-discharge",
+        ("thermodynamic discharge", "regularity regimes", "asymptotic", "limit"),
+        "sqot.adapters.thermodynamic.verify_discharge_envelope",
+        ("finite-discharge-envelope", "regularity-regime-certificate", "limit-residual"),
+        "charge-thermodynamic-discharge-residual-until-envelope-certified",
+        "diagnostic-with-thermodynamic-discharge-obligation",
+        (
+            "finite-discharge-envelope-missing",
+            "regularity-regime-certificate-unverified",
+            "limit-residual-not-certified",
+        ),
+    ),
     (
         "ecpt-trace-diagnostic",
         ("auxiliary trace-complex", "trace-complex diagnostic"),

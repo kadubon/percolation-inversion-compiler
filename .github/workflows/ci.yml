@@ -48,7 +48,7 @@ jobs:
         run: uv run mypy src scripts
 
       - name: Test
-        run: uv run pytest --cov=percolation_inversion_compiler --cov-report=term-missing --cov-fail-under=84
+        run: uv run pytest --cov=percolation_inversion_compiler --cov-report=term-missing --cov-fail-under=86
 
       - name: Build package
         run: uv build
@@ -64,7 +64,9 @@ jobs:
           uv run pic provenance verify --manifest "$RUNNER_TEMP/provenance.json"
           uv run pic snapshot list
           uv run pic snapshot show --artifact trc
+          uv run pic snapshot show --artifact sqot
           uv run pic snapshot verify --artifact trc
+          uv run pic snapshot verify --artifact sqot
           uv run pic snapshot routes
           uv run pic routes bindings
           uv run pic routes explain --route adapters.domain.verify_trc_telemetry_calibration
@@ -82,6 +84,11 @@ jobs:
           uv run pic audit theory --source tests/fixtures/minimal_claims.tex --fail-on projection
           uv run pic audit theory --source tests/fixtures/minimal_claims.tex --strict-grammar --fail-on projection
           uv run pic compile --records examples/frontier_records.json --archive-cap 8
+          uv run pic sqot schedule --packets examples/sqot_queue.json --profile production
+          uv run pic ecology build-edges --packets examples/ecology_packets.json --output "$RUNNER_TEMP/ecology-registry.json"
+          uv run pic ecology psi --registry "$RUNNER_TEMP/ecology-registry.json" --threshold examples/ecology_threshold.json --output "$RUNNER_TEMP/ecology-psi.json"
+          uv run pic ecology plan --registry "$RUNNER_TEMP/ecology-registry.json" --psi "$RUNNER_TEMP/ecology-psi.json" --profile production
+          uv run pic ecology loop --state examples/ecology_loop_state.json --agent-output "SQOT reserve packet for ECPT active phase-control"
           uv run pic demo datacenter
           uv run pic sbom create --format pic --output "$RUNNER_TEMP/pic.sbom.json"
           uv run pic sbom create --format cyclonedx --output "$RUNNER_TEMP/cyclonedx.sbom.json"

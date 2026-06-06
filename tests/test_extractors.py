@@ -44,6 +44,7 @@ def test_mr_extraction_from_minimal_bit_tex() -> None:
         ("ecpt", "Executable Capability Percolation Theory.tex", 9),
         ("bit", "Bottleneck Inversion Theory.tex", 18),
         ("trc", "Typed Reality Compilation.tex", 46),
+        ("sqot", "Salience-Queue Occupation Theory.tex", 0),
     ],
 )
 def test_canonical_sources_when_present(key: str, filename: str, claim_count: int) -> None:
@@ -63,6 +64,7 @@ def test_canonical_sources_when_present(key: str, filename: str, claim_count: in
         ("Executable Capability Percolation Theory.tex", 79, 35),
         ("Bottleneck Inversion Theory.tex", 22, 20),
         ("Typed Reality Compilation.tex", 70, 46),
+        ("Salience-Queue Occupation Theory.tex", 59, 74),
     ],
 )
 def test_theory_coverage_counts_when_present(filename: str, definitions: int, claims: int) -> None:
@@ -111,6 +113,17 @@ def test_theory_coverage_counts_when_present(filename: str, definitions: int, cl
                 "unsupported": 0,
             },
         ),
+        (
+            "Salience-Queue Occupation Theory.tex",
+            {
+                "implemented_constructive": 22,
+                "implemented_checker": 78,
+                "implemented_schema": 18,
+                "partial": 0,
+                "external_obligation": 15,
+                "unsupported": 0,
+            },
+        ),
     ],
 )
 def test_theory_coverage_status_counts_when_present(
@@ -145,6 +158,7 @@ def test_bit_mr_record_category_counts_when_present() -> None:
     [
         ("ecpt", "Executable Capability Percolation Theory.tex", 30),
         ("trc", "Typed Reality Compilation.tex", 32),
+        ("sqot", "Salience-Queue Occupation Theory.tex", 15),
     ],
 )
 def test_external_obligation_catalog_is_concrete_when_present(

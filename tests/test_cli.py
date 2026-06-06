@@ -23,7 +23,7 @@ def test_cli_doctor_reports_operational_status() -> None:
     data = json.loads(result.output)
     assert data["report_id"] == "pic-operational-readiness"
     assert data["overall_status"] in {"pass", "warn", "fail"}
-    assert data["summary"]["snapshot_count"] == 3
+    assert data["summary"]["snapshot_count"] == 4
     assert data["summary"]["adapter_route_count"] >= 1
     assert (
         "unresolved external obligations do not promote to settled" in (data["safety_invariants"])
@@ -259,7 +259,12 @@ def test_cli_snapshot_list_show_and_routes() -> None:
     listed = runner.invoke(app, ["snapshot", "list"])
     assert listed.exit_code == 0
     listed_data = json.loads(listed.output)
-    assert [item["artifact_key"] for item in listed_data["snapshots"]] == ["ecpt", "bit", "trc"]
+    assert [item["artifact_key"] for item in listed_data["snapshots"]] == [
+        "ecpt",
+        "bit",
+        "trc",
+        "sqot",
+    ]
 
     shown = runner.invoke(app, ["snapshot", "show", "--artifact", "trc"])
     assert shown.exit_code == 0
@@ -299,6 +304,12 @@ def test_cli_snapshot_list_show_and_routes() -> None:
     verified_data = json.loads(verified.output)
     assert verified_data["valid"]
     assert verified_data["canonical_sha256"]
+
+    verified_sqot = runner.invoke(app, ["snapshot", "verify", "--artifact", "sqot"])
+    assert verified_sqot.exit_code == 0
+    sqot_data = json.loads(verified_sqot.output)
+    assert sqot_data["valid"]
+    assert sqot_data["canonical_sha256"]
 
 
 def test_cli_evidence_verify_accepts_example() -> None:

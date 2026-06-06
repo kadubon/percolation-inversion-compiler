@@ -1,0 +1,30 @@
+{
+  "records": [
+    {
+      "evidence_hash_valid": true,
+      "expected_downstream_gain": 0.8,
+      "freshness": 1.0,
+      "item_type": "packet",
+      "obligation_ids": ["obligation:sqot-reserve"],
+      "record_id": "packet:sqot-reserve",
+      "residual_reduction": 0.6,
+      "rollback_available": true,
+      "route_safe": true,
+      "salience_class": "diagnostic",
+      "verification_cost": 0.2,
+      "verifier_routes": ["sqot.adapters.salience.verify_queue_policy"]
+    },
+    {
+      "evidence_hash_valid": false,
+      "expected_downstream_gain": 0.4,
+      "freshness": 0.5,
+      "item_type": "packet",
+      "record_id": "packet:hash-invalid",
+      "residual_reduction": 0.1,
+      "rollback_available": true,
+      "route_safe": true,
+      "salience_class": "packet",
+      "verification_cost": 0.1
+    }
+  ]
+}

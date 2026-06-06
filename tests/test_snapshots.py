@@ -26,7 +26,7 @@ from percolation_inversion_compiler.io.snapshots import (
 
 def test_snapshot_catalog_is_available_without_tex() -> None:
     snapshots = list_theory_snapshots()
-    assert [snapshot.artifact_key for snapshot in snapshots] == ["ecpt", "bit", "trc"]
+    assert [snapshot.artifact_key for snapshot in snapshots] == ["ecpt", "bit", "trc", "sqot"]
     assert snapshots[0].attribution.license_id == "cc-by-4.0"
     assert all(snapshot.coverage_counts["unsupported"] == 0 for snapshot in snapshots)
 
@@ -44,6 +44,7 @@ def test_snapshot_external_lookup() -> None:
         ("ecpt", "Executable Capability Percolation Theory.tex"),
         ("bit", "Bottleneck Inversion Theory.tex"),
         ("trc", "Typed Reality Compilation.tex"),
+        ("sqot", "Salience-Queue Occupation Theory.tex"),
     ],
 )
 def test_canonical_snapshot_regression_when_present(key: str, filename: str) -> None:

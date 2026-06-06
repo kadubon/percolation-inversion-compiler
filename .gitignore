@@ -61,6 +61,7 @@ desktop.ini
 *.swo
 
 # Tool output
+.release/
 pip-audit-report.json
 bandit-report.json
 scorecard-results.sarif

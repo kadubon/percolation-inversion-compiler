@@ -8,7 +8,7 @@ from pydantic import BaseModel, Field
 
 
 class ClaimStatus(StrEnum):
-    """Protocol-relative status labels used by ECPT, BIT, and TRC."""
+    """Protocol-relative status labels used by ECPT, BIT, TRC, and SQOT."""
 
     REJECTED = "rejected"
     EXPIRED = "expired"

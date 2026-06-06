@@ -1,5 +1,13 @@
 # Changelog
 
+## v0.2.4 - 2026-06-06
+
+- Adds SQOT support with canonical Zenodo DOI metadata, strict TeX grammar acceptance for SQOT axiom/assumption declarations, and a derived non-vendored coverage snapshot with unsupported and partial counts at zero.
+- Adds the SQOT salience scheduler for finite attention occupation, diagnostic reserve, risk and verification-cost ledgers, quarantine, rollback, and safe queue decisions for packet, obligation, and verifier work.
+- Adds the ECPT packet ecology runtime with packet ingestion, edge witnesses, Psi dashboards, verification-throughput metrics, bottleneck-inversion plans, and closed-loop agent iteration commands.
+- Adds optional live connector ingestion for GitHub, Zenodo, and arXiv metadata behind fail-closed diagnostic packet ingestion reports.
+- Expands docs, examples, schemas, citation metadata, NOTICE, and release checks for ECPT/BIT/TRC/SQOT agent-facing ASI-proxy phase-control workflows.
+
 ## v0.2.3 - 2026-06-06
 
 - Adds the ECPT active phase-control runtime with `PhaseControlState`, `ASIProxyTargetContract`, ranked `PhaseControlAction` candidates, `PhaseControlPlan`, and `PhaseControlRunReport`.

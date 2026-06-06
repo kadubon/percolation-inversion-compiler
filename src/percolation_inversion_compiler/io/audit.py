@@ -113,6 +113,7 @@ def _canonical_key_from_name(name: str) -> str | None:
         "Executable Capability Percolation Theory.tex": "ecpt",
         "Bottleneck Inversion Theory.tex": "bit",
         "Typed Reality Compilation.tex": "trc",
+        "Salience-Queue Occupation Theory.tex": "sqot",
     }.get(name)
 
 
