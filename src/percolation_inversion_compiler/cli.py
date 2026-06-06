@@ -66,6 +66,18 @@ from percolation_inversion_compiler.io import (
 )
 from percolation_inversion_compiler.io.provenance import ProvenanceManifest
 from percolation_inversion_compiler.io.schema import load_data
+from percolation_inversion_compiler.runtime import (
+    ActionCommitPolicy,
+    AgentRuntimeConfig,
+    RuntimeServiceSettings,
+    RuntimeState,
+    RuntimeStepInput,
+    build_runtime_step,
+    create_runtime_app,
+    run_runtime_loop,
+    run_runtime_service,
+    runtime_health,
+)
 from percolation_inversion_compiler.sqot import (
     DiagnosticReservePolicy,
     SalienceQueueRecord,
@@ -88,6 +100,7 @@ parse_app = typer.Typer(help="Run strict TeX parser diagnostics.")
 ecpt_app = typer.Typer(help="Run ECPT active phase-control planning tools.")
 sqot_app = typer.Typer(help="Run SQOT salience-queue scheduling tools.")
 ecology_app = typer.Typer(help="Run ECPT capability packet ecology tools.")
+runtime_app = typer.Typer(help="Run ECPT active agent runtime loops and local service.")
 app.add_typer(demo_app, name="demo")
 app.add_typer(audit_app, name="audit")
 app.add_typer(snapshot_app, name="snapshot")
@@ -99,6 +112,7 @@ app.add_typer(parse_app, name="parse")
 app.add_typer(ecpt_app, name="ecpt")
 app.add_typer(sqot_app, name="sqot")
 app.add_typer(ecology_app, name="ecology")
+app.add_typer(runtime_app, name="runtime")
 console = Console()
 
 
@@ -195,6 +209,68 @@ def _read_text_or_literal(source: str) -> str:
     if path.exists() and path.is_file():
         return path.read_text(encoding="utf-8")
     return source
+
+
+def _runtime_config(
+    *,
+    profile: str,
+    allow_live_connectors: bool,
+    action_commit_policy: str,
+    attention_budget: float,
+    risk_budget: float,
+    max_tasks: int,
+) -> AgentRuntimeConfig:
+    try:
+        policy = ActionCommitPolicy(action_commit_policy)
+    except ValueError as exc:
+        raise typer.BadParameter(
+            "--action-commit-policy must be recommend_only, "
+            "require_verifier_resolution, or allow_finite_scope_commit"
+        ) from exc
+    return AgentRuntimeConfig(
+        profile=profile,
+        allow_live_connectors=allow_live_connectors,
+        action_commit_policy=policy,
+        attention_budget=attention_budget,
+        risk_budget=risk_budget,
+        max_tasks=max_tasks,
+    )
+
+
+def _load_runtime_state(path: Path) -> RuntimeState:
+    data = load_data(path)
+    raw = data.get("runtime_state", data.get("state", data))
+    if not isinstance(raw, dict):
+        raise typer.BadParameter("runtime state file must contain an object")
+    return RuntimeState.model_validate(raw)
+
+
+def _load_runtime_step_input(path: Path) -> RuntimeStepInput:
+    data = load_data(path)
+    raw = data.get("runtime_input", data.get("input", data))
+    if not isinstance(raw, dict):
+        raise typer.BadParameter("runtime input file must contain an object")
+    return RuntimeStepInput.model_validate(raw)
+
+
+def _load_runtime_inputs(path: Path) -> list[RuntimeStepInput]:
+    if path.suffix.lower() == ".jsonl":
+        inputs: list[RuntimeStepInput] = []
+        for line_number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
+            stripped = line.strip()
+            if not stripped:
+                continue
+            try:
+                data = json.loads(stripped)
+            except json.JSONDecodeError as exc:
+                raise typer.BadParameter(f"invalid JSONL line {line_number}: {exc}") from exc
+            inputs.append(RuntimeStepInput.model_validate(data))
+        return inputs
+    data = load_data(path)
+    raw_inputs = data.get("inputs", data.get("runtime_inputs"))
+    if not isinstance(raw_inputs, list):
+        raise typer.BadParameter("runtime loop JSON must contain an inputs list")
+    return [RuntimeStepInput.model_validate(item) for item in raw_inputs]
 
 
 @app.callback()
@@ -993,6 +1069,174 @@ def ecology_loop(
         threshold=thresholds,
     )
     _dump(iteration.model_dump(mode="json"), output)
+
+
+@runtime_app.command("step")
+def runtime_step_command(
+    state: Annotated[
+        Path,
+        typer.Option("--state", help="RuntimeState JSON/YAML."),
+    ],
+    step_input: Annotated[
+        Path,
+        typer.Option("--input", help="RuntimeStepInput JSON/YAML."),
+    ],
+    profile: Annotated[
+        str,
+        typer.Option("--profile", help="Runtime profile: development, research, or production."),
+    ] = "development",
+    allow_live_connectors: Annotated[
+        bool,
+        typer.Option(
+            "--allow-live-connectors/--no-allow-live-connectors",
+            help="Allow explicitly requested live connector ingestion.",
+        ),
+    ] = False,
+    action_commit_policy: Annotated[
+        str,
+        typer.Option("--action-commit-policy", help="Runtime action commit policy."),
+    ] = "require_verifier_resolution",
+    attention_budget: Annotated[
+        float,
+        typer.Option("--attention-budget", help="SQOT attention budget for this step."),
+    ] = 1.0,
+    risk_budget: Annotated[
+        float,
+        typer.Option("--risk-budget", help="SQOT risk budget for this step."),
+    ] = 1.0,
+    max_tasks: Annotated[int, typer.Option("--max-tasks", help="Maximum tasks to emit.")] = 8,
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Run one ECPT active runtime step."""
+
+    parsed_state = _load_runtime_state(state)
+    parsed_input = _load_runtime_step_input(step_input)
+    config = _runtime_config(
+        profile=profile,
+        allow_live_connectors=allow_live_connectors,
+        action_commit_policy=action_commit_policy,
+        attention_budget=attention_budget,
+        risk_budget=risk_budget,
+        max_tasks=max_tasks,
+    )
+    report = build_runtime_step(parsed_state, parsed_input, config)
+    _dump(report.model_dump(mode="json"), output)
+
+
+@runtime_app.command("loop")
+def runtime_loop_command(
+    state: Annotated[
+        Path,
+        typer.Option("--state", help="RuntimeState JSON/YAML."),
+    ],
+    inputs: Annotated[
+        Path,
+        typer.Option("--inputs", help="RuntimeStepInput JSONL or JSON with inputs list."),
+    ],
+    max_steps: Annotated[int, typer.Option("--max-steps", help="Maximum loop steps.")] = 8,
+    profile: Annotated[
+        str,
+        typer.Option("--profile", help="Runtime profile: development, research, or production."),
+    ] = "development",
+    allow_live_connectors: Annotated[
+        bool,
+        typer.Option(
+            "--allow-live-connectors/--no-allow-live-connectors",
+            help="Allow explicitly requested live connector ingestion.",
+        ),
+    ] = False,
+    action_commit_policy: Annotated[
+        str,
+        typer.Option("--action-commit-policy", help="Runtime action commit policy."),
+    ] = "require_verifier_resolution",
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Run a deterministic ECPT active runtime loop over JSONL inputs."""
+
+    parsed_state = _load_runtime_state(state)
+    parsed_inputs = _load_runtime_inputs(inputs)
+    config = _runtime_config(
+        profile=profile,
+        allow_live_connectors=allow_live_connectors,
+        action_commit_policy=action_commit_policy,
+        attention_budget=1.0,
+        risk_budget=1.0,
+        max_tasks=8,
+    )
+    reports = run_runtime_loop(parsed_state, parsed_inputs, config, max_steps=max_steps)
+    _dump({"reports": [report.model_dump(mode="json") for report in reports]}, output)
+
+
+@runtime_app.command("health")
+def runtime_health_command(
+    state: Annotated[
+        Path,
+        typer.Option("--state", help="RuntimeState JSON/YAML."),
+    ],
+    profile: Annotated[
+        str,
+        typer.Option("--profile", help="Runtime profile: development, research, or production."),
+    ] = "development",
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Emit a finite runtime health report."""
+
+    parsed_state = _load_runtime_state(state)
+    report = runtime_health(parsed_state, AgentRuntimeConfig(profile=profile))
+    _dump(report.model_dump(mode="json"), output)
+
+
+@runtime_app.command("export-openapi")
+def runtime_export_openapi(
+    output: Annotated[Path, typer.Option("--output", "-o", help="Write OpenAPI JSON.")],
+    profile: Annotated[
+        str,
+        typer.Option("--profile", help="Runtime service profile."),
+    ] = "development",
+) -> None:
+    """Export the optional local runtime service OpenAPI document."""
+
+    try:
+        service_app = create_runtime_app(RuntimeServiceSettings(profile=profile))
+    except RuntimeError as exc:
+        raise typer.BadParameter(str(exc)) from exc
+    _dump(service_app.openapi(), output)
+
+
+@runtime_app.command("service")
+def runtime_service_command(
+    host: Annotated[str, typer.Option("--host", help="Service host.")] = "127.0.0.1",
+    port: Annotated[int, typer.Option("--port", help="Service port.")] = 8765,
+    profile: Annotated[
+        str,
+        typer.Option("--profile", help="Runtime service profile."),
+    ] = "development",
+    allow_live_connectors: Annotated[
+        bool,
+        typer.Option(
+            "--allow-live-connectors/--no-allow-live-connectors",
+            help="Allow live connector use when requests also opt in.",
+        ),
+    ] = False,
+) -> None:
+    """Run the optional local ECPT active runtime HTTP service."""
+
+    settings = RuntimeServiceSettings(
+        host=host,
+        port=port,
+        profile=profile,
+        allow_live_connectors=allow_live_connectors,
+    )
+    try:
+        run_runtime_service(settings)
+    except RuntimeError as exc:
+        raise typer.BadParameter(str(exc)) from exc
 
 
 @ecpt_app.command("plan")

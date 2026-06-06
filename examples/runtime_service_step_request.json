@@ -1,0 +1,80 @@
+{
+  "config": {
+    "action_commit_policy": "require_verifier_resolution",
+    "allow_live_connectors": false,
+    "profile": "production"
+  },
+  "input": {
+    "agent_output": "Service runtime packet for ECPT ASI-proxy phase-control.",
+    "allow_live_connectors": false,
+    "input_id": "service-step-1"
+  },
+  "state": {
+    "phase_actions": [
+      {
+        "action_id": "service-route-proxy-evidence",
+        "activation_delta": 0.7,
+        "burden_delta": 0.1,
+        "required_obligations": [
+          "obligation:baseline-safety"
+        ],
+        "residual_charge": 0.02,
+        "resource_cost": {
+          "compute": 0.1
+        },
+        "risk_charge": 0.02,
+        "source_nodes": [
+          "compute"
+        ],
+        "target_node": "phase-transition-proxy",
+        "verifier_routes": [
+          "adapters.domain.verify_ecpt_proxy_target_contract"
+        ]
+      }
+    ],
+    "phase_objective": {
+      "objective_id": "service-objective",
+      "residual_budget": 0.5,
+      "risk_tolerance": 0.5,
+      "target": {
+        "target_id": "service-target",
+        "target_nodes": [
+          "phase-transition-proxy"
+        ]
+      }
+    },
+    "phase_state": {
+      "budgets": {
+        "compute": 1.0
+      },
+      "constraint_frame": {
+        "hard_gates": {
+          "service-local": true
+        }
+      },
+      "graph": {
+        "nodes": [
+          "compute"
+        ],
+        "seed_mass": {
+          "compute": 1.0
+        }
+      },
+      "present_obligations": [
+        "obligation:baseline-safety"
+      ],
+      "state_id": "service-phase-state",
+      "state_vector": {
+        "packets": [
+          {
+            "coordinates": {
+              "compute": 1.0
+            },
+            "packet_id": "compute-seed"
+          }
+        ]
+      }
+    },
+    "state_id": "runtime-service-demo"
+  }
+}

@@ -1,13 +1,13 @@
 # Percolation Inversion Compiler
 
-`percolation-inversion-compiler` is a production-oriented finite
-verifier-routing and packet-ecology SDK for ECPT, BIT, TRC, and SQOT. It turns
-paper-derived TeX, registry JSON, verifier evidence, agent outputs, and packet
-candidate records into deterministic JSON: finite checker judgments, proof
-obligations, residual ledgers, salience-queue schedules, typed trace normal
-forms, frontier extraction records, packet edge witnesses, Psi dashboards,
-bottleneck-inversion plans, provenance manifests, SBOMs, and portable JSON
-Schemas for AI agent integration.
+`percolation-inversion-compiler` is an ECPT active agent runtime and
+production-oriented finite verifier-routing SDK for ECPT, BIT, TRC, and SQOT.
+It turns paper-derived TeX, registry JSON, verifier evidence, agent outputs,
+and packet candidate records into deterministic JSON: finite checker judgments,
+proof obligations, residual ledgers, salience-queue schedules, typed trace
+normal forms, frontier extraction records, packet edge witnesses, Psi
+dashboards, bottleneck-inversion plans, runtime step reports, provenance
+manifests, SBOMs, and portable JSON Schemas for AI agent integration.
 
 In practical terms, the input is a finite artifact an agent may want to use: a
 canonical theory source, packet candidate, issue/PR/repository metadata, agent
@@ -16,7 +16,8 @@ questions: which finite certificates passed, which proof obligations remain,
 which residual coordinates stay charged, which packets/obligations should be
 scheduled next, and which ECPT ASI-proxy component is currently the bottleneck.
 Agents can use that output as a routing layer before they call domain
-simulators, frontier planners, live connectors, or verifier adapters.
+simulators, frontier planners, live connectors, verifier adapters, or the
+optional local runtime HTTP service.
 
 The repository is not an ASI detector and does not assert that artificial
 superintelligence has been achieved. Its narrower scientific role is to provide
@@ -47,6 +48,17 @@ external simulators, physical-domain witnesses, oracle claims, and unobserved
 ASI claims remain explicit `ExternalProofObligation` records with residual
 charges and failure modes.
 
+Three direct ways to use it:
+
+- Use as CLI: run `pic runtime step`, `pic runtime loop`, `pic ecpt plan`,
+  `pic sqot schedule`, `pic ecology psi`, and `pic evidence verify`.
+- Use as Python SDK: call `build_runtime_step`, `run_runtime_loop`, and
+  `runtime_health` with portable `RuntimeState` and `RuntimeStepInput` JSON.
+- Run local HTTP service: start `pic runtime service --host 127.0.0.1 --port
+  8765 --profile production` and call `/runtime/step`, `/runtime/loop`,
+  `/ecology/ingest`, `/evidence/verify`, and `/health`.
+  In production set `PIC_RUNTIME_TOKEN` and use `Authorization: Bearer ...`.
+
 What this gives an agent:
 
 - a certificate compiler for ECPT/BIT/TRC artifacts;
@@ -57,6 +69,10 @@ What this gives an agent:
 - active ECPT ASI-proxy phase-control plans with ranked finite interventions;
 - ECPT packet ecology ingestion, edge witnesses, Psi dashboards, and bottleneck plans;
 - SQOT salience scheduling for packet, obligation, and verifier queues;
+- an ECPT active runtime that composes packet ecology, SQOT scheduling,
+  bottleneck planning, verifier routing, and residual ledger preservation;
+- a finite `phase_acceleration_score` for ranking ASI-proxy phase-control
+  actions under explicit evidence and residual policies;
 - SHA-256 evidence provenance envelopes for verifier adapters;
 - canonical-to-implementation discharge route bindings with settlement scope;
 - deterministic schema/provenance manifests and SBOM-ready release assets;
@@ -105,6 +121,10 @@ uv run pic ecology build-edges --packets examples/ecology_packets.json --output 
 uv run pic ecology psi --registry ecology-registry.json --threshold examples/ecology_threshold.json --output ecology-psi.json
 uv run pic ecology plan --registry ecology-registry.json --psi ecology-psi.json --profile production
 uv run pic ecology loop --state examples/ecology_loop_state.json --agent-output "SQOT reserve packet for ECPT active phase-control."
+uv run pic runtime step --state examples/runtime_state.json --input examples/runtime_step_input.json --profile production
+uv run pic runtime loop --state examples/runtime_state.json --inputs examples/runtime_loop_inputs.jsonl --max-steps 2 --profile production
+uv run pic runtime health --state examples/runtime_state.json --profile production
+uv run pic runtime export-openapi --output runtime-openapi.json
 uv run pic explain external def:null-channel-routing --from-snapshot
 uv run pic snapshot verify --artifact trc
 uv run pic snapshot verify --artifact sqot
@@ -158,6 +178,9 @@ uv run pic doctor --profile production --required-route adapters.domain.verify_t
 uv run pic doctor --fail-on warn
 uv run pic evidence verify --envelope examples\evidence_envelope.json --profile production
 uv run pic validate --registry examples\minimal_registry.json
+uv run pic runtime step --state examples\runtime_state.json --input examples\runtime_step_input.json --profile production
+uv run pic runtime loop --state examples\runtime_state.json --inputs examples\runtime_loop_inputs.jsonl --max-steps 2 --profile production
+uv run pic runtime service --host 127.0.0.1 --port 8765 --profile production
 uv run pic compile --records examples\frontier_records.json
 uv run pic sbom create --format cyclonedx --output cyclonedx.sbom.json
 ```
@@ -188,6 +211,9 @@ derived status, proof obligations, and residual ledgers.
 
 - [Architecture](docs/architecture.md)
 - [Mathematical contracts](docs/mathematical-contracts.md)
+- [ECPT active agent runtime](docs/runtime.md)
+- [Local runtime HTTP service](docs/runtime-service.md)
+- [ECPT acceleration score](docs/ecpt-acceleration-score.md)
 - [ECPT active phase-control runtime](docs/ecpt-phase-control-runtime.md)
 - [SQOT salience scheduler](docs/sqot.md)
 - [ECPT packet ecology runtime](docs/ecpt-packet-ecology-runtime.md)

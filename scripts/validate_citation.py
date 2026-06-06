@@ -14,7 +14,7 @@ REQUIRED_DOIS = {
     "10.5281/zenodo.20526451",
 }
 EXPECTED_REPOSITORY = "https://github.com/kadubon/percolation-inversion-compiler"
-EXPECTED_VERSION = "0.2.4"
+EXPECTED_VERSION = "0.3.0"
 
 
 def main() -> int:

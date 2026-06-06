@@ -95,7 +95,34 @@ Read `finite_proxy_gain_total`, `selected_actions`,
 plan helps an agent choose which finite ECPT action to evaluate next. It does
 not prove the unobserved ASI target or discharge domain obligations by itself.
 
-## 7. Read Coverage
+## 7. Run the Active Agent Runtime
+
+The v0.3.0 runtime composes ECPT planning, packet ecology, SQOT scheduling, and
+verifier routing into one agent-facing step:
+
+```powershell
+uv run pic runtime step --state examples\runtime_state.json --input examples\runtime_step_input.json --profile production
+uv run pic runtime loop --state examples\runtime_state.json --inputs examples\runtime_loop_inputs.jsonl --max-steps 2 --profile production
+uv run pic runtime health --state examples\runtime_state.json --profile production
+uv run pic runtime export-openapi --output runtime-openapi.json
+```
+
+Read `agent_tasks`, `route_execution_requests`, `phase_acceleration_score`,
+`missing_obligations`, and `residual_ledger`. Runtime output can rank
+protocol-relative ASI-proxy work for an agent, but it keeps `settled=false`
+until verifier evidence discharges the relevant finite route.
+
+The optional service is local-first:
+
+```powershell
+$env:PIC_RUNTIME_TOKEN = "replace-with-local-token"
+uv run pic runtime service --host 127.0.0.1 --port 8765 --profile production
+```
+
+Production service requests must include `Authorization: Bearer
+<PIC_RUNTIME_TOKEN>`.
+
+## 8. Read Coverage
 
 ```powershell
 uv run pic coverage --source tests\fixtures\minimal_claims.tex
@@ -106,7 +133,7 @@ Coverage statuses distinguish finite constructive algorithms, finite checkers,
 portable schemas, external proof obligations, and unsupported items. Canonical
 coverage should keep `unsupported` at zero.
 
-## 8. Route External Obligations
+## 9. Route External Obligations
 
 For canonical sources, external items can be explained as verifier contracts:
 
@@ -124,7 +151,7 @@ whether to call a domain adapter or keep a diagnostic/partial result.
 When TeX is unavailable, add `--from-snapshot` to read the bundled derived
 metadata instead.
 
-## 9. Verify Evidence Envelopes
+## 10. Verify Evidence Envelopes
 
 ```powershell
 uv run pic evidence verify --envelope examples\evidence_envelope.json --profile production

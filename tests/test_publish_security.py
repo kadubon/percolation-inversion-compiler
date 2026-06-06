@@ -22,12 +22,13 @@ def _publish_safety_main() -> int:
 def test_citation_cff_references_all_papers() -> None:
     data = yaml.safe_load((ROOT / "CITATION.cff").read_text(encoding="utf-8"))
     dois = {reference["doi"] for reference in data["references"]}
-    assert data["version"] == "0.2.4"
+    assert data["version"] == "0.3.0"
     assert data["repository-code"] == "https://github.com/kadubon/percolation-inversion-compiler"
     assert "OWNER/" not in data["repository-code"]
     assert "10.5281/zenodo.20535654" in dois
     assert "10.5281/zenodo.20545356" in dois
     assert "10.5281/zenodo.20554083" in dois
+    assert "10.5281/zenodo.20526451" in dois
 
 
 def test_gitignore_blocks_generated_and_secret_paths() -> None:
@@ -73,6 +74,9 @@ def test_agent_docs_exist_and_avoid_local_paths() -> None:
         "docs/provenance-and-sbom.md",
         "docs/verifier-sdk.md",
         "docs/verifier-threat-model.md",
+        "docs/runtime.md",
+        "docs/runtime-service.md",
+        "docs/ecpt-acceleration-score.md",
         "docs/release-checklist.md",
         "CONTRIBUTING.md",
         "CHANGELOG.md",

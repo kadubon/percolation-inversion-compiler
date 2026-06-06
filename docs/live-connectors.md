@@ -1,6 +1,6 @@
 # Live Connectors
 
-v0.2.4 adds optional live connector ingestion for GitHub, Zenodo, and arXiv
+v0.3.0 keeps optional live connector ingestion for GitHub, Zenodo, and arXiv
 metadata. Connectors are intentionally small and fail closed: network errors,
 rate limits, missing optional dependencies, and authentication failures return
 diagnostic `PacketIngestionReport` records rather than accepted packets.

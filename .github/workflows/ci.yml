@@ -48,7 +48,7 @@ jobs:
         run: uv run mypy src scripts
 
       - name: Test
-        run: uv run pytest --cov=percolation_inversion_compiler --cov-report=term-missing --cov-fail-under=86
+        run: uv run pytest --cov=percolation_inversion_compiler --cov-report=term-missing --cov-fail-under=87
 
       - name: Build package
         run: uv build
@@ -89,6 +89,10 @@ jobs:
           uv run pic ecology psi --registry "$RUNNER_TEMP/ecology-registry.json" --threshold examples/ecology_threshold.json --output "$RUNNER_TEMP/ecology-psi.json"
           uv run pic ecology plan --registry "$RUNNER_TEMP/ecology-registry.json" --psi "$RUNNER_TEMP/ecology-psi.json" --profile production
           uv run pic ecology loop --state examples/ecology_loop_state.json --agent-output "SQOT reserve packet for ECPT active phase-control"
+          uv run pic runtime step --state examples/runtime_state.json --input examples/runtime_step_input.json --profile production --output "$RUNNER_TEMP/runtime-step.json"
+          uv run pic runtime loop --state examples/runtime_state.json --inputs examples/runtime_loop_inputs.jsonl --max-steps 2 --profile production --output "$RUNNER_TEMP/runtime-loop.json"
+          uv run pic runtime health --state examples/runtime_state.json --profile production --output "$RUNNER_TEMP/runtime-health.json"
+          uv run pic runtime export-openapi --output "$RUNNER_TEMP/runtime-openapi.json"
           uv run pic demo datacenter
           uv run pic sbom create --format pic --output "$RUNNER_TEMP/pic.sbom.json"
           uv run pic sbom create --format cyclonedx --output "$RUNNER_TEMP/cyclonedx.sbom.json"

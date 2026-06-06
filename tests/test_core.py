@@ -21,7 +21,12 @@ from percolation_inversion_compiler.core.judgment import (
     ObligationSet,
     check_external_verifier_hook,
 )
-from percolation_inversion_compiler.core.ledger import CoordinateKind, Ledger
+from percolation_inversion_compiler.core.ledger import (
+    CoordinateKind,
+    EvidenceStatus,
+    Ledger,
+    LedgerCoordinate,
+)
 from percolation_inversion_compiler.core.order import FiniteOrder, MonotoneMap
 from percolation_inversion_compiler.core.records import (
     ClaimRecord,
@@ -63,6 +68,34 @@ def test_ledger_dominance_uses_benefit_and_burden_direction() -> None:
     assert not right.dominates(left)
 
 
+def test_ledger_dominance_missing_unknown_and_unit_branches() -> None:
+    benefit = Ledger().add_coordinate("benefit", 2.0, kind=CoordinateKind.BENEFIT)
+    burden = Ledger().add_coordinate("burden", 1.0, kind=CoordinateKind.BURDEN)
+    assert not benefit.dominates(burden)
+    assert benefit.dominates(Ledger(), missing_as_zero=True)
+    assert not Ledger().dominates(benefit, missing_as_zero=True)
+
+    incompatible = Ledger().add_coordinate(
+        "benefit",
+        2.0,
+        kind=CoordinateKind.BENEFIT,
+        unit="seconds",
+    )
+    assert not benefit.compatible_units(incompatible)
+    unknown = Ledger(
+        coordinates={
+            "benefit": LedgerCoordinate(
+                name="benefit",
+                value=2.0,
+                kind=CoordinateKind.BENEFIT,
+                evidence_status=EvidenceStatus.UNKNOWN,
+                known=False,
+            )
+        }
+    )
+    assert not unknown.dominates(benefit)
+
+
 def test_dependency_dag_reachable_and_topological() -> None:
     dag = DependencyDAG.from_dependencies({"claim": {"witness", "unit"}, "witness": {"base"}})
     assert "claim" in dag.reachable_from("base")
@@ -90,9 +123,15 @@ def test_pareto_frontier_removes_dominated_records() -> None:
 def test_finite_order_antichain_and_monotone_map() -> None:
     order = FiniteOrder(elements=["bottom", "left", "right"], leq_pairs=[("bottom", "left")])
     assert order.check().accepted
+    assert order.is_preorder()
+    assert order.is_partial_order()
+    assert not order.leq("missing", "left")
     assert order.leq("bottom", "left")
     assert order.incomparable("left", "right")
     assert order.dominance_witness("left", "bottom").accepted
+    assert not order.dominance_witness("missing", "bottom").accepted
+    assert not order.dominance_witness("bottom", "left").accepted
+    assert order.antichain(["left", "right"]) == ["left", "right"]
     antichain = order.maximal_antichain()
     assert len(antichain) == 2
     assert all(

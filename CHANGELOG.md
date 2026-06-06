@@ -1,5 +1,13 @@
 # Changelog
 
+## v0.3.0 - 2026-06-06
+
+- Adds the ECPT active agent runtime with stable `RuntimeState`, `RuntimeStepInput`, `RuntimeStepReport`, `AgentTask`, `RouteExecutionRequest`, `ActionCommit`, `PhaseAccelerationScore`, and runtime health records.
+- Adds `pic runtime step`, `pic runtime loop`, `pic runtime health`, `pic runtime export-openapi`, and optional `pic runtime service` for local-first CLI, SDK, and HTTP agent integration.
+- Composes packet ingestion, edge witnesses, Psi dashboards, bottleneck inversion, ECPT phase-control planning, SQOT scheduling, verifier route requests, and residual ledger preservation into one deterministic active loop.
+- Adds production service policy: loopback default, bearer auth through `PIC_RUNTIME_TOKEN`, explicit opt-in for live connectors, and diagnostic JSON errors.
+- Expands examples and docs for ECPT ASI-proxy phase-control workflows while keeping planning output fail-closed and never treating unobserved ASI, physical, simulator, or oracle outcomes as settled.
+
 ## v0.2.4 - 2026-06-06
 
 - Adds SQOT support with canonical Zenodo DOI metadata, strict TeX grammar acceptance for SQOT axiom/assumption declarations, and a derived non-vendored coverage snapshot with unsupported and partial counts at zero.

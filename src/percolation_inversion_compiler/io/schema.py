@@ -137,6 +137,18 @@ from percolation_inversion_compiler.io.snapshots import (
 )
 from percolation_inversion_compiler.io.tex import StrictTexParseReport, TexGrammarDiagnostic
 from percolation_inversion_compiler.io.zenodo import CanonicalManifest, CanonicalManifestRecord
+from percolation_inversion_compiler.runtime.records import (
+    ActionCommit,
+    AgentRuntimeConfig,
+    AgentTask,
+    PhaseAccelerationScore,
+    RouteExecutionRequest,
+    RuntimeHealthReport,
+    RuntimeServiceSettings,
+    RuntimeState,
+    RuntimeStepInput,
+    RuntimeStepReport,
+)
 from percolation_inversion_compiler.sqot.records import (
     DiagnosticReservePolicy,
     OccupationLedger,
@@ -193,7 +205,10 @@ def schema_model_map() -> dict[str, type[BaseModel]]:
     """Return stable public schema model names."""
 
     return {
+        "ActionCommit": ActionCommit,
         "AgentConnectorSpec": AgentConnectorSpec,
+        "AgentRuntimeConfig": AgentRuntimeConfig,
+        "AgentTask": AgentTask,
         "AdapterRouteSpec": AdapterRouteSpec,
         "AlgebraLawCertificate": AlgebraLawCertificate,
         "ActionGrammar": ActionGrammar,
@@ -260,6 +275,7 @@ def schema_model_map() -> dict[str, type[BaseModel]]:
         "OperationalCheck": OperationalCheck,
         "OperationalReadinessReport": OperationalReadinessReport,
         "OrderedPotentialCone": OrderedPotentialCone,
+        "PhaseAccelerationScore": PhaseAccelerationScore,
         "PhaseControlAction": PhaseControlAction,
         "PhaseControlEnvelope": PhaseControlEnvelope,
         "PhaseControlObjective": PhaseControlObjective,
@@ -287,6 +303,12 @@ def schema_model_map() -> dict[str, type[BaseModel]]:
         "Registry": Registry,
         "ResourceCalendarRecord": ResourceCalendarRecord,
         "RiskBudgetLedger": RiskBudgetLedger,
+        "RouteExecutionRequest": RouteExecutionRequest,
+        "RuntimeHealthReport": RuntimeHealthReport,
+        "RuntimeServiceSettings": RuntimeServiceSettings,
+        "RuntimeState": RuntimeState,
+        "RuntimeStepInput": RuntimeStepInput,
+        "RuntimeStepReport": RuntimeStepReport,
         "SQOTTheorySnapshot": SQOTTheorySnapshot,
         "ScriptGroundMetricCertificate": ScriptGroundMetricCertificate,
         "SchemaBundleDigest": SchemaBundleDigest,
