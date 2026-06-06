@@ -1,0 +1,25 @@
+{
+  "artifact": "Typed Reality Compilation.tex",
+  "coverage_delta": {
+    "external_obligation_total": 32,
+    "implemented_total": 84,
+    "unimplemented_total": 32,
+    "unsupported_total": 0
+  },
+  "external_obligation_category_summary": {
+    "archive-domain-cover": 5,
+    "assume-guarantee-contract": 3,
+    "distributionally-robust-metric": 1,
+    "latent-oracle-model": 5,
+    "numerical-envelope": 2,
+    "observation-partition": 3,
+    "physical-hybrid-system": 6,
+    "redesign-response": 3,
+    "telemetry-calibration": 4
+  },
+  "policy": {
+    "registry": "metadata-not-evidence",
+    "status": "derive-from-checker",
+    "unresolved_external": "keep-diagnostic-with-residual"
+  }
+}

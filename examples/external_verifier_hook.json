@@ -1,0 +1,38 @@
+{
+  "accepted_evidence_kind": [
+    "instrumented-trace",
+    "physics-simulator-certificate",
+    "resource-calendar"
+  ],
+  "accepted_obligation_ids": [],
+  "deterministic": true,
+  "failure_modes": {
+    "obligation:def:null-channel-routing": "physical-system-witness-missing"
+  },
+  "hook_id": "example-null-channel-verifier",
+  "notes": [
+    "This unresolved example is a routing record, not a proof of a physical claim."
+  ],
+  "obligation_categories": {
+    "obligation:def:null-channel-routing": "physical-hybrid-system"
+  },
+  "obligation_ids": [
+    "obligation:def:null-channel-routing"
+  ],
+  "rejected_obligation_ids": [],
+  "residual_coordinates": {
+    "null-channel-unverified": 1.0
+  },
+  "residual_policy": "charge-physical-residual-until-verifier-accepts",
+  "safe_default": "return-diagnostic-with-unresolved-obligations",
+  "schema_refs": [
+    "ExternalVerifierHook.schema.json",
+    "ExternalObligationCatalog.schema.json"
+  ],
+  "verifier_contract": {
+    "input": "ExternalProofObligation plus physical-domain evidence matching accepted_evidence_kind",
+    "output": "ExternalVerifierHook with accepted or rejected obligation ids",
+    "promotion_rule": "accepted hooks discharge obligations but do not bypass finite checker status derivation"
+  },
+  "verifier_route": "trc.adapters.physical_hybrid.verify_envelope"
+}

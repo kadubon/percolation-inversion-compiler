@@ -1,0 +1,33 @@
+cff-version: 1.2.0
+message: "If you use this software, cite the software package and the referenced theory papers."
+title: "Percolation Inversion Compiler"
+version: "0.1.0"
+authors:
+  - family-names: "Takahashi"
+    given-names: "K."
+license: "Apache-2.0"
+repository-code: "https://github.com/OWNER/percolation-inversion-compiler"
+date-released: "2026-06-06"
+abstract: "Finite certificate compiler toolkit for ECPT, BIT, and TRC research artifacts."
+references:
+  - type: article
+    title: "Executable Capability Percolation Theory"
+    authors:
+      - family-names: "Takahashi"
+        given-names: "K."
+    year: 2026
+    doi: "10.5281/zenodo.20535654"
+  - type: article
+    title: "Bottleneck Inversion Theory: Machine-Readable Witness Calculus for Unlockable Potential"
+    authors:
+      - family-names: "Takahashi"
+        given-names: "K."
+    year: 2026
+    doi: "10.5281/zenodo.20545356"
+  - type: article
+    title: "Typed Reality Compilation: Operational Tolerance Allocation for Resource-Efficient Cyber-Physical Frontier Compilation"
+    authors:
+      - family-names: "Takahashi"
+        given-names: "K."
+    year: 2026
+    doi: "10.5281/zenodo.20554083"

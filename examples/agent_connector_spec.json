@@ -1,0 +1,47 @@
+{
+  "capabilities": [
+    "theory-audit",
+    "schema-export",
+    "external-obligation-routing"
+  ],
+  "capability_routing": {
+    "external-obligation-routing": "pic explain external <item-id>",
+    "schema-export": "pic schema --all --output-dir <dir>",
+    "theory-audit": "pic audit theory --source <tex> --canonical-key <key>"
+  },
+  "connector_id": "example-agent-connector",
+  "deterministic": true,
+  "failure_modes": [
+    "missing-proof-obligation",
+    "unresolved-external-verifier",
+    "schema-validation-failed"
+  ],
+  "input_contract": {
+    "registry": "Validate registry-like inputs against Registry.schema.json before use.",
+    "theory_source": "Read local TeX only from an explicit operator-provided path."
+  },
+  "input_schema": {},
+  "output_contract": {
+    "audit": "Preserve derived_status, missing_obligations, residual ledgers, and external failure modes.",
+    "diagnostic": "Treat diagnostics as safe results, not process crashes."
+  },
+  "output_schema": {},
+  "required_capabilities": [
+    "theory-audit",
+    "schema-export"
+  ],
+  "residual_policy": {
+    "external": "Carry residual coordinates forward until an accepted ExternalVerifierHook discharges the matching obligation.",
+    "finite": "Do not drop finite checker residuals during planning."
+  },
+  "safe_failure_behavior": "return-diagnostic-with-obligations",
+  "safety_invariants": [
+    "declared_status is metadata",
+    "derived_status comes only from checker output",
+    "external obligations cannot promote a claim without accepted verifier evidence"
+  ],
+  "status_policy": {
+    "promotion": "forbidden-with-missing-obligations",
+    "unresolved_external": "diagnostic-or-provisional"
+  }
+}

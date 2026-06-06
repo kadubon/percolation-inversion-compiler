@@ -1,0 +1,18 @@
+{
+  "schema_version": "registry-1.0",
+  "artifact": "examples/minimal_registry.json",
+  "claims": [
+    {
+      "claim_id": "example:finite-certificate",
+      "kind": "example",
+      "label": "Finite certificate example",
+      "status": "provisional",
+      "dependency_labels": ["example:witness"],
+      "ledger_coordinates": ["residual", "cost"],
+      "citation_keys": []
+    }
+  ],
+  "metadata": {
+    "purpose": "portable CLI validation fixture"
+  }
+}

@@ -1,0 +1,125 @@
+{
+  "records": [
+    {
+      "record_id": "main-a",
+      "benefits": {
+        "future_freedom": 1.0
+      },
+      "burdens": {
+        "cost": 1.0
+      },
+      "status": "settled",
+      "stratum": "main",
+      "domain_key": "example",
+      "trace_id": "trace-main-a",
+      "metadata": {
+        "trace_normal_form": {
+          "trace_id": "trace-main-a",
+          "normalized_word": ["main-a"],
+          "normalization": {
+            "trace_id": "trace-main-a",
+            "source_word": ["main-a"],
+            "normalized_word": ["main-a"],
+            "confluence_witness": true,
+            "termination_witness": true
+          },
+          "step_proofs": [
+            {
+              "action_class": "main-a",
+              "precondition": {
+                "ok": true
+              },
+              "postcondition": {
+                "ok": true
+              },
+              "status": "settled"
+            }
+          ],
+          "precondition": {
+            "ok": true
+          },
+          "postcondition": {
+            "ok": true
+          },
+          "causal_schedule": {
+            "event_ids": ["main-a"]
+          },
+          "lifecycle": {
+            "certificate_versions": {
+              "cert": "v1"
+            }
+          },
+          "certificate_versions": ["v1"],
+          "tolerance_versions": ["tol-v1"]
+        }
+      }
+    },
+    {
+      "record_id": "main-b",
+      "benefits": {
+        "future_freedom": 0.5
+      },
+      "burdens": {
+        "cost": 2.0
+      },
+      "status": "provisional",
+      "stratum": "main",
+      "domain_key": "example",
+      "trace_id": "trace-main-b",
+      "metadata": {
+        "trace_normal_form": {
+          "trace_id": "trace-main-b",
+          "normalized_word": ["main-b"],
+          "normalization": {
+            "trace_id": "trace-main-b",
+            "source_word": ["main-b"],
+            "normalized_word": ["main-b"],
+            "confluence_witness": true,
+            "termination_witness": true
+          },
+          "step_proofs": [
+            {
+              "action_class": "main-b",
+              "precondition": {
+                "ok": true
+              },
+              "postcondition": {
+                "ok": true
+              },
+              "status": "provisional"
+            }
+          ],
+          "precondition": {
+            "ok": true
+          },
+          "postcondition": {
+            "ok": true
+          },
+          "causal_schedule": {
+            "event_ids": ["main-b"]
+          },
+          "lifecycle": {
+            "certificate_versions": {
+              "cert": "v1"
+            }
+          },
+          "certificate_versions": ["v1"],
+          "tolerance_versions": ["tol-v1"]
+        }
+      }
+    },
+    {
+      "record_id": "risk-a",
+      "benefits": {
+        "future_freedom": 0.8
+      },
+      "burdens": {
+        "cost": 0.7,
+        "risk_cvar": 0.2
+      },
+      "status": "risk-provisional",
+      "stratum": "risk-provisional",
+      "domain_key": "example"
+    }
+  ]
+}
