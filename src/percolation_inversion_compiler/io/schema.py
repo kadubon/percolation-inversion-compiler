@@ -25,6 +25,7 @@ from percolation_inversion_compiler.bit.records import (
 )
 from percolation_inversion_compiler.core.adapter_routes import (
     AdapterRouteSpec,
+    EvidenceArtifact,
     VerifierEvidenceEnvelope,
     VerifierResolution,
 )
@@ -59,6 +60,7 @@ from percolation_inversion_compiler.core.checker import (
 )
 from percolation_inversion_compiler.core.coverage import (
     ExternalObligationCatalog,
+    ImplementationMaturityRecord,
     TheoryImplementationRecord,
 )
 from percolation_inversion_compiler.core.judgment import (
@@ -66,9 +68,11 @@ from percolation_inversion_compiler.core.judgment import (
     Judgment,
     ObligationSet,
 )
+from percolation_inversion_compiler.core.ledger import LedgerCoordinate
 from percolation_inversion_compiler.core.operations import (
     OperationalCheck,
     OperationalReadinessReport,
+    ProductionReadinessProfile,
 )
 from percolation_inversion_compiler.core.order import (
     DominanceWitness,
@@ -78,6 +82,7 @@ from percolation_inversion_compiler.core.order import (
     ProductOrder,
 )
 from percolation_inversion_compiler.core.records import (
+    CheckResult,
     ExternalProofObligation,
     ExternalVerifierHook,
     Registry,
@@ -101,6 +106,7 @@ from percolation_inversion_compiler.io.snapshots import (
     TheorySnapshot,
     TheorySnapshotItem,
 )
+from percolation_inversion_compiler.io.zenodo import CanonicalManifest, CanonicalManifestRecord
 from percolation_inversion_compiler.trc.records import (
     ActionabilityVector,
     BoundaryGeneratorRecord,
@@ -117,6 +123,7 @@ from percolation_inversion_compiler.trc.records import (
     StatusAlgebraRecord,
     ToleranceAllocationCertificate,
     TraceNormalizationCertificate,
+    TRCCompileResult,
     TRCStateRecord,
     TypedTraceTransducerRecord,
 )
@@ -161,6 +168,7 @@ def schema_model_map() -> dict[str, type[BaseModel]]:
         "CertificateCompilerRecord": CertificateCompilerRecord,
         "CertificateFamily": CertificateFamily,
         "CertificateRoute": CertificateRoute,
+        "CheckResult": CheckResult,
         "CheckerContext": CheckerContext,
         "ConfidenceLedger": ConfidenceLedger,
         "ControlledTransition": ControlledTransition,
@@ -168,6 +176,7 @@ def schema_model_map() -> dict[str, type[BaseModel]]:
         "DomainTypedSemiring": DomainTypedSemiring,
         "DominanceWitness": DominanceWitness,
         "EProcessCertificate": EProcessCertificate,
+        "EvidenceArtifact": EvidenceArtifact,
         "ExecutableTraceNormalForm": ExecutableTraceNormalForm,
         "ExternalObligationCatalog": ExternalObligationCatalog,
         "ExternalVerifierHook": ExternalVerifierHook,
@@ -179,9 +188,11 @@ def schema_model_map() -> dict[str, type[BaseModel]]:
         "FunctorLawCertificate": FunctorLawCertificate,
         "GoodTuringCertificate": GoodTuringCertificate,
         "IndependenceCertificate": IndependenceCertificate,
+        "ImplementationMaturity": ImplementationMaturityRecord,
         "InnerViabilityKernel": InnerViabilityKernel,
         "Judgment": Judgment,
         "LatticeWitness": LatticeWitness,
+        "LedgerCoordinate": LedgerCoordinate,
         "MartingaleDeficiencyCertificate": MartingaleDeficiencyCertificate,
         "MartingaleBlockResidual": MartingaleBlockResidual,
         "MechanismCubeCertificate": MechanismCubeCertificate,
@@ -198,6 +209,7 @@ def schema_model_map() -> dict[str, type[BaseModel]]:
         "PhaseControlEnvelope": PhaseControlEnvelope,
         "PortabilitySchemaBundle": PortabilitySchemaBundle,
         "ProductOrder": ProductOrder,
+        "ProductionReadinessProfile": ProductionReadinessProfile,
         "ProcessGrammarRecord": ProcessGrammarRecord,
         "ProtocolObject": ProtocolObject,
         "ProtocolFunctorCertificate": ProtocolFunctorCertificate,
@@ -217,6 +229,7 @@ def schema_model_map() -> dict[str, type[BaseModel]]:
         "StatusAlgebraRecord": StatusAlgebraRecord,
         "StoppedEvidenceSheafCertificate": StoppedEvidenceSheafCertificate,
         "TRCStateRecord": TRCStateRecord,
+        "TRCCompileResult": TRCCompileResult,
         "ToleranceAllocationCertificate": ToleranceAllocationCertificate,
         "TheoryAuditReport": TheoryAuditReport,
         "TheoryImplementationRecord": TheoryImplementationRecord,
@@ -229,6 +242,8 @@ def schema_model_map() -> dict[str, type[BaseModel]]:
         "SnapshotCatalog": SnapshotCatalog,
         "VerifierEvidenceEnvelope": VerifierEvidenceEnvelope,
         "VerifierResolution": VerifierResolution,
+        "CanonicalManifest": CanonicalManifest,
+        "CanonicalManifestRecord": CanonicalManifestRecord,
     }
 
 

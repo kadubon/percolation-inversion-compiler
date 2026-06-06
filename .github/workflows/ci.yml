@@ -31,7 +31,7 @@ jobs:
           python-version: ${{ matrix.python-version }}
 
       - name: Set up uv
-        uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
         with:
           enable-cache: true
 
@@ -48,7 +48,7 @@ jobs:
         run: uv run mypy src scripts
 
       - name: Test
-        run: uv run pytest --cov=percolation_inversion_compiler --cov-report=term-missing --cov-fail-under=75
+        run: uv run pytest --cov=percolation_inversion_compiler --cov-report=term-missing --cov-fail-under=80
 
       - name: Build package
         run: uv build
@@ -62,10 +62,13 @@ jobs:
           uv run pic schema --all --output-dir "$RUNNER_TEMP/schema-smoke"
           uv run pic snapshot list
           uv run pic snapshot show --artifact trc
+          uv run pic snapshot verify --artifact trc
           uv run pic snapshot routes
           uv run pic explain external def:null-channel-routing --from-snapshot
           uv run pic doctor --fail-on never
+          uv run pic doctor --profile production --fail-on never
           uv run pic validate --registry examples/minimal_registry.json
+          uv run pic evidence verify --envelope examples/evidence_envelope.json
           uv run pic check --source tests/fixtures/minimal_claims.tex --strict-projection --derive-status
           uv run pic audit theory --source tests/fixtures/minimal_claims.tex --fail-on projection
           uv run pic compile --records examples/frontier_records.json --archive-cap 8

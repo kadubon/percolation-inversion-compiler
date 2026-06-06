@@ -15,6 +15,9 @@ portable schemas, not as the normative wire format.
 - Encode tuples as arrays and finite sets as arrays with deterministic sorting
   at API boundaries.
 - Preserve `declared_status` and `derived_status` as separate fields.
+- Preserve `accepted`, `finite_checks_passed`, `operationally_usable`, and
+  `settled` as distinct booleans. `accepted` alone is not enough for autonomous
+  operational use.
 - Never promote a registry status to `settled` without checker-derived
   obligations.
 - Keep non-finite, simulator-dependent, physical-domain, or oracle-dependent
@@ -50,5 +53,5 @@ Recommended connector behavior:
 - Treat `pic explain external <item-id>` as the portable adapter contract for
   unresolved physical, oracle, simulator, or domain-specific obligations.
 - Treat `TheorySnapshot`, `SnapshotCatalog`, `AdapterRouteSpec`,
-  `VerifierEvidenceEnvelope`, `VerifierResolution`, and
+  `EvidenceArtifact`, `VerifierEvidenceEnvelope`, `VerifierResolution`, and
   `OperationalReadinessReport` as stable wire contracts.

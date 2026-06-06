@@ -12,10 +12,15 @@ from percolation_inversion_compiler.core.adapter_routes import list_adapter_rout
 from percolation_inversion_compiler.core.operations import (
     OperationalCheck,
     OperationalReadinessReport,
+    ProductionReadinessProfile,
 )
 from percolation_inversion_compiler.io.schema import schema_model_map
 from percolation_inversion_compiler.io.snapshots import list_theory_snapshots
-from percolation_inversion_compiler.io.zenodo import CANONICAL_RECORDS, validate_canonical_source
+from percolation_inversion_compiler.io.zenodo import (
+    CANONICAL_RECORDS,
+    canonical_manifest,
+    validate_canonical_source,
+)
 
 
 def _check(check_id: str, status: str, message: str, **details: object) -> OperationalCheck:
@@ -36,9 +41,27 @@ def _overall_status(checks: list[OperationalCheck]) -> str:
     return "pass"
 
 
-def build_operational_readiness_report() -> OperationalReadinessReport:
+def readiness_profile(profile: str = "development") -> ProductionReadinessProfile:
+    normalized = profile.lower()
+    if normalized not in {"development", "research", "production"}:
+        raise ValueError("profile must be one of: development, research, production")
+    return ProductionReadinessProfile(
+        profile=normalized,
+        require_canonical_or_signed_snapshot=normalized == "production",
+        require_available_external_routes=normalized == "production",
+        require_optional_dependencies=normalized == "production",
+        require_security_metadata=normalized in {"research", "production"},
+        require_signed_schema_bundle=normalized == "production",
+    )
+
+
+def build_operational_readiness_report(
+    *,
+    profile: str = "development",
+) -> OperationalReadinessReport:
     """Build a deterministic readiness report without mutating local state."""
 
+    policy = readiness_profile(profile)
     checks: list[OperationalCheck] = []
     schemas = schema_model_map()
     checks.append(
@@ -71,6 +94,9 @@ def build_operational_readiness_report() -> OperationalReadinessReport:
     route_specs = list_adapter_route_specs()
     route_ids = {spec.verifier_route for spec in route_specs}
     missing_routes: list[str] = []
+    unavailable_routes = sorted(
+        spec.verifier_route for spec in route_specs if spec.availability == "unavailable"
+    )
     external_totals: dict[str, int] = {}
     for snapshot in snapshots:
         catalog = snapshot.external_obligation_catalog
@@ -83,10 +109,13 @@ def build_operational_readiness_report() -> OperationalReadinessReport:
     checks.append(
         _check(
             "adapter-route-catalog",
-            "pass" if not missing_routes else "fail",
+            "fail"
+            if missing_routes or (policy.require_available_external_routes and unavailable_routes)
+            else "pass",
             "every external obligation route has an AdapterRouteSpec",
             route_count=len(route_specs),
             missing_routes=sorted(set(missing_routes)),
+            unavailable_routes=unavailable_routes,
         )
     )
 
@@ -100,7 +129,11 @@ def build_operational_readiness_report() -> OperationalReadinessReport:
     checks.append(
         _check(
             "optional-adapters",
-            "warn" if "missing" in dependency_status.values() else "pass",
+            "fail"
+            if policy.require_optional_dependencies and "missing" in dependency_status.values()
+            else "warn"
+            if "missing" in dependency_status.values()
+            else "pass",
             "optional scientific adapters are reported explicitly",
             dependencies=dependency_status,
         )
@@ -111,7 +144,7 @@ def build_operational_readiness_report() -> OperationalReadinessReport:
         checks.append(
             _check(
                 "canonical-tex",
-                "warn",
+                "fail" if policy.require_canonical_or_signed_snapshot else "warn",
                 "PIC_CANONICAL_TEX_DIR is not set; snapshot-only workflows remain available",
             )
         )
@@ -130,6 +163,8 @@ def build_operational_readiness_report() -> OperationalReadinessReport:
                 "matches": bool(result["matches"]),
                 "expected_md5": result["expected_md5"],
                 "actual_md5": result["actual_md5"],
+                "expected_sha256": result["expected_sha256"],
+                "actual_sha256": result["actual_sha256"],
             }
             if not result["matches"]:
                 canonical_status = "fail"
@@ -141,6 +176,44 @@ def build_operational_readiness_report() -> OperationalReadinessReport:
                 artifacts=canonical_results,
             )
         )
+
+    manifest = canonical_manifest()
+    checks.append(
+        _check(
+            "canonical-manifest",
+            "pass",
+            "canonical DOI manifest uses SHA-256 as primary integrity identity",
+            schema_version=manifest.schema_version,
+            record_count=len(manifest.records),
+        )
+    )
+
+    security_files = {
+        "SECURITY.md": Path("SECURITY.md").exists(),
+        "LICENSE": Path("LICENSE").exists(),
+        "NOTICE": Path("NOTICE").exists(),
+        "THIRD_PARTY_LICENSES.md": Path("THIRD_PARTY_LICENSES.md").exists(),
+        "CITATION.cff": Path("CITATION.cff").exists(),
+    }
+    checks.append(
+        _check(
+            "security-metadata",
+            "fail"
+            if policy.require_security_metadata and not all(security_files.values())
+            else "pass",
+            "security, citation, and license metadata are present",
+            files=security_files,
+        )
+    )
+
+    checks.append(
+        _check(
+            "schema-provenance",
+            "fail" if policy.require_signed_schema_bundle else "warn",
+            "schema bundle signing is not configured; JSON Schema output remains deterministic",
+            signed=False,
+        )
+    )
 
     checks.append(
         _check(
@@ -161,10 +234,12 @@ def build_operational_readiness_report() -> OperationalReadinessReport:
         overall_status=_overall_status(checks),
         checks=checks,
         summary={
+            "profile": policy.profile,
             "schema_count": len(schemas),
             "snapshot_count": len(snapshots),
             "adapter_route_count": len(route_specs),
             "external_obligation_totals": external_totals,
             "optional_dependency_status": dependency_status,
+            "canonical_manifest_records": len(manifest.records),
         },
     )

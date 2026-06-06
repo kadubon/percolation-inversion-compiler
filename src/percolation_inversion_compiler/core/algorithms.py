@@ -91,7 +91,13 @@ def trapezoid_integral(xs: Sequence[float], ys: Sequence[float]) -> float:
     if len(xs) != len(ys) or len(xs) < 2:
         raise ValueError("xs and ys must have the same length >= 2")
     total = 0.0
-    for left_x, right_x, left_y, right_y in zip(xs, xs[1:], ys, ys[1:], strict=True):
+    for left_x, right_x, left_y, right_y in zip(
+        xs[:-1],
+        xs[1:],
+        ys[:-1],
+        ys[1:],
+        strict=True,
+    ):
         if right_x < left_x:
             raise ValueError("xs must be sorted nondecreasing")
         total += 0.5 * (right_y + left_y) * (right_x - left_x)

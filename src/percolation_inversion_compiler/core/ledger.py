@@ -17,6 +17,12 @@ class CoordinateKind(StrEnum):
     METADATA = "metadata"
 
 
+class EvidenceStatus(StrEnum):
+    VERIFIED = "verified"
+    DECLARED = "declared"
+    UNKNOWN = "unknown"
+
+
 class LedgerCoordinate(BaseModel):
     """One typed coordinate in a finite certificate ledger."""
 
@@ -25,6 +31,9 @@ class LedgerCoordinate(BaseModel):
     unit: str = "dimensionless"
     kind: CoordinateKind = CoordinateKind.BURDEN
     description: str | None = None
+    evidence_status: EvidenceStatus = EvidenceStatus.DECLARED
+    evidence_refs: list[str] = Field(default_factory=list)
+    known: bool = True
 
     @field_validator("value")
     @classmethod
@@ -123,7 +132,7 @@ class Ledger(BaseModel):
                 return False
         return True
 
-    def dominates(self, other: Ledger) -> bool:
+    def dominates(self, other: Ledger, *, missing_as_zero: bool = False) -> bool:
         """Return true if this ledger is no worse coordinatewise.
 
         Benefits must be greater or equal. Burdens, residuals, tolerance charges,
@@ -131,18 +140,45 @@ class Ledger(BaseModel):
         """
 
         all_names = set(self.coordinates) | set(other.coordinates)
+        comparable = False
         for name in all_names:
             left = self.coordinates.get(name)
             right = other.coordinates.get(name)
             if left is None:
-                left = LedgerCoordinate(name=name, value=0.0)
+                if not missing_as_zero:
+                    return False
+                if right is None:
+                    return False
+                left = LedgerCoordinate(
+                    name=name,
+                    value=0.0,
+                    kind=right.kind,
+                    unit=right.unit,
+                    evidence_status=EvidenceStatus.UNKNOWN,
+                    known=True,
+                )
             if right is None:
-                right = LedgerCoordinate(name=name, value=0.0, kind=left.kind, unit=left.unit)
+                if not missing_as_zero:
+                    return False
+                if left is None:
+                    return False
+                right = LedgerCoordinate(
+                    name=name,
+                    value=0.0,
+                    kind=left.kind,
+                    unit=left.unit,
+                    evidence_status=EvidenceStatus.UNKNOWN,
+                    known=True,
+                )
+            if not left.known or not right.known:
+                return False
             if left.unit != right.unit or left.kind != right.kind:
                 return False
+            if left.kind != CoordinateKind.METADATA:
+                comparable = True
             if left.kind == CoordinateKind.BENEFIT:
                 if left.value < right.value:
                     return False
             elif left.kind != CoordinateKind.METADATA and left.value > right.value:
                 return False
-        return True
+        return comparable

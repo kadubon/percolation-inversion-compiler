@@ -80,9 +80,13 @@ class ObligationRule(BaseModel):
             status = ClaimStatus.PROVISIONAL
             accepted = True
             reasons.append("external proof obligations remain unresolved; no settled promotion")
+        settled = status == ClaimStatus.SETTLED and not missing
         return CheckResult(
             accepted=accepted,
             status=status,
+            finite_checks_passed=decision.accepted,
+            operationally_usable=settled,
+            settled=settled,
             reasons=reasons,
             missing_obligations=missing,
             residual_ledger=context.residual_ledger,

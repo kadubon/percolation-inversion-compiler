@@ -11,11 +11,16 @@ import typer
 from rich.console import Console
 
 from percolation_inversion_compiler import __version__
-from percolation_inversion_compiler.core import list_adapter_route_specs
+from percolation_inversion_compiler.core import (
+    VerifierEvidenceEnvelope,
+    list_adapter_route_specs,
+    resolve_adapter_route,
+)
 from percolation_inversion_compiler.core.frontier import FrontierRecord
 from percolation_inversion_compiler.io import (
     audit_theory_source,
     build_operational_readiness_report,
+    canonical_manifest,
     count_mr_records_by_category,
     extract_artifact,
     extract_theory_coverage,
@@ -38,9 +43,11 @@ app = typer.Typer(
 demo_app = typer.Typer(help="Run bundled finite examples.")
 audit_app = typer.Typer(help="Run source and theory audits.")
 snapshot_app = typer.Typer(help="Inspect bundled derived theory snapshots.")
+evidence_app = typer.Typer(help="Verify external evidence envelopes.")
 app.add_typer(demo_app, name="demo")
 app.add_typer(audit_app, name="audit")
 app.add_typer(snapshot_app, name="snapshot")
+app.add_typer(evidence_app, name="evidence")
 console = Console()
 
 
@@ -73,6 +80,10 @@ def doctor(
             help="Exit nonzero on: fail, warn, or never.",
         ),
     ] = "fail",
+    profile: Annotated[
+        str,
+        typer.Option("--profile", help="Readiness profile: development, research, or production."),
+    ] = "development",
     output: Annotated[
         Path | None, typer.Option("--output", "-o", help="Write JSON output.")
     ] = None,
@@ -82,7 +93,7 @@ def doctor(
     if fail_on not in {"fail", "warn", "never"}:
         console.print("Error: --fail-on must be one of: fail, warn, never")
         raise typer.Exit(2)
-    report = build_operational_readiness_report()
+    report = build_operational_readiness_report(profile=profile)
     _dump(report.model_dump(mode="json"), output)
     if fail_on == "fail" and report.overall_status == "fail":
         raise typer.Exit(1)
@@ -273,6 +284,13 @@ def audit_theory(
             help="Compare stable registry fields against extractor judgments.",
         ),
     ] = True,
+    strict_maturity: Annotated[
+        bool,
+        typer.Option(
+            "--strict-maturity/--no-strict-maturity",
+            help="Treat maturity/provenance downgrades as audit-relevant metadata.",
+        ),
+    ] = False,
     fail_on: Annotated[
         list[str] | None,
         typer.Option(
@@ -294,7 +312,9 @@ def audit_theory(
         canonical_key=canonical_key,
         strict_projection=strict_projection,
     )
-    _dump(report.model_dump(mode="json"), output)
+    data = report.model_dump(mode="json")
+    data["strict_maturity"] = strict_maturity
+    _dump(data, output)
     fail_reasons = set(fail_on or [])
     fail = not report.accepted
     if "projection" in fail_reasons and any(
@@ -316,6 +336,10 @@ def audit_theory(
         external_match = bool(report.snapshot_delta.get("external_category_summary_match", True))
         if not counts_match or not external_match:
             fail = True
+    if "provenance" in fail_reasons and (
+        report.canonical is None or not bool(report.canonical.get("matches", False))
+    ):
+        fail = True
     if fail:
         raise typer.Exit(1)
 
@@ -379,6 +403,39 @@ def snapshot_routes(
     )
 
 
+@snapshot_app.command("verify")
+def snapshot_verify(
+    artifact: Annotated[
+        str,
+        typer.Option("--artifact", "-a", help="Snapshot artifact key: ecpt, bit, or trc."),
+    ],
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Verify derived snapshot attribution against the canonical manifest metadata."""
+
+    snapshot = load_theory_snapshot(artifact)
+    manifest = canonical_manifest()
+    record = manifest.records.get(snapshot.artifact_key)
+    valid = record is not None and snapshot.attribution.doi == record.doi
+    data = {
+        "artifact_key": snapshot.artifact_key,
+        "valid": valid,
+        "snapshot_schema_version": snapshot.schema_version,
+        "canonical_manifest_schema_version": manifest.schema_version,
+        "doi_matches": bool(record and snapshot.attribution.doi == record.doi),
+        "legacy_md5_matches": bool(
+            record and snapshot.attribution.source_tex_md5 == record.tex_md5_legacy
+        ),
+        "canonical_sha256": None if record is None else record.tex_sha256,
+        "snapshot_is_derived_metadata": True,
+    }
+    _dump(data, output)
+    if not valid:
+        raise typer.Exit(1)
+
+
 @app.command(name="compile")
 def compile_command(
     records: Annotated[
@@ -388,6 +445,10 @@ def compile_command(
     archive_cap: Annotated[
         int, typer.Option("--archive-cap", help="Returned efficiency archive cap.")
     ] = 64,
+    fail_on: Annotated[
+        list[str] | None,
+        typer.Option("--fail-on", help="Fail on invalid-main-trace."),
+    ] = None,
     output: Annotated[
         Path | None, typer.Option("--output", "-o", help="Write JSON output.")
     ] = None,
@@ -400,10 +461,39 @@ def compile_command(
         raise typer.BadParameter("records file must contain a top-level 'records' list")
     frontier_records = [FrontierRecord.model_validate(item) for item in raw_records]
     try:
-        result = compile_frontier(frontier_records, archive_cap=archive_cap)
+        fail_reasons = set(fail_on or [])
+        result = compile_frontier(
+            frontier_records,
+            archive_cap=archive_cap,
+            fail_on_invalid_main_trace="invalid-main-trace" in fail_reasons,
+        )
     except ValueError as exc:
         raise typer.BadParameter(str(exc)) from exc
     _dump(result.model_dump(mode="json"), output)
+
+
+@evidence_app.command("verify")
+def evidence_verify(
+    envelope: Annotated[
+        Path,
+        typer.Option("--envelope", "-e", help="VerifierEvidenceEnvelope JSON/YAML file."),
+    ],
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Verify a finite evidence envelope against its adapter route contract."""
+
+    data = load_data(envelope)
+    evidence = VerifierEvidenceEnvelope.model_validate(data)
+    specs = {spec.route_id: spec for spec in list_adapter_route_specs()}
+    spec = specs.get(evidence.route_id)
+    if spec is None:
+        raise typer.BadParameter(f"unknown adapter route {evidence.route_id!r}")
+    result = resolve_adapter_route(spec, evidence, base_dir=envelope.parent)
+    _dump(result.model_dump(mode="json"), output)
+    if not result.accepted:
+        raise typer.Exit(1)
 
 
 @demo_app.command("datacenter")

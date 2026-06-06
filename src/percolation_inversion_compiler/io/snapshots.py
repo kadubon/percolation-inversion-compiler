@@ -11,6 +11,7 @@ from pydantic import BaseModel, Field
 
 from percolation_inversion_compiler.core.coverage import (
     ExternalObligationCatalog,
+    ImplementationMaturity,
     TheoryImplementationRecord,
 )
 
@@ -33,6 +34,7 @@ class TheorySnapshotItem(BaseModel):
     item_id: str
     label: str
     coverage_status: str
+    implementation_maturity: str = ImplementationMaturity.SNAPSHOT_METADATA_ONLY.value
     implementation_refs: list[str] = Field(default_factory=list)
     obligation_category: str | None = None
     verifier_route: str | None = None

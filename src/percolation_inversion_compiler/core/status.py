@@ -62,6 +62,7 @@ class StatusRule(BaseModel):
     required_for_provisional: set[str] = Field(default_factory=set)
     required_for_speculative: set[str] = Field(default_factory=set)
     hard_domain_obligations: set[str] = Field(default_factory=set)
+    allow_empty_settled_rule: bool = False
 
     def decide(self, present: set[str], expired: set[str] | None = None) -> StatusDecision:
         """Apply ECPT/BIT/TRC non-promotion logic to a finite obligation set."""
@@ -77,6 +78,8 @@ class StatusRule(BaseModel):
             )
 
         settled_missing = sorted((self.required_for_settled - present) | (expired & present))
+        if not self.required_for_settled and not self.allow_empty_settled_rule:
+            settled_missing = ["settled-rule:nonempty-obligations"]
         if not settled_missing:
             return StatusDecision(status=ClaimStatus.SETTLED, accepted=True)
 

@@ -936,6 +936,7 @@ def compile_frontier(
     *,
     archive_cap: int = 64,
     epsilon: float = 0.0,
+    fail_on_invalid_main_trace: bool = False,
 ) -> TRCCompileResult:
     """Compile typed records into stratified frontiers and diagnostic archive."""
 
@@ -944,16 +945,44 @@ def compile_frontier(
         for record in records
         if record.stratum == "main" and not main_frontier_trace_accepts(record)
     ]
-    if invalid_main:
+    if invalid_main and fail_on_invalid_main_trace:
         raise ValueError(
             "main frontier records require accepted trace normal forms: "
             + ", ".join(sorted(invalid_main))
         )
-    main = [record for record in records if record.stratum == "main"]
+    trace_residual = Ledger()
+    missing_trace_obligations: list[str] = []
+    diagnostic_invalid: list[FrontierRecord] = []
+    for record_id in sorted(invalid_main):
+        obligation = f"trace-normal-form:{record_id}"
+        missing_trace_obligations.append(obligation)
+        trace_residual = trace_residual.add_coordinate(
+            obligation,
+            1.0,
+            kind=CoordinateKind.RESIDUAL,
+            description="main frontier record lacked an accepted trace normal form",
+        )
+    for record in records:
+        if record.record_id in invalid_main:
+            diagnostic_invalid.append(
+                record.model_copy(
+                    update={
+                        "stratum": "diagnostic",
+                        "status": ClaimStatus.DIAGNOSTIC,
+                        "residual_ledger": record.residual_ledger.combine(trace_residual),
+                    }
+                )
+            )
+    main = [
+        record
+        for record in records
+        if record.stratum == "main" and record.record_id not in invalid_main
+    ]
     risk = [record for record in records if record.stratum == "risk-provisional"]
     relaxed = [record for record in records if record.stratum == "relaxed"]
     partial = [record for record in records if record.stratum == "partial"]
     diagnostic = [record for record in records if record.stratum == "diagnostic"]
+    diagnostic.extend(diagnostic_invalid)
     efficiency = resource_efficiency_selection(main + risk + relaxed)
     archive = archive_with_truncation(efficiency, cap=archive_cap, epsilon=epsilon)
     if archive.truncated:
@@ -968,5 +997,8 @@ def compile_frontier(
         partial_frontier=partial,
         diagnostic_archive=diagnostic,
         efficiency_archive=archive.retained,
-        residual_ledger=archive.truncation_residual,
+        residual_ledger=archive.truncation_residual.combine(trace_residual),
+        failed_main_records=sorted(invalid_main),
+        missing_trace_obligations=missing_trace_obligations,
+        trace_residual_ledger=trace_residual,
     )

@@ -1,0 +1,11 @@
+{
+  "records": [
+    {
+      "benefits": {
+        "future_freedom": 1.0
+      },
+      "record_id": "invalid-main",
+      "stratum": "main"
+    }
+  ]
+}

@@ -43,6 +43,8 @@ What this gives an agent:
 - proof obligation and residual ledger records suitable for planning logs;
 - typed trace normal form checks for TRC frontiers;
 - frontier extraction and audit reports for protocol-relative claims;
+- fail-closed production readiness checks for external verifier routing;
+- SHA-256 evidence provenance envelopes for verifier adapters;
 - derived non-vendored snapshots for users who do not have the TeX sources;
 - schema bundles for ports to Rust, TypeScript, Julia, Go, or other runtimes.
 
@@ -78,7 +80,10 @@ uv run pic snapshot list
 uv run pic snapshot show --artifact trc
 uv run pic snapshot routes
 uv run pic explain external def:null-channel-routing --from-snapshot
+uv run pic snapshot verify --artifact trc
+uv run pic evidence verify --envelope examples/evidence_envelope.json
 uv run pic doctor --fail-on never
+uv run pic doctor --profile production --fail-on never
 uv run pic demo datacenter
 ```
 
@@ -106,6 +111,8 @@ Agent connector path:
 uv run pic schema --all --output-dir schemas
 uv run pic snapshot routes
 uv run pic doctor --fail-on warn
+uv run pic doctor --profile production --fail-on never
+uv run pic evidence verify --envelope examples\evidence_envelope.json
 uv run pic validate --registry examples\minimal_registry.json
 uv run pic compile --records examples\frontier_records.json
 ```

@@ -161,10 +161,27 @@ class CheckResult(BaseModel):
 
     accepted: bool
     status: ClaimStatus
+    schema_valid: bool = True
+    finite_checks_passed: bool | None = None
+    operationally_usable: bool | None = None
+    settled: bool | None = None
     claims: list[ClaimRecord] = Field(default_factory=list)
     reasons: list[str] = Field(default_factory=list)
     missing_obligations: list[str] = Field(default_factory=list)
     residual_ledger: Ledger = Field(default_factory=Ledger)
+
+    def model_post_init(self, __context: object) -> None:
+        if self.finite_checks_passed is None:
+            self.finite_checks_passed = self.accepted
+        if self.settled is None:
+            self.settled = self.status == ClaimStatus.SETTLED and self.accepted
+        if self.operationally_usable is None:
+            self.operationally_usable = (
+                self.schema_valid
+                and bool(self.finite_checks_passed)
+                and not self.missing_obligations
+                and bool(self.settled)
+            )
 
 
 class Registry(BaseModel):

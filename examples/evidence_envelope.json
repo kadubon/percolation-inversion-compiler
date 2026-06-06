@@ -1,0 +1,26 @@
+{
+  "deterministic": true,
+  "envelope_id": "example-telemetry-envelope",
+  "evidence_artifacts": [
+    {
+      "artifact_id": "telemetry-calibration-fixture",
+      "evidence_kind": "finite-telemetry-calibration",
+      "media_type": "application/json",
+      "produced_at": "2026-06-06T00:00:00Z",
+      "producer_id": "pic-example-generator",
+      "schema_sha256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+      "schema_uri": "https://github.com/kadubon/percolation-inversion-compiler/schemas/VerifierEvidenceEnvelope",
+      "sha256": "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789",
+      "verifier_id": "pic-core-envelope-checker",
+      "verifier_version": "0.2.0"
+    }
+  ],
+  "evidence_kind": [
+    "finite-telemetry-calibration"
+  ],
+  "obligation_ids": [
+    "obligation:trc-telemetry-calibration"
+  ],
+  "residual_coordinates": {},
+  "route_id": "adapters.domain.verify_trc_telemetry_calibration"
+}

@@ -45,17 +45,22 @@ def dominates(
         return False
     if not no_worse_status(left.status, right.status):
         return False
-    benefit_names = set(left.benefits) | set(right.benefits)
-    burden_names = set(left.burdens) | set(right.burdens)
+    benefit_names = set(left.benefits) & set(right.benefits)
+    burden_names = set(left.burdens) & set(right.burdens)
     if not benefit_names and not burden_names:
-        return left.record_id != right.record_id
+        return False
+    strict_improvement = False
     for name in benefit_names:
         if left.benefits.get(name, 0.0) + epsilon < right.benefits.get(name, 0.0):
             return False
+        if left.benefits.get(name, 0.0) > right.benefits.get(name, 0.0) + epsilon:
+            strict_improvement = True
     for name in burden_names:
         if left.burdens.get(name, 0.0) > right.burdens.get(name, 0.0) + epsilon:
             return False
-    return left.record_id != right.record_id
+        if left.burdens.get(name, 0.0) + epsilon < right.burdens.get(name, 0.0):
+            strict_improvement = True
+    return left.record_id != right.record_id and strict_improvement
 
 
 def pareto_frontier(records: list[FrontierRecord], *, epsilon: float = 0.0) -> list[FrontierRecord]:

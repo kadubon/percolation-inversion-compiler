@@ -77,7 +77,10 @@ promote an external obligation to `settled`.
 ## Evidence Envelopes
 
 Adapters consume `VerifierEvidenceEnvelope` records: route id, obligation ids,
-evidence kinds, evidence references, deterministic flag, and residual
-coordinates. A resolver returns `VerifierResolution` with accepted/rejected
-obligation ids and residual ledger entries. Agent connectors should log both
-records so downstream planning can preserve the missing evidence boundary.
+evidence kinds, evidence references, deterministic flag, residual coordinates,
+and v0.2.0 `EvidenceArtifact` provenance. Each artifact carries SHA-256
+identity, schema digest, producer identity, verifier identity, verifier version,
+timestamp, and optional signature or attestation references. A resolver returns
+`VerifierResolution` with accepted/rejected obligation ids and residual ledger
+entries. Agent connectors should log both records so downstream planning can
+preserve the missing evidence boundary.

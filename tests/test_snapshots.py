@@ -7,6 +7,7 @@ import pytest
 
 from percolation_inversion_compiler.core import (
     AdapterRouteSpec,
+    EvidenceArtifact,
     VerifierEvidenceEnvelope,
     list_adapter_route_specs,
     resolve_adapter_route,
@@ -87,6 +88,79 @@ def test_unavailable_adapter_route_returns_diagnostic_resolution() -> None:
     assert result.status == ClaimStatus.DIAGNOSTIC
     assert result.safe_default == "diagnostic-with-physical-obligation"
     assert "adapter route is declared unavailable" in result.reasons
+
+
+def test_evidence_artifact_provenance_accepts_attested_digest() -> None:
+    spec = next(
+        route
+        for route in list_adapter_route_specs()
+        if route.route_id == "adapters.domain.verify_trc_telemetry_calibration"
+    )
+    result = resolve_adapter_route(
+        spec,
+        VerifierEvidenceEnvelope(
+            envelope_id="telemetry",
+            route_id=spec.route_id,
+            obligation_ids=["obligation:telemetry"],
+            evidence_kind=["finite-telemetry-calibration"],
+            evidence_artifacts=[
+                EvidenceArtifact(
+                    artifact_id="artifact",
+                    evidence_kind="finite-telemetry-calibration",
+                    sha256="abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789",
+                    media_type="application/json",
+                    schema_uri="https://example.invalid/schema",
+                    schema_sha256=(
+                        "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+                    ),
+                    producer_id="producer",
+                    produced_at="2026-06-06T00:00:00Z",
+                    verifier_id="verifier",
+                    verifier_version="0.2.0",
+                )
+            ],
+        ),
+    )
+    assert result.accepted
+    assert result.status == ClaimStatus.SETTLED
+
+
+def test_evidence_artifact_hash_mismatch_is_diagnostic(tmp_path) -> None:  # type: ignore[no-untyped-def]
+    evidence_file = tmp_path / "evidence.json"
+    evidence_file.write_text("{}", encoding="utf-8")
+    spec = next(
+        route
+        for route in list_adapter_route_specs()
+        if route.route_id == "adapters.domain.verify_trc_telemetry_calibration"
+    )
+    result = resolve_adapter_route(
+        spec,
+        VerifierEvidenceEnvelope(
+            envelope_id="telemetry",
+            route_id=spec.route_id,
+            obligation_ids=["obligation:telemetry"],
+            evidence_kind=["finite-telemetry-calibration"],
+            evidence_artifacts=[
+                EvidenceArtifact(
+                    artifact_id="artifact",
+                    evidence_kind="finite-telemetry-calibration",
+                    sha256="abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789",
+                    media_type="application/json",
+                    schema_uri="https://example.invalid/schema",
+                    schema_sha256=(
+                        "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+                    ),
+                    producer_id="producer",
+                    produced_at="2026-06-06T00:00:00Z",
+                    verifier_id="verifier",
+                    verifier_version="0.2.0",
+                    content_ref=str(evidence_file),
+                )
+            ],
+        ),
+    )
+    assert not result.accepted
+    assert "sha256 mismatch" in " ".join(result.reasons)
 
 
 def test_missing_optional_adapter_dependency_returns_diagnostic_resolution() -> None:

@@ -46,6 +46,7 @@ def _implementation_record(item: TheoryItem) -> TheoryImplementationRecord:
         artifact=item.artifact,
         label=item.label,
         coverage_status=item.coverage_status,
+        implementation_maturity=item.implementation_maturity,
         implementation_ref=item.implementation_refs[0] if item.implementation_refs else None,
         checker_ref=checker_refs[0] if checker_refs else None,
         schema_ref=schema_refs[0] if schema_refs else None,

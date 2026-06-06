@@ -55,6 +55,9 @@ TRC external areas include physical null-channel transfer, latent operators,
 hybrid residual propagation, telemetry-updated kernels, and submodular redesign
 oracles. These require `ExternalVerifierHook` records or remain unresolved
 `ExternalProofObligation` entries with residual coordinates and failure modes.
+Evidence can discharge such obligations only through a route contract with
+explicit SHA-256 artifact identity, schema digest, verifier identity, verifier
+version, determinism, and residual policy.
 The audit catalog assigns each unresolved item a verifier category, accepted
 evidence kind, residual policy, and safe default so an agent can route the
 obligation without treating the route itself as evidence.

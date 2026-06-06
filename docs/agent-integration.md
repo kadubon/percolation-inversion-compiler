@@ -35,10 +35,12 @@ An agent connector should implement this policy:
 2. Run `pic doctor` in the execution environment before operational use.
 3. Run a checker command before using registry or frontier records.
 4. Treat `declared_status` as metadata and `derived_status` as checker output.
-5. Refuse main operational actions when `missing_obligations` is nonempty.
-6. Route external proof obligations to domain adapters through
+5. Inspect `finite_checks_passed`, `operationally_usable`, and `settled`;
+   `accepted` alone is not an operational approval.
+6. Refuse main operational actions when `missing_obligations` is nonempty.
+7. Route external proof obligations to domain adapters through
    `ExternalVerifierHook`.
-7. Preserve residual ledgers in logs and downstream planning records.
+8. Preserve residual ledgers in logs and downstream planning records.
 
 ## Routing Recipe
 
@@ -77,6 +79,15 @@ Diagnostic output is not a crash. It is the expected safe result when evidence i
 missing, a domain verifier is absent, a trace is stale, or a physical assumption
 has not been certified. Agents should keep the diagnostic record and either ask
 for more evidence, run a domain adapter, or return a partial frontier.
+
+## Evidence Envelopes
+
+External verifier input should use `VerifierEvidenceEnvelope` with
+`EvidenceArtifact` records. Agents should require SHA-256 digests, schema
+digests, producer identity, verifier identity, verifier version, timestamp, and
+deterministic execution before treating an adapter result as a discharged
+obligation. Missing or mismatched evidence keeps the result diagnostic and keeps
+the residual charged.
 
 ## ASI-Proxy Framing
 

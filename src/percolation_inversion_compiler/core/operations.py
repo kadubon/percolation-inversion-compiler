@@ -31,3 +31,14 @@ class OperationalReadinessReport(BaseModel):
             "snapshots are derived metadata and do not vendor TeX/PDF sources",
         ]
     )
+
+
+class ProductionReadinessProfile(BaseModel):
+    """Production policy knobs for fail-closed operational readiness."""
+
+    profile: str = "development"
+    require_canonical_or_signed_snapshot: bool = False
+    require_available_external_routes: bool = False
+    require_optional_dependencies: bool = False
+    require_security_metadata: bool = False
+    require_signed_schema_bundle: bool = False

@@ -31,7 +31,10 @@ uv run pic snapshot list
 uv run pic snapshot show --artifact trc
 uv run pic explain external def:null-channel-routing --from-snapshot
 uv run pic snapshot routes
+uv run pic snapshot verify --artifact trc
+uv run pic evidence verify --envelope examples/evidence_envelope.json
 uv run pic doctor --fail-on never
+uv run pic doctor --profile production --fail-on never
 ```
 
 Snapshots contain DOI/checksum attribution, coverage counts, item-id mappings,
@@ -94,3 +97,14 @@ call a domain adapter or keep a diagnostic/partial result.
 
 When TeX is unavailable, add `--from-snapshot` to read the bundled derived
 metadata instead.
+
+## 8. Verify Evidence Envelopes
+
+```powershell
+uv run pic evidence verify --envelope examples\evidence_envelope.json
+```
+
+The example demonstrates the v0.2.0 verifier SDK boundary. The envelope is
+accepted only when the route id, evidence kind, SHA-256 digest shape, schema
+digest shape, producer identity, verifier identity, verifier version, and
+determinism checks pass.

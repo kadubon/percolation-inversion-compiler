@@ -30,6 +30,16 @@ def test_cli_doctor_reports_operational_status() -> None:
     )
 
 
+def test_cli_doctor_production_profile_is_fail_closed() -> None:
+    result = runner.invoke(app, ["doctor", "--profile", "production", "--fail-on", "never"])
+    assert result.exit_code == 0
+    data = json.loads(result.output)
+    assert data["summary"]["profile"] == "production"
+    assert data["overall_status"] == "fail"
+    failed_checks = {check["check_id"] for check in data["checks"] if check["status"] == "fail"}
+    assert "schema-provenance" in failed_checks
+
+
 def test_cli_doctor_rejects_bad_fail_on() -> None:
     result = runner.invoke(app, ["doctor", "--fail-on", "bad"])
     assert result.exit_code != 0
@@ -78,6 +88,9 @@ def test_cli_schema_bundle(tmp_path) -> None:  # type: ignore[no-untyped-def]
     assert (output_dir / "ExternalVerifierHook.schema.json").exists()
     assert (output_dir / "StoppedEvidenceSheafCertificate.schema.json").exists()
     assert (output_dir / "FinitePhaseControlCertificate.schema.json").exists()
+    assert (output_dir / "EvidenceArtifact.schema.json").exists()
+    assert (output_dir / "TRCCompileResult.schema.json").exists()
+    assert (output_dir / "CanonicalManifest.schema.json").exists()
     bundle = json.loads((output_dir / "bundle.schema.json").read_text(encoding="utf-8"))
     assert "AgentConnectorSpec" in bundle["schemas"]
     assert "safe_failure_behavior" in bundle["schemas"]["AgentConnectorSpec"]["properties"]
@@ -85,6 +98,9 @@ def test_cli_schema_bundle(tmp_path) -> None:  # type: ignore[no-untyped-def]
     assert "residual_policy" in bundle["schemas"]["ExternalVerifierHook"]["properties"]
     assert "TheorySnapshot" in bundle["schemas"]
     assert "VerifierResolution" in bundle["schemas"]
+    assert "EvidenceArtifact" in bundle["schemas"]
+    assert "CheckResult" in bundle["schemas"]
+    assert "LedgerCoordinate" in bundle["schemas"]
     assert "OperationalReadinessReport" in bundle["schemas"]
     catalog_props = bundle["schemas"]["ExternalObligationCatalog"]["properties"]
     assert "category_summary" in catalog_props
@@ -239,6 +255,37 @@ def test_cli_snapshot_list_show_and_routes() -> None:
         route["verifier_route"] == "trc.adapters.physical_hybrid.verify_envelope"
         for route in route_data["routes"]
     )
+
+    verified = runner.invoke(app, ["snapshot", "verify", "--artifact", "trc"])
+    assert verified.exit_code == 0
+    verified_data = json.loads(verified.output)
+    assert verified_data["valid"]
+    assert verified_data["canonical_sha256"]
+
+
+def test_cli_evidence_verify_accepts_example() -> None:
+    result = runner.invoke(
+        app,
+        ["evidence", "verify", "--envelope", "examples/evidence_envelope.json"],
+    )
+    assert result.exit_code == 0
+    data = json.loads(result.output)
+    assert data["accepted"]
+    assert data["status"] == "settled"
+
+
+def test_cli_compile_fail_fast_for_invalid_main() -> None:
+    result = runner.invoke(
+        app,
+        [
+            "compile",
+            "--records",
+            "examples/minimal_invalid_main_frontier.json",
+            "--fail-on",
+            "invalid-main-trace",
+        ],
+    )
+    assert result.exit_code != 0
 
 
 def test_cli_explain_external_from_snapshot_without_env(monkeypatch) -> None:  # type: ignore[no-untyped-def]

@@ -356,3 +356,6 @@ class TRCCompileResult(BaseModel):
     diagnostic_archive: list[FrontierRecord] = Field(default_factory=list)
     efficiency_archive: list[FrontierRecord] = Field(default_factory=list)
     residual_ledger: Ledger = Field(default_factory=Ledger)
+    failed_main_records: list[str] = Field(default_factory=list)
+    missing_trace_obligations: list[str] = Field(default_factory=list)
+    trace_residual_ledger: Ledger = Field(default_factory=Ledger)

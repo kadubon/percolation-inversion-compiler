@@ -16,6 +16,35 @@ class CoverageStatus(StrEnum):
     UNSUPPORTED = "unsupported"
 
 
+class ImplementationMaturity(StrEnum):
+    IMPLEMENTED_VERIFIED_ALGORITHM = "implemented_verified_algorithm"
+    IMPLEMENTED_SHAPE_CHECKER = "implemented_shape_checker"
+    IMPLEMENTED_SCHEMA_ONLY = "implemented_schema_only"
+    EXTERNAL_CONTRACT_ONLY = "external_contract_only"
+    SNAPSHOT_METADATA_ONLY = "snapshot_metadata_only"
+    UNSUPPORTED_NO_INTERFACE = "unsupported_no_interface"
+
+
+class ImplementationMaturityRecord(BaseModel):
+    """Portable wrapper schema for implementation maturity enum values."""
+
+    implementation_maturity: ImplementationMaturity
+
+
+def maturity_from_coverage(status: CoverageStatus) -> ImplementationMaturity:
+    if status == CoverageStatus.IMPLEMENTED_CONSTRUCTIVE:
+        return ImplementationMaturity.IMPLEMENTED_VERIFIED_ALGORITHM
+    if status == CoverageStatus.IMPLEMENTED_CHECKER:
+        return ImplementationMaturity.IMPLEMENTED_SHAPE_CHECKER
+    if status == CoverageStatus.IMPLEMENTED_SCHEMA:
+        return ImplementationMaturity.IMPLEMENTED_SCHEMA_ONLY
+    if status == CoverageStatus.EXTERNAL_OBLIGATION:
+        return ImplementationMaturity.EXTERNAL_CONTRACT_ONLY
+    if status == CoverageStatus.PARTIAL:
+        return ImplementationMaturity.SNAPSHOT_METADATA_ONLY
+    return ImplementationMaturity.UNSUPPORTED_NO_INTERFACE
+
+
 class TheoryItem(BaseModel):
     item_id: str
     artifact: str
@@ -24,6 +53,9 @@ class TheoryItem(BaseModel):
     line_number: int
     section: str | None = None
     coverage_status: CoverageStatus = CoverageStatus.UNSUPPORTED
+    implementation_maturity: ImplementationMaturity = (
+        ImplementationMaturity.UNSUPPORTED_NO_INTERFACE
+    )
     implementation_refs: list[str] = Field(default_factory=list)
     checker_refs: list[str] = Field(default_factory=list)
     schema_refs: list[str] = Field(default_factory=list)
@@ -53,6 +85,12 @@ class TheoryCoverageRecord(BaseModel):
             counts[item.coverage_status.value] += 1
         return counts
 
+    def counts_by_maturity(self) -> dict[str, int]:
+        counts = {maturity.value: 0 for maturity in ImplementationMaturity}
+        for item in self.items:
+            counts[item.implementation_maturity.value] += 1
+        return counts
+
 
 class TheoryImplementationRecord(BaseModel):
     """Portable implementation mapping for one finite theory item."""
@@ -61,6 +99,9 @@ class TheoryImplementationRecord(BaseModel):
     artifact: str
     label: str
     coverage_status: CoverageStatus
+    implementation_maturity: ImplementationMaturity = (
+        ImplementationMaturity.UNSUPPORTED_NO_INTERFACE
+    )
     implementation_ref: str | None = None
     checker_ref: str | None = None
     schema_ref: str | None = None
@@ -972,6 +1013,7 @@ def implementation_metadata(
         if any(key in normalized for key in {"redesign", "assume-guarantee", "contract"}):
             external_failure_modes.append("domain-contract-or-redesign-certificate-required")
     return {
+        "implementation_maturity": maturity_from_coverage(status),
         "checker_refs": checker_refs,
         "schema_refs": schema_refs,
         "proof_obligation_ids": proof_obligations,

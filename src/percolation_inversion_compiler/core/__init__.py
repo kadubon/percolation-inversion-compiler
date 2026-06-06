@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from percolation_inversion_compiler.core.adapter_routes import (
     AdapterRouteSpec,
+    EvidenceArtifact,
     VerifierEvidenceEnvelope,
     VerifierResolution,
     list_adapter_route_specs,
@@ -42,6 +43,8 @@ from percolation_inversion_compiler.core.checker import (
 from percolation_inversion_compiler.core.coverage import (
     CoverageStatus,
     ExternalObligationCatalog,
+    ImplementationMaturity,
+    ImplementationMaturityRecord,
     TheoryCoverageRecord,
     TheoryImplementationRecord,
     TheoryItem,
@@ -62,10 +65,11 @@ from percolation_inversion_compiler.core.judgment import (
     ProofObligationVerifier,
     check_external_verifier_hook,
 )
-from percolation_inversion_compiler.core.ledger import Ledger, LedgerCoordinate
+from percolation_inversion_compiler.core.ledger import EvidenceStatus, Ledger, LedgerCoordinate
 from percolation_inversion_compiler.core.operations import (
     OperationalCheck,
     OperationalReadinessReport,
+    ProductionReadinessProfile,
 )
 from percolation_inversion_compiler.core.order import (
     DominanceWitness,
@@ -107,6 +111,8 @@ __all__ = [
     "DomainTypedSemiring",
     "DominanceWitness",
     "EProcessCertificate",
+    "EvidenceArtifact",
+    "EvidenceStatus",
     "ExternalObligationCatalog",
     "ExternalProofObligation",
     "ExternalVerifierHook",
@@ -115,6 +121,8 @@ __all__ = [
     "FrontierRecord",
     "FunctorLawCertificate",
     "GoodTuringCertificate",
+    "ImplementationMaturity",
+    "ImplementationMaturityRecord",
     "Judgment",
     "LatticeWitness",
     "Ledger",
@@ -129,6 +137,7 @@ __all__ = [
     "OperationalCheck",
     "OperationalReadinessReport",
     "ProductOrder",
+    "ProductionReadinessProfile",
     "ProjectionAudit",
     "ProofObligationVerifier",
     "ReconstructionResidual",

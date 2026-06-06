@@ -13,7 +13,7 @@ from percolation_inversion_compiler.core.checker import (
     ObligationRule,
     audit_registry_projection,
 )
-from percolation_inversion_compiler.core.frontier import FrontierRecord, pareto_frontier
+from percolation_inversion_compiler.core.frontier import FrontierRecord, dominates, pareto_frontier
 from percolation_inversion_compiler.core.graph import DependencyDAG
 from percolation_inversion_compiler.core.judgment import (
     CertificateDAG,
@@ -158,6 +158,12 @@ def test_declared_status_does_not_promote_derived_status() -> None:
     assert obligations.derive_status(rule) == ClaimStatus.SPECULATIVE
 
 
+def test_empty_settled_rule_does_not_promote_to_settled() -> None:
+    decision = StatusRule().decide(set())
+    assert decision.status != ClaimStatus.SETTLED
+    assert "settled-rule:nonempty-obligations" in decision.missing_obligations
+
+
 def test_obligation_rule_external_blocks_settled_promotion() -> None:
     rule = ObligationRule(
         rule_id="r",
@@ -167,6 +173,9 @@ def test_obligation_rule_external_blocks_settled_promotion() -> None:
     )
     result = rule.decide(CheckerContext(present_obligations={"finite"}))
     assert result.accepted
+    assert result.finite_checks_passed
+    assert not result.operationally_usable
+    assert not result.settled
     assert result.status == ClaimStatus.PROVISIONAL
     assert "external" in result.missing_obligations
 
@@ -267,3 +276,16 @@ def test_ledger_burden_dominance_property(left_burden: float, right_burden: floa
     left = Ledger().add_coordinate("cost", left_burden, kind=CoordinateKind.BURDEN)
     right = Ledger().add_coordinate("cost", right_burden, kind=CoordinateKind.BURDEN)
     assert left.dominates(right) == (left_burden <= right_burden)
+
+
+def test_missing_ledger_coordinate_is_not_zero_by_default() -> None:
+    left = Ledger()
+    right = Ledger().add_coordinate("unknown-cost", 0.0, kind=CoordinateKind.BURDEN)
+    assert not left.dominates(right)
+    assert left.dominates(right, missing_as_zero=True)
+
+
+def test_empty_frontier_records_are_incomparable() -> None:
+    left = FrontierRecord(record_id="left", stratum="main")
+    right = FrontierRecord(record_id="right", stratum="main")
+    assert not dominates(left, right)

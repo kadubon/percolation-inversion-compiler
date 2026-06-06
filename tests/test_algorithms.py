@@ -1,5 +1,12 @@
 from __future__ import annotations
 
+from percolation_inversion_compiler.adapters import (
+    replay_trc_physical_trace,
+    verify_archive_domain_evidence,
+    verify_ecpt_generator_limit,
+    verify_ecpt_numerical_envelope,
+    verify_trc_telemetry_calibration,
+)
 from percolation_inversion_compiler.bit import (
     CertificateCompilerRecord,
     FusedGeometricComparisonCertificate,
@@ -120,6 +127,41 @@ from percolation_inversion_compiler.trc import (
 def test_statistical_bounds() -> None:
     assert 0.0 < dkw_radius(100, 0.05) < 0.2
     assert good_turing_unseen([1, 1, 2, 4]) == 2 / 8
+
+
+def test_v02_domain_adapters_success_and_fail_closed() -> None:
+    assert verify_ecpt_numerical_envelope(
+        residual=0.1,
+        residual_bound=0.2,
+        finite_horizon=4,
+    ).accepted
+    assert not verify_ecpt_numerical_envelope(
+        residual=0.3,
+        residual_bound=0.2,
+        finite_horizon=4,
+    ).accepted
+    assert verify_ecpt_generator_limit(
+        observed_generation=9.0,
+        certified_limit=10.0,
+    ).accepted
+    assert not verify_ecpt_generator_limit(
+        observed_generation=12.0,
+        certified_limit=10.0,
+    ).accepted
+    assert verify_trc_telemetry_calibration(
+        [1.0, 2.0],
+        [1.05, 2.05],
+        tolerance=0.1,
+    ).accepted
+    assert not verify_trc_telemetry_calibration(
+        [1.0],
+        [2.0],
+        tolerance=0.1,
+    ).accepted
+    assert replay_trc_physical_trace(["a", "b"], ["a", "b"]).accepted
+    assert not replay_trc_physical_trace(["a", "c"], ["a", "b"]).accepted
+    assert verify_archive_domain_evidence({"r1": "cooling"}, {"cooling"}).accepted
+    assert not verify_archive_domain_evidence({"r1": "unknown"}, {"cooling"}).accepted
 
 
 def test_bit_release_and_mechanism() -> None:
