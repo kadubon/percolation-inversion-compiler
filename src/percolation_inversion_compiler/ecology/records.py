@@ -79,6 +79,7 @@ class EdgeWitnessCertificate(BaseModel):
     accepted: bool = False
     reasons: list[str] = Field(default_factory=list)
     residual_ledger: Ledger = Field(default_factory=Ledger)
+    relation_evidence: dict[str, str] = Field(default_factory=dict)
 
 
 class EdgeRelationVerifierSpec(BaseModel):
@@ -86,6 +87,7 @@ class EdgeRelationVerifierSpec(BaseModel):
 
     relation_type: str
     required_evidence_markers: list[str] = Field(default_factory=list)
+    required_relation_evidence_keys: list[str] = Field(default_factory=list)
     required_source_tags: list[str] = Field(default_factory=list)
     required_target_tags: list[str] = Field(default_factory=list)
     require_verifier_resolution: bool = False
@@ -120,6 +122,108 @@ class AcceptedPacketPath(BaseModel):
     cost: float = 0.0
     residual_ledger: Ledger = Field(default_factory=Ledger)
     accepted: bool = False
+    reasons: list[str] = Field(default_factory=list)
+
+
+class ProtocolFrameDigest(BaseModel):
+    """Finite digest of the declared ECPT protocol frame.
+
+    The digest fixes the observation window, validity domain, allowed packet
+    sources, and route catalog used by hidden-capability-injection checks.  It
+    is a protocol identity record, not a proof of physical outcomes.
+    """
+
+    protocol_id: str
+    observation_window_id: str = "default-observation-window"
+    constraint_frame_id: str = "default-constraint-frame"
+    validity_domain: str = "protocol-relative-finite"
+    allowed_source_kinds: list[str] = Field(default_factory=list)
+    allowed_route_ids: list[str] = Field(default_factory=list)
+    allowed_packet_ids: list[str] = Field(default_factory=list)
+    allowed_evidence_prefixes: list[str] = Field(default_factory=lambda: ["sha256:"])
+    route_catalog_digest: str = ""
+    sha256: str = ""
+    accepted: bool = False
+    reasons: list[str] = Field(default_factory=list)
+
+
+class AutocatalyticClosureWitness(BaseModel):
+    """Accepted finite closure witness for ECPT collective packet regeneration."""
+
+    witness_id: str
+    closure_packet_ids: list[str] = Field(default_factory=list)
+    internal_edge_ids: list[str] = Field(default_factory=list)
+    regeneration_edge_ids: list[str] = Field(default_factory=list)
+    productive_packet_ids: list[str] = Field(default_factory=list)
+    external_seed_packet_ids: list[str] = Field(default_factory=list)
+    closure_strength: float = 0.0
+    productivity_lower_bound: float = 0.0
+    false_liquidity_rate: float = 0.0
+    residual_ledger: Ledger = Field(default_factory=Ledger)
+    accepted: bool = False
+    finite_checks_passed: bool = False
+    operationally_usable: bool = False
+    settled: bool = False
+    reasons: list[str] = Field(default_factory=list)
+
+
+class ExecutionAvailablePathCertificate(BaseModel):
+    """Finite certificate that a path is execution-available but not executed."""
+
+    certificate_id: str
+    path_id: str
+    packet_ids: list[str] = Field(default_factory=list)
+    edge_ids: list[str] = Field(default_factory=list)
+    route_ids: list[str] = Field(default_factory=list)
+    not_executed: bool = True
+    execution_gates: list[str] = Field(default_factory=list)
+    authority_granted: bool = True
+    rollback_available: bool = True
+    receiver_context: list[str] = Field(default_factory=list)
+    evidence_refs: list[str] = Field(default_factory=list)
+    constraint_frame_id: str = "default-constraint-frame"
+    residual_ledger: Ledger = Field(default_factory=Ledger)
+    accepted: bool = False
+    finite_checks_passed: bool = False
+    operationally_usable: bool = False
+    settled: bool = False
+    reasons: list[str] = Field(default_factory=list)
+
+
+class PacketCapitalLineage(BaseModel):
+    """Lineage record for finite verified packet capital."""
+
+    lineage_id: str
+    packet_id: str
+    source_candidate_id: str | None = None
+    parent_packet_ids: list[str] = Field(default_factory=list)
+    edge_certificate_ids: list[str] = Field(default_factory=list)
+    verifier_resolution_ids: list[str] = Field(default_factory=list)
+    runtime_event_ids: list[str] = Field(default_factory=list)
+    protocol_frame_sha256: str | None = None
+    residual_external_obligations: list[str] = Field(default_factory=list)
+    accepted: bool = False
+    reasons: list[str] = Field(default_factory=list)
+
+
+class HiddenCapabilityInjectionReport(BaseModel):
+    """Fail-closed check for packets, edges, evidence, or events outside protocol."""
+
+    report_id: str
+    protocol_id: str
+    checked_packet_ids: list[str] = Field(default_factory=list)
+    rejected_packet_ids: list[str] = Field(default_factory=list)
+    rejected_edge_ids: list[str] = Field(default_factory=list)
+    rejected_event_ids: list[str] = Field(default_factory=list)
+    rejected_evidence_refs: list[str] = Field(default_factory=list)
+    allowed_source_kinds: list[str] = Field(default_factory=list)
+    allowed_route_ids: list[str] = Field(default_factory=list)
+    allowed_packet_ids: list[str] = Field(default_factory=list)
+    residual_ledger: Ledger = Field(default_factory=Ledger)
+    accepted: bool = False
+    finite_checks_passed: bool = False
+    operationally_usable: bool = False
+    settled: bool = False
     reasons: list[str] = Field(default_factory=list)
 
 

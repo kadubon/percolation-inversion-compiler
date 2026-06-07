@@ -1,0 +1,295 @@
+{
+  "agents": [
+    {
+      "accepted": true,
+      "agent_id": "agent:collective-demo",
+      "model_digest": "model:2222222222222222222222222222222222222222222222222222222222222222",
+      "policy_digest": "policy:1111111111111111111111111111111111111111111111111111111111111111",
+      "route_allowlist": [
+        "adapters.domain.verify_ecpt_proxy_target_contract"
+      ],
+      "self_rewrite_allowed": false,
+      "source_kind_allowlist": [
+        "agent-output"
+      ],
+      "weight_update_allowed": false
+    }
+  ],
+  "fixed_population_ledger": {
+    "after_agents": [
+      {
+        "accepted": true,
+        "agent_id": "agent:collective-demo",
+        "model_digest": "model:2222222222222222222222222222222222222222222222222222222222222222",
+        "policy_digest": "policy:1111111111111111111111111111111111111111111111111111111111111111",
+        "route_allowlist": [
+          "adapters.domain.verify_ecpt_proxy_target_contract"
+        ],
+        "self_rewrite_allowed": false,
+        "source_kind_allowlist": [
+          "agent-output"
+        ],
+        "weight_update_allowed": false
+      }
+    ],
+    "before_agents": [
+      {
+        "accepted": true,
+        "agent_id": "agent:collective-demo",
+        "model_digest": "model:2222222222222222222222222222222222222222222222222222222222222222",
+        "policy_digest": "policy:1111111111111111111111111111111111111111111111111111111111111111",
+        "route_allowlist": [
+          "adapters.domain.verify_ecpt_proxy_target_contract"
+        ],
+        "self_rewrite_allowed": false,
+        "source_kind_allowlist": [
+          "agent-output"
+        ],
+        "weight_update_allowed": false
+      }
+    ],
+    "fixed_population": true,
+    "ledger_id": "fixed-population:collective-demo",
+    "no_self_rewrite": true,
+    "no_weight_update": true,
+    "observation_window_id": "demo-window",
+    "policy_digests_unchanged": true
+  },
+  "population_id": "population:collective-demo",
+  "protocol_frame": {
+    "accepted": true,
+    "allowed_evidence_prefixes": [
+      "sha256:",
+      "closure:",
+      "regeneration:",
+      "execution:",
+      "rollback:"
+    ],
+    "allowed_packet_ids": [
+      "packet:a",
+      "packet:b"
+    ],
+    "allowed_route_ids": [
+      "adapters.domain.verify_ecpt_proxy_target_contract"
+    ],
+    "allowed_source_kinds": [
+      "agent-output"
+    ],
+    "constraint_frame_id": "default-constraint-frame",
+    "observation_window_id": "demo-window",
+    "protocol_id": "protocol:collective-demo",
+    "route_catalog_digest": "route-catalog-demo",
+    "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    "validity_domain": "protocol-relative-finite"
+  },
+  "runtime_states": [
+    {
+      "packet_registry": {
+        "edges": [
+          {
+            "accepted": true,
+            "confidence": 0.9,
+            "edge_id": "edge:a-b",
+            "edge_type": "autocatalytic-regeneration",
+            "evidence_refs": [
+              "closure:witness",
+              "regeneration:witness"
+            ],
+            "residual": 0.0,
+            "source_packet_ids": [
+              "packet:a"
+            ],
+            "target_packet_id": "packet:b"
+          },
+          {
+            "accepted": true,
+            "confidence": 0.9,
+            "edge_id": "edge:b-a",
+            "edge_type": "autocatalytic-regeneration",
+            "evidence_refs": [
+              "closure:witness",
+              "regeneration:witness"
+            ],
+            "residual": 0.0,
+            "source_packet_ids": [
+              "packet:b"
+            ],
+            "target_packet_id": "packet:a"
+          }
+        ],
+        "packets": [
+          {
+            "claim": "Finite ECPT collective packet A supports packet B through accepted regeneration evidence.",
+            "content_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "evidence_refs": [
+              "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "closure:witness",
+              "regeneration:witness",
+              "execution:path",
+              "rollback:receipt"
+            ],
+            "expected_downstream_gain": 0.9,
+            "packet_id": "packet:a",
+            "receiver_family": [
+              "agent",
+              "verifier"
+            ],
+            "rollback_available": true,
+            "source_kind": "agent-output",
+            "source_ref": "collective-agent-output-a",
+            "tags": [
+              "ecpt",
+              "phase"
+            ],
+            "verification_cost": 0.1,
+            "verifier_routes": [
+              "adapters.domain.verify_ecpt_proxy_target_contract"
+            ]
+          },
+          {
+            "claim": "Finite ECPT collective packet B regenerates packet A inside the declared target basin.",
+            "content_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "evidence_refs": [
+              "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+              "closure:witness",
+              "regeneration:witness",
+              "execution:path",
+              "rollback:receipt"
+            ],
+            "expected_downstream_gain": 0.9,
+            "packet_id": "packet:b",
+            "receiver_family": [
+              "agent",
+              "verifier"
+            ],
+            "rollback_available": true,
+            "source_kind": "agent-output",
+            "source_ref": "collective-agent-output-b",
+            "tags": [
+              "ecpt",
+              "phase"
+            ],
+            "verification_cost": 0.1,
+            "verifier_routes": [
+              "adapters.domain.verify_ecpt_proxy_target_contract"
+            ]
+          }
+        ],
+        "registry_id": "collective-packet-registry"
+      },
+      "phase_actions": [
+        {
+          "action_id": "route-proxy-target-evidence",
+          "activation_delta": 0.8,
+          "burden_delta": 0.1,
+          "postconditions": [
+            "proxy-frontier-observed"
+          ],
+          "preconditions": [
+            "compute",
+            "models"
+          ],
+          "required_obligations": [
+            "obligation:baseline-safety"
+          ],
+          "residual_charge": 0.02,
+          "resource_cost": {
+            "compute": 0.2
+          },
+          "risk_charge": 0.03,
+          "source_nodes": [
+            "compute",
+            "models"
+          ],
+          "target_node": "phase-transition-proxy",
+          "verifier_routes": [
+            "adapters.domain.verify_ecpt_proxy_target_contract"
+          ]
+        }
+      ],
+      "phase_objective": {
+        "horizon": 2,
+        "objective_id": "runtime-demo-objective",
+        "residual_budget": 0.5,
+        "risk_tolerance": 0.4,
+        "route_preferences": [
+          "adapters.domain.verify_ecpt_proxy_target_contract"
+        ],
+        "target": {
+          "minimum_proxy_mass": 0.05,
+          "proxy_coordinates": {
+            "phase-transition-proxy": 1.0
+          },
+          "required_obligations": [
+            "obligation:baseline-safety"
+          ],
+          "target_id": "runtime-demo-asi-proxy-target",
+          "target_nodes": [
+            "phase-transition-proxy"
+          ]
+        }
+      },
+      "phase_state": {
+        "budgets": {
+          "compute": 1.0
+        },
+        "constraint_frame": {
+          "hard_gates": {
+            "operator-review": true,
+            "safety-ledger-live": true
+          }
+        },
+        "graph": {
+          "edges": [
+            {
+              "activation_weight": 0.7,
+              "burden": 0.05,
+              "edge_id": "baseline-model-stack",
+              "sources": [
+                "compute"
+              ],
+              "status": "provisional",
+              "target": "models"
+            }
+          ],
+          "nodes": [
+            "compute",
+            "models"
+          ],
+          "seed_mass": {
+            "compute": 1.0
+          }
+        },
+        "present_obligations": [
+          "obligation:baseline-safety"
+        ],
+        "route_ids": [
+          "adapters.domain.verify_ecpt_proxy_target_contract"
+        ],
+        "state_id": "runtime-demo-phase-state",
+        "state_vector": {
+          "packets": [
+            {
+              "coordinates": {
+                "compute": 1.0
+              },
+              "packet_id": "compute-seed",
+              "status": "provisional",
+              "validity_domain": "demo"
+            }
+          ],
+          "validity_domain": "demo"
+        }
+      },
+      "psi_threshold": {
+        "AC": 0.5,
+        "BR": 0.5,
+        "DE": 0.5,
+        "HZ": 0.5,
+        "QS": 0.5
+      },
+      "state_id": "collective-runtime-demo"
+    }
+  ],
+  "step_index": 0
+}

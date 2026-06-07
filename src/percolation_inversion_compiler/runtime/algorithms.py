@@ -19,8 +19,10 @@ from percolation_inversion_compiler.core.ledger import CoordinateKind, Ledger
 from percolation_inversion_compiler.core.status import ClaimStatus
 from percolation_inversion_compiler.ecology import (
     BottleneckIntervention,
+    CapabilityBasinContract,
     CapabilityPacketCandidate,
     CapabilityPacketRegistry,
+    EdgeWitness,
     EdgeWitnessCertificate,
     PacketIngestionReport,
     PacketPromotionPolicy,
@@ -30,10 +32,14 @@ from percolation_inversion_compiler.ecology import (
     VerifiedCapabilityPacket,
     build_bottleneck_plan,
     build_edge_witnesses,
+    build_packet_capital_lineage,
     build_packet_registry,
     build_psi_dashboard,
+    check_no_hidden_capability_injection,
     edge_certificate_from_witness,
     edge_relation_verifier_spec,
+    find_autocatalytic_closures,
+    find_execution_available_paths,
     infer_live_kind,
     ingest_agent_output,
     ingest_live_source,
@@ -52,10 +58,14 @@ from percolation_inversion_compiler.runtime.records import (
     AccelerationExperimentSuite,
     ActionCommit,
     ActionCommitPolicy,
+    AgentPopulationState,
     AgentRuntimeConfig,
     AgentTask,
+    CollectivePhaseCertificate,
     EvidenceResolutionBatch,
+    FixedPopulationLedger,
     PhaseAccelerationScore,
+    PopulationRuntimeStepReport,
     ResourceEnvelope,
     ResourceMatchedBaselineConfig,
     RouteExecutionBatch,
@@ -166,9 +176,13 @@ def build_runtime_step(
     ]
     for report in edge_relation_reports:
         residual = residual.combine(report.residual_ledger)
+    route_inventory = _merge_verifier_resolutions(
+        state.verifier_resolution_inventory,
+        evidence_batch.resolutions,
+    )
     promotion_report = promote_runtime_packets(
         packets,
-        evidence_batch.resolutions,
+        route_inventory,
         semantic_edge_certificates,
         PacketPromotionPolicy.for_profile(active_config.profile),
         report_id=f"packet-promotion:{state.state_id}:{step_input.input_id}",
@@ -1027,6 +1041,10 @@ def loop_state_after_report(state: RuntimeState, report: RuntimeStepReport) -> R
         state.verified_packets,
         report.promotion_report.verified_packets,
     )
+    inventory = _merge_verifier_resolutions(
+        state.verifier_resolution_inventory,
+        report.evidence_resolution_batch.resolutions,
+    )
     quarantine = _merge_quarantine_ledgers(
         state.quarantine_ledger,
         report.salience_schedule.quarantine_ledger,
@@ -1041,6 +1059,7 @@ def loop_state_after_report(state: RuntimeState, report: RuntimeStepReport) -> R
             "event_log": event_log,
             "verified_packets": verified,
             "quarantine_ledger": quarantine,
+            "verifier_resolution_inventory": inventory,
         }
     )
 
@@ -1066,15 +1085,16 @@ def apply_action_results(
     packets = {packet.packet_id: packet for packet in report.registry.packets}
     residual = report.residual_ledger
     events = list(state.event_log.events)
-    reasons: list[str] = []
+    inventory = list(state.verifier_resolution_inventory)
+    execution_refs = list(state.execution_report_refs)
     for result in sorted(results, key=lambda item: item.result_id):
         residual = residual.combine(result.residual_ledger)
         for packet in result.output_packets:
             packets.setdefault(packet.packet_id, packet)
         if result.verifier_resolution is not None:
             residual = residual.combine(result.verifier_resolution.residual_ledger)
+            inventory = _merge_verifier_resolutions(inventory, [result.verifier_resolution])
         if not result.executed:
-            reasons.append(f"result {result.result_id} was not executed")
             residual = residual.add_coordinate(
                 f"runtime-result:{result.result_id}:not-executed",
                 1.0,
@@ -1090,6 +1110,7 @@ def apply_action_results(
                 residual_delta=result.residual_ledger,
             )
         )
+        execution_refs.append(result.result_id)
     edges = build_edge_witnesses(list(packets.values()))
     registry = build_packet_registry(
         list(packets.values()),
@@ -1111,6 +1132,36 @@ def apply_action_results(
                 state.quarantine_ledger,
                 report.salience_schedule.quarantine_ledger,
             ),
+            "verifier_resolution_inventory": inventory,
+            "execution_report_refs": sorted(set(execution_refs)),
+        }
+    )
+
+
+def apply_route_execution_batch(
+    state: RuntimeState,
+    report: RuntimeStepReport,
+    batch: RouteExecutionBatch,
+) -> RuntimeState:
+    """Persist route execution resolutions for later finite packet promotion."""
+
+    residual = state.residual_ledger.combine(batch.residual_ledger)
+    inventory = _merge_verifier_resolutions(state.verifier_resolution_inventory, batch.resolutions)
+    event = _runtime_event(
+        event_id=f"event:{state.state_id}:{report.step_index}:{batch.batch_id}",
+        event_type="route-execution-batch",
+        step_index=report.step_index,
+        payload_ref=batch.batch_id,
+        payload=batch.model_dump(mode="json"),
+        residual_delta=batch.residual_ledger,
+    )
+    return state.model_copy(
+        update={
+            "residual_ledger": residual,
+            "event_log": _event_log_with_hash([*state.event_log.events, event]),
+            "verifier_resolution_inventory": inventory,
+            "route_batch_refs": sorted(set([*state.route_batch_refs, batch.batch_id])),
+            "runtime_memory": sorted(set([*state.runtime_memory, batch.batch_id])),
         }
     )
 
@@ -1489,12 +1540,257 @@ def run_agent_loop_with_store(
         reports.append(report)
         if store is not None and hasattr(store, "append_state"):
             store.append_state(current)
+        next_state = loop_state_after_report(current, report)
+        route_batch = execute_route_batch(
+            report.route_execution_requests,
+            None,
+            executor_policy,
+            profile=executor_policy.profile,
+        )
+        if route_batch.reports:
+            next_state = apply_route_execution_batch(next_state, report, route_batch)
+            if store is not None and hasattr(store, "append_route_batch"):
+                store.append_route_batch(route_batch)
+        action_results: list[RuntimeActionResult] = []
         for task in report.agent_tasks[: executor_policy.max_tasks]:
-            execute_runtime_task(task, current, executor_policy, store=store)
-        current = loop_state_after_report(current, report)
+            execution = execute_runtime_task(task, current, executor_policy, store=store)
+            if execution.action_result is not None:
+                action_results.append(execution.action_result)
+            if store is not None and hasattr(store, "append_execution_report"):
+                store.append_execution_report(execution)
+        if action_results:
+            next_state = apply_action_results(next_state, report, action_results)
+        current = next_state
     if store is not None and hasattr(store, "append_state"):
         store.append_state(current)
     return reports
+
+
+def check_fixed_population_ledger(ledger: FixedPopulationLedger) -> FixedPopulationLedger:
+    """Check fixed population and no-self-rewrite invariants."""
+
+    residual = ledger.residual_ledger
+    reasons = list(ledger.reasons)
+    before = {agent.agent_id: agent for agent in ledger.before_agents}
+    after = {agent.agent_id: agent for agent in ledger.after_agents}
+    if sorted(before) != sorted(after):
+        reasons.append("agent population changed across observation window")
+    for agent_id, before_agent in before.items():
+        after_agent = after.get(agent_id)
+        if after_agent is None:
+            continue
+        if before_agent.policy_digest != after_agent.policy_digest:
+            reasons.append("agent policy digest changed")
+        if before_agent.model_digest != after_agent.model_digest:
+            reasons.append("agent model digest changed")
+        if before_agent.self_rewrite_allowed or after_agent.self_rewrite_allowed:
+            reasons.append("self-rewrite is allowed by agent policy")
+        if before_agent.weight_update_allowed or after_agent.weight_update_allowed:
+            reasons.append("weight update is allowed by agent policy")
+    if not ledger.no_self_rewrite:
+        reasons.append("ledger does not assert no self-rewrite")
+    if not ledger.no_weight_update:
+        reasons.append("ledger does not assert no weight update")
+    if not ledger.fixed_population:
+        reasons.append("ledger does not assert fixed population")
+    if not ledger.policy_digests_unchanged:
+        reasons.append("ledger does not assert unchanged policy digests")
+    if reasons:
+        residual = residual.add_coordinate(
+            f"fixed-population:{ledger.ledger_id}:diagnostic",
+            1.0,
+            kind=CoordinateKind.RESIDUAL,
+        )
+    accepted = not reasons and bool(before)
+    return ledger.model_copy(
+        update={
+            "residual_ledger": residual,
+            "accepted": accepted,
+            "finite_checks_passed": accepted,
+            "operationally_usable": accepted,
+            "settled": False,
+            "reasons": sorted(set(reasons)),
+        }
+    )
+
+
+def build_population_runtime_step(
+    population: AgentPopulationState,
+    inputs: Sequence[RuntimeStepInput],
+    config: AgentRuntimeConfig | None = None,
+) -> PopulationRuntimeStepReport:
+    """Run one deterministic step over a fixed population of runtime states."""
+
+    active_config = config or AgentRuntimeConfig()
+    ledger = check_fixed_population_ledger(population.fixed_population_ledger)
+    reports: list[RuntimeStepReport] = []
+    next_states: list[RuntimeState] = []
+    residual = population.residual_ledger.combine(ledger.residual_ledger)
+    runtime_states = sorted(population.runtime_states, key=lambda item: item.state_id)
+    step_inputs = list(inputs)
+    for index, runtime_state in enumerate(runtime_states):
+        step_input = (
+            step_inputs[index]
+            if index < len(step_inputs)
+            else RuntimeStepInput(input_id=f"population-empty-input:{runtime_state.state_id}")
+        )
+        report = build_runtime_step(runtime_state, step_input, active_config)
+        reports.append(report)
+        residual = residual.combine(report.residual_ledger)
+        next_states.append(loop_state_after_report(runtime_state, report))
+    merged_registry = _merge_population_registries(reports, population.population_id)
+    hidden = check_no_hidden_capability_injection(
+        merged_registry,
+        population.protocol_frame,
+        runtime_events=[
+            event.model_dump(mode="json")
+            for report in reports
+            for event in report.event_log_delta.events
+        ],
+    )
+    residual = residual.combine(hidden.residual_ledger)
+    aggregate_psi = build_psi_dashboard(
+        merged_registry,
+        threshold=active_config.psi_threshold or None,
+        closure_witnesses=find_autocatalytic_closures(merged_registry),
+    )
+    next_population = population.model_copy(
+        update={
+            "runtime_states": next_states,
+            "fixed_population_ledger": ledger,
+            "residual_ledger": residual,
+            "step_index": population.step_index + 1,
+        }
+    )
+    accepted = ledger.accepted and hidden.accepted and all(report.accepted for report in reports)
+    reasons = [*ledger.reasons, *hidden.reasons]
+    for report in reports:
+        reasons.extend(report.reasons)
+    return PopulationRuntimeStepReport(
+        report_id=f"population-step:{population.population_id}:{population.step_index}",
+        population_id=population.population_id,
+        step_index=population.step_index,
+        agent_reports=reports,
+        fixed_population_ledger=ledger,
+        hidden_injection_report=hidden,
+        aggregate_psi=aggregate_psi,
+        next_population=next_population,
+        residual_ledger=residual,
+        accepted=accepted,
+        finite_checks_passed=accepted,
+        operationally_usable=accepted and any(report.operationally_usable for report in reports),
+        settled=False,
+        reasons=sorted(set(reasons)),
+    )
+
+
+def certify_collective_phase(
+    population: AgentPopulationState,
+    state: RuntimeState,
+    basin: CapabilityBasinContract,
+    baseline: RuntimeRunReport,
+    threshold: Mapping[str, float] | None = None,
+) -> CollectivePhaseCertificate:
+    """Build an ECPT collective packet-phase certificate."""
+
+    active_threshold = dict(threshold or state.psi_threshold or {})
+    fixed = check_fixed_population_ledger(population.fixed_population_ledger)
+    hidden = check_no_hidden_capability_injection(state.packet_registry, population.protocol_frame)
+    closures = find_autocatalytic_closures(state.packet_registry, basin)
+    paths = find_execution_available_paths(
+        state.packet_registry,
+        basin,
+        constraint_frame=state.phase_state.constraint_frame.model_dump(mode="json"),
+    )
+    psi = build_psi_dashboard(
+        state.packet_registry,
+        threshold=active_threshold or None,
+        closure_witnesses=closures,
+        execution_paths=paths,
+        basin=basin,
+    )
+    threshold_crossed = bool(active_threshold) and all(
+        psi.components.get(key, 0.0) >= value for key, value in active_threshold.items()
+    )
+    false_liquidity_bounded = psi.throughput.false_liquidity_rate <= 0.25
+    verification_backlog_bounded = psi.throughput.unresolved_obligation_backlog <= max(
+        1,
+        len(state.packet_registry.packets) + len(state.verifier_resolution_inventory),
+    )
+    sqot_reserve_live = psi.components.get("QS", 0.0) >= active_threshold.get("QS", 0.5)
+    hazard_non_rejecting = psi.components.get("HZ", 0.0) >= active_threshold.get("HZ", 0.5)
+    resource_matched = baseline.resource_envelope.verifier_calls >= 0 and baseline.run_id != ""
+    lineage = [
+        build_packet_capital_lineage(
+            packet,
+            edge_certificate_ids=packet.accepted_edge_witness_ids,
+            verifier_resolution_ids=packet.verification_resolution_ids,
+            protocol_frame_sha256=population.protocol_frame.sha256 or None,
+        )
+        for packet in state.verified_packets
+    ]
+    residual_external = sorted(
+        {
+            obligation
+            for packet in state.verified_packets
+            for obligation in packet.residual_external_obligations
+        }
+    )
+    residual = state.residual_ledger.combine(psi.residual_ledger)
+    residual = residual.combine(fixed.residual_ledger).combine(hidden.residual_ledger)
+    for closure in closures:
+        residual = residual.combine(closure.residual_ledger)
+    for path in paths:
+        residual = residual.combine(path.residual_ledger)
+    reasons: list[str] = []
+    if not fixed.accepted:
+        reasons.append("fixed population/no-self-rewrite ledger rejected")
+    if not hidden.accepted:
+        reasons.append("hidden capability injection check rejected")
+    if not any(witness.accepted for witness in closures):
+        reasons.append("no accepted autocatalytic closure witness")
+    if not any(path.accepted for path in paths):
+        reasons.append("no accepted execution-available path certificate")
+    if not threshold_crossed:
+        reasons.append("Psi threshold is not crossed")
+    if not resource_matched:
+        reasons.append("resource-matched baseline is unavailable")
+    if not false_liquidity_bounded:
+        reasons.append("false liquidity exceeds collective certificate bound")
+    if not verification_backlog_bounded:
+        reasons.append("verification backlog exceeds collective certificate bound")
+    if not sqot_reserve_live:
+        reasons.append("SQOT diagnostic reserve is not live")
+    if not hazard_non_rejecting:
+        reasons.append("hazard/authority checks are rejecting")
+    accepted = not reasons
+    return CollectivePhaseCertificate(
+        certificate_id=f"collective-phase:{population.population_id}:{state.state_id}:{basin.basin_id}",
+        population_id=population.population_id,
+        state_id=state.state_id,
+        basin_id=basin.basin_id,
+        protocol_frame=population.protocol_frame,
+        fixed_population_ledger=fixed,
+        hidden_injection_report=hidden,
+        closure_witnesses=closures,
+        execution_available_paths=paths,
+        packet_lineage=lineage,
+        psi=psi,
+        threshold=dict(sorted(active_threshold.items())),
+        threshold_crossed=threshold_crossed,
+        resource_matched_baseline=resource_matched,
+        false_liquidity_bounded=false_liquidity_bounded,
+        verification_backlog_bounded=verification_backlog_bounded,
+        sqot_reserve_live=sqot_reserve_live,
+        hazard_authority_non_rejecting=hazard_non_rejecting,
+        residual_external_obligations=residual_external,
+        residual_ledger=residual,
+        accepted=accepted,
+        finite_checks_passed=accepted,
+        operationally_usable=accepted,
+        settled=False,
+        reasons=sorted(set(reasons)),
+    )
 
 
 def _runtime_event(
@@ -1597,6 +1893,36 @@ def _merge_verified_packets(
     for packet in new_packets:
         packets.setdefault(packet.packet_id, packet)
     return sorted(packets.values(), key=lambda item: item.packet_id)
+
+
+def _merge_verifier_resolutions(
+    existing: Sequence[VerifierResolution],
+    new_resolutions: Sequence[VerifierResolution],
+) -> list[VerifierResolution]:
+    resolutions = {resolution.resolution_id: resolution for resolution in existing}
+    for resolution in new_resolutions:
+        resolutions.setdefault(resolution.resolution_id, resolution)
+    return sorted(resolutions.values(), key=lambda item: item.resolution_id)
+
+
+def _merge_population_registries(
+    reports: Sequence[RuntimeStepReport],
+    population_id: str,
+) -> CapabilityPacketRegistry:
+    packets: dict[str, CapabilityPacketCandidate] = {}
+    edges: dict[str, EdgeWitness] = {}
+    residual = Ledger()
+    for report in reports:
+        residual = residual.combine(report.registry.residual_ledger)
+        for packet in report.registry.packets:
+            packets.setdefault(packet.packet_id, packet)
+        for edge in report.registry.edges:
+            edges.setdefault(edge.edge_id, edge)
+    return build_packet_registry(
+        sorted(packets.values(), key=lambda item: item.packet_id),
+        sorted(edges.values(), key=lambda item: item.edge_id),
+        registry_id=f"population-registry:{population_id}",
+    ).model_copy(update={"residual_ledger": residual})
 
 
 def _merge_quarantine_ledgers(left: QuarantineLedger, right: QuarantineLedger) -> QuarantineLedger:

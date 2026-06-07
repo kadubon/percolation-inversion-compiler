@@ -66,7 +66,7 @@ hook shape.
 
 `pic snapshot routes` emits `AdapterRouteSpec` records, and `pic routes bindings`
 emits the reviewed `DischargeRouteBinding` records that connect canonical
-paper routes to implemented adapter contracts. In v0.3.2, canonical ECPT/TRC/SQOT
+paper routes to implemented adapter contracts. In v0.3.3, canonical ECPT/TRC/SQOT
 external routes are no longer left as opaque `unavailable` entries. Each route
 has a fail-closed binding and one of these discharge levels:
 

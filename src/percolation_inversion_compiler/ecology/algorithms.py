@@ -14,6 +14,7 @@ from percolation_inversion_compiler.core.records import CheckResult
 from percolation_inversion_compiler.core.status import ClaimStatus
 from percolation_inversion_compiler.ecology.records import (
     AcceptedPacketPath,
+    AutocatalyticClosureWitness,
     BasinReachabilityReport,
     BottleneckIntervention,
     BottleneckInversionPlan,
@@ -25,10 +26,15 @@ from percolation_inversion_compiler.ecology.records import (
     EdgeRelationVerifierSpec,
     EdgeWitness,
     EdgeWitnessCertificate,
+    ExecutionAvailablePathCertificate,
+    HiddenCapabilityInjectionReport,
+    PacketCapitalLineage,
     PacketIngestionReport,
     PacketSourceKind,
+    ProtocolFrameDigest,
     PsiDashboard,
     VerificationThroughputReport,
+    VerifiedCapabilityPacket,
 )
 
 _PSI_COMPONENTS = ("G", "DE", "AC", "VT", "LX", "SD", "CV", "FR", "BR", "QS", "HZ")
@@ -43,6 +49,7 @@ _DEFAULT_EDGE_RELATION_SPECS: dict[str, EdgeRelationVerifierSpec] = {
     "theorem-to-code": EdgeRelationVerifierSpec(
         relation_type="theorem-to-code",
         required_evidence_markers=["claim:", "code:"],
+        required_relation_evidence_keys=["theorem_id", "code_symbol", "support_digest"],
         required_source_tags=["theorem"],
         required_target_tags=["code"],
         minimum_confidence_lower_bound=0.5,
@@ -50,6 +57,7 @@ _DEFAULT_EDGE_RELATION_SPECS: dict[str, EdgeRelationVerifierSpec] = {
     "code-to-test": EdgeRelationVerifierSpec(
         relation_type="code-to-test",
         required_evidence_markers=["code:", "test:"],
+        required_relation_evidence_keys=["code_symbol", "test_id", "test_digest"],
         required_source_tags=["code"],
         required_target_tags=["test"],
         minimum_confidence_lower_bound=0.5,
@@ -57,6 +65,7 @@ _DEFAULT_EDGE_RELATION_SPECS: dict[str, EdgeRelationVerifierSpec] = {
     "obligation-to-verifier": EdgeRelationVerifierSpec(
         relation_type="obligation-to-verifier",
         required_evidence_markers=["obligation:", "verifier:"],
+        required_relation_evidence_keys=["obligation_id", "verifier_route"],
         require_verifier_resolution=True,
         minimum_confidence_lower_bound=0.5,
     ),
@@ -69,23 +78,33 @@ _DEFAULT_EDGE_RELATION_SPECS: dict[str, EdgeRelationVerifierSpec] = {
     "receiver-compatibility": EdgeRelationVerifierSpec(
         relation_type="receiver-compatibility",
         required_evidence_markers=["receiver:"],
+        required_relation_evidence_keys=["receiver_family"],
         require_receiver_overlap=True,
         minimum_confidence_lower_bound=0.4,
     ),
     "execution-path": EdgeRelationVerifierSpec(
         relation_type="execution-path",
         required_evidence_markers=["execution:", "rollback:"],
+        required_relation_evidence_keys=["execution_gate", "rollback_receipt", "not_executed"],
         minimum_confidence_lower_bound=0.5,
     ),
     "rollback-support": EdgeRelationVerifierSpec(
         relation_type="rollback-support",
         required_evidence_markers=["rollback:"],
+        required_relation_evidence_keys=["rollback_receipt"],
         minimum_confidence_lower_bound=0.5,
     ),
     "liquidity-transfer": EdgeRelationVerifierSpec(
         relation_type="liquidity-transfer",
         required_evidence_markers=["liquidity:"],
+        required_relation_evidence_keys=["source_liquidity", "target_liquidity"],
         minimum_confidence_lower_bound=0.4,
+    ),
+    "autocatalytic-regeneration": EdgeRelationVerifierSpec(
+        relation_type="autocatalytic-regeneration",
+        required_evidence_markers=["closure:", "regeneration:"],
+        required_relation_evidence_keys=["closure_id", "regeneration_rule"],
+        minimum_confidence_lower_bound=0.5,
     ),
 }
 
@@ -321,6 +340,7 @@ def edge_certificate_from_witness(edge: EdgeWitness) -> EdgeWitnessCertificate:
         accepted=edge.accepted,
         reasons=edge.reasons,
         residual_ledger=residual,
+        relation_evidence=_relation_evidence_from_edge(edge),
     )
 
 
@@ -409,6 +429,13 @@ def verify_edge_relation(
     ]
     if missing_markers:
         reasons.append("edge relation evidence markers are missing")
+    missing_relation_keys = sorted(
+        key
+        for key in spec.required_relation_evidence_keys
+        if key not in certificate.relation_evidence
+    )
+    if missing_relation_keys:
+        reasons.append("edge relation structured evidence is missing")
     if spec.required_source_tags and not any(
         set(packet.tags) & set(spec.required_source_tags) for packet in source_packets
     ):
@@ -500,6 +527,9 @@ def build_psi_dashboard(
     *,
     threshold: Mapping[str, float] | None = None,
     target_tags: Sequence[str] | None = None,
+    closure_witnesses: Sequence[AutocatalyticClosureWitness] | None = None,
+    execution_paths: Sequence[ExecutionAvailablePathCertificate] | None = None,
+    basin: CapabilityBasinContract | None = None,
 ) -> PsiDashboard:
     """Build a protocol-relative finite ASI-proxy bundle dashboard."""
 
@@ -514,10 +544,42 @@ def build_psi_dashboard(
     route_count = len({route for packet in registry.packets for route in packet.verifier_routes})
     tag_targets = set(target_tags or [])
     target_hits = sum(1 for packet in registry.packets if tag_targets & set(packet.tags))
+    accepted_closures = [witness for witness in closure_witnesses or [] if witness.accepted]
+    accepted_execution_paths = [path for path in execution_paths or [] if path.accepted]
+    residual = registry.residual_ledger
+    if accepted_closures:
+        ac_score = min(
+            1.0,
+            sum(max(0.0, witness.closure_strength) for witness in accepted_closures)
+            / max(1, len(accepted_closures)),
+        )
+    else:
+        ac_score = _cycle_proxy(accepted_edges)
+        if ac_score > 0.0:
+            residual = residual.add_coordinate(
+                f"psi:{registry.registry_id}:ac-cycle-proxy-fallback",
+                1.0 - ac_score,
+                kind=CoordinateKind.RESIDUAL,
+            )
+    if accepted_execution_paths:
+        de_score = min(1.0, len(accepted_execution_paths) / max(1, total))
+    else:
+        de_score = min(1.0, len(accepted_edges) / max(1, total))
+        if de_score > 0.0:
+            residual = residual.add_coordinate(
+                f"psi:{registry.registry_id}:de-edge-density-fallback",
+                1.0 - de_score,
+                kind=CoordinateKind.RESIDUAL,
+            )
+    if basin is not None:
+        basin_paths = find_accepted_paths_to_basin(registry, basin)
+        br_score = min(1.0, len(basin_paths) / max(1, len(basin.target_basis) or 1))
+    else:
+        br_score = 0.0 if not tag_targets else target_hits / total
     components = {
         "G": len(reachable) / total,
-        "DE": min(1.0, len(accepted_edges) / max(1, total)),
-        "AC": _cycle_proxy(accepted_edges),
+        "DE": de_score,
+        "AC": ac_score,
         "VT": _bounded_ratio(
             throughput.accepted_packets + 1.0,
             throughput.unresolved_obligation_backlog + 1.0,
@@ -529,7 +591,7 @@ def build_psi_dashboard(
         ),
         "CV": max(0.0, 1.0 - registry.residual_ledger.burden_sum()),
         "FR": max(0.0, 1.0 - throughput.false_liquidity_rate),
-        "BR": 0.0 if not tag_targets else target_hits / total,
+        "BR": br_score,
         "QS": _queue_salience_score(throughput),
         "HZ": _hazard_authority_score(registry),
     }
@@ -548,7 +610,7 @@ def build_psi_dashboard(
         distance_to_threshold=distance,
         limiting_components=limiting,
         throughput=throughput,
-        residual_ledger=registry.residual_ledger,
+        residual_ledger=residual,
     )
 
 
@@ -719,6 +781,332 @@ def find_accepted_paths_to_basin(
     return sorted(paths, key=lambda item: (item.cost, item.path_id))
 
 
+def find_autocatalytic_closures(
+    registry: CapabilityPacketRegistry,
+    basin: CapabilityBasinContract | None = None,
+    *,
+    minimum_strength: float = 0.5,
+) -> list[AutocatalyticClosureWitness]:
+    """Find finite productive packet closures in the accepted edge graph.
+
+    ECPT's active collective phase is not raw packet volume.  A closure is only
+    accepted when accepted edges regenerate at least one packet in the component
+    and productive packet capital offsets verification, hazard, and residual
+    charges.
+    """
+
+    packet_by_id = {packet.packet_id: packet for packet in registry.packets}
+    accepted_edges = sorted(
+        [edge for edge in registry.edges if edge.accepted],
+        key=lambda item: item.edge_id,
+    )
+    adjacency: dict[str, set[str]] = {packet_id: set() for packet_id in packet_by_id}
+    edge_by_pair: dict[tuple[str, str], list[EdgeWitness]] = {}
+    for edge in accepted_edges:
+        for source in edge.source_packet_ids:
+            if source in packet_by_id and edge.target_packet_id in packet_by_id:
+                adjacency.setdefault(source, set()).add(edge.target_packet_id)
+                edge_by_pair.setdefault((source, edge.target_packet_id), []).append(edge)
+    closures: list[AutocatalyticClosureWitness] = []
+    seen_components: set[tuple[str, ...]] = set()
+    for packet_id in sorted(packet_by_id):
+        reached = _reachable_from(packet_id, adjacency)
+        component = sorted(
+            node for node in reached if packet_id in _reachable_from(node, adjacency)
+        )
+        if len(component) < 2:
+            self_edges = edge_by_pair.get((packet_id, packet_id), [])
+            if not self_edges:
+                continue
+            component = [packet_id]
+        key = tuple(component)
+        if key in seen_components:
+            continue
+        seen_components.add(key)
+        internal_edges = [
+            edge
+            for edge in accepted_edges
+            if edge.target_packet_id in component
+            and any(source in component for source in edge.source_packet_ids)
+        ]
+        regeneration_edges = [
+            edge
+            for edge in internal_edges
+            if edge.edge_type in {"autocatalytic-regeneration", "semantic-dependency"}
+        ]
+        productive_packets = [
+            packet_by_id[item]
+            for item in component
+            if _packet_productivity(packet_by_id[item]) > 0.0
+        ]
+        seed_packets = sorted(
+            {
+                source
+                for edge in accepted_edges
+                if edge.target_packet_id in component
+                for source in edge.source_packet_ids
+                if source not in component
+            }
+        )
+        receiver_ok = True
+        if basin is not None and basin.receiver_family:
+            receiver_ok = any(
+                set(packet_by_id[item].receiver_family) & set(basin.receiver_family)
+                for item in component
+            )
+        closure_strength = min(
+            (edge.confidence for edge in internal_edges),
+            default=0.0,
+        )
+        productivity = sum(_packet_productivity(packet) for packet in productive_packets)
+        false_liquidity = (
+            0.0
+            if not component
+            else sum(
+                1
+                for item in component
+                if packet_by_id[item].verification_cost
+                > packet_by_id[item].expected_downstream_gain
+            )
+            / len(component)
+        )
+        residual = Ledger()
+        reasons: list[str] = []
+        if closure_strength < minimum_strength:
+            reasons.append("closure strength is below threshold")
+        if not regeneration_edges:
+            reasons.append("closure has no accepted regeneration edge")
+        if not productive_packets:
+            reasons.append("closure has no productive packet")
+        if false_liquidity > 0.25:
+            reasons.append("closure false-liquidity rate exceeds bound")
+        if not receiver_ok:
+            reasons.append("closure is not receiver-compatible with basin")
+        if reasons:
+            residual = residual.add_coordinate(
+                f"closure:{registry.registry_id}:{'-'.join(component)}:diagnostic",
+                1.0,
+                kind=CoordinateKind.RESIDUAL,
+            )
+        accepted = not reasons
+        closures.append(
+            AutocatalyticClosureWitness(
+                witness_id=f"closure:{registry.registry_id}:{sha256_text('|'.join(component))[:12]}",
+                closure_packet_ids=component,
+                internal_edge_ids=sorted({edge.edge_id for edge in internal_edges}),
+                regeneration_edge_ids=sorted({edge.edge_id for edge in regeneration_edges}),
+                productive_packet_ids=sorted(packet.packet_id for packet in productive_packets),
+                external_seed_packet_ids=seed_packets,
+                closure_strength=closure_strength,
+                productivity_lower_bound=productivity,
+                false_liquidity_rate=false_liquidity,
+                residual_ledger=residual,
+                accepted=accepted,
+                finite_checks_passed=accepted,
+                operationally_usable=accepted,
+                settled=False,
+                reasons=sorted(set(reasons)),
+            )
+        )
+    return sorted(closures, key=lambda item: item.witness_id)
+
+
+def find_execution_available_paths(
+    registry: CapabilityPacketRegistry,
+    basin: CapabilityBasinContract,
+    *,
+    constraint_frame: Mapping[str, object] | None = None,
+) -> list[ExecutionAvailablePathCertificate]:
+    """Build execution-available, not-executed path certificates for a basin."""
+
+    return [
+        check_execution_available_path(
+            _execution_certificate_from_path(registry, path, constraint_frame=constraint_frame),
+            registry,
+            constraint_frame=constraint_frame,
+        )
+        for path in find_accepted_paths_to_basin(registry, basin)
+    ]
+
+
+def check_execution_available_path(
+    certificate: ExecutionAvailablePathCertificate,
+    registry: CapabilityPacketRegistry,
+    *,
+    constraint_frame: Mapping[str, object] | None = None,
+) -> ExecutionAvailablePathCertificate:
+    """Check that a path is available for execution without executing it."""
+
+    packet_by_id = {packet.packet_id: packet for packet in registry.packets}
+    edge_ids = {edge.edge_id for edge in registry.edges if edge.accepted}
+    residual = certificate.residual_ledger
+    reasons = list(certificate.reasons)
+    missing_packets = sorted(set(certificate.packet_ids) - set(packet_by_id))
+    missing_edges = sorted(set(certificate.edge_ids) - edge_ids)
+    if missing_packets:
+        reasons.append("execution path references missing packets")
+    if missing_edges:
+        reasons.append("execution path references missing accepted edges")
+    if not certificate.not_executed:
+        reasons.append("execution path has already been executed")
+    if not certificate.execution_gates:
+        reasons.append("execution path lacks explicit execution gates")
+    if not certificate.authority_granted:
+        reasons.append("execution path lacks authority grant")
+    if not certificate.rollback_available:
+        reasons.append("execution path lacks rollback support")
+    if not certificate.receiver_context:
+        reasons.append("execution path lacks receiver context")
+    if not certificate.evidence_refs:
+        reasons.append("execution path lacks evidence refs")
+    if constraint_frame is not None:
+        hard_gates = constraint_frame.get("hard_gates")
+        if isinstance(hard_gates, Mapping) and not all(
+            bool(value) for value in hard_gates.values()
+        ):
+            reasons.append("constraint frame has a closed hard gate")
+    for packet_id in certificate.packet_ids:
+        packet = packet_by_id.get(packet_id)
+        if packet is None:
+            continue
+        if packet.authority_required and not packet.authority_granted:
+            reasons.append("path packet lacks required authority")
+        if not packet.rollback_available:
+            reasons.append("path packet lacks rollback support")
+        if not packet.route_safe:
+            reasons.append("path packet route is unsafe")
+    if reasons:
+        residual = residual.add_coordinate(
+            f"execution-available:{certificate.certificate_id}:diagnostic",
+            1.0,
+            kind=CoordinateKind.RESIDUAL,
+        )
+    accepted = not reasons
+    return certificate.model_copy(
+        update={
+            "residual_ledger": residual,
+            "accepted": accepted,
+            "finite_checks_passed": accepted,
+            "operationally_usable": accepted,
+            "settled": False,
+            "reasons": sorted(set(reasons)),
+        }
+    )
+
+
+def check_no_hidden_capability_injection(
+    registry: CapabilityPacketRegistry,
+    protocol: ProtocolFrameDigest,
+    *,
+    runtime_events: Sequence[Mapping[str, object]] | None = None,
+) -> HiddenCapabilityInjectionReport:
+    """Reject packet, edge, evidence, or event sources outside the protocol frame."""
+
+    allowed_sources = set(protocol.allowed_source_kinds)
+    allowed_routes = set(protocol.allowed_route_ids)
+    allowed_packets = set(protocol.allowed_packet_ids)
+    allowed_prefixes = protocol.allowed_evidence_prefixes or ["sha256:"]
+    residual = Ledger()
+    rejected_packets: list[str] = []
+    rejected_edges: list[str] = []
+    rejected_events: list[str] = []
+    rejected_refs: list[str] = []
+    reasons: list[str] = []
+    for packet in registry.packets:
+        if allowed_sources and packet.source_kind.value not in allowed_sources:
+            rejected_packets.append(packet.packet_id)
+            reasons.append("packet source kind is outside protocol frame")
+        if allowed_packets and packet.packet_id not in allowed_packets:
+            rejected_packets.append(packet.packet_id)
+            reasons.append("packet id is outside declared protocol population")
+        unknown_routes = (
+            sorted(set(packet.verifier_routes) - allowed_routes) if allowed_routes else []
+        )
+        if unknown_routes:
+            rejected_packets.append(packet.packet_id)
+            reasons.append("packet verifier route is outside protocol catalog")
+        for ref in packet.evidence_refs:
+            if not any(ref.startswith(prefix) for prefix in allowed_prefixes):
+                rejected_refs.append(ref)
+                reasons.append("packet evidence ref is outside allowed evidence prefixes")
+    packet_ids = {packet.packet_id for packet in registry.packets}
+    for edge in registry.edges:
+        if edge.target_packet_id not in packet_ids or any(
+            source not in packet_ids for source in edge.source_packet_ids
+        ):
+            rejected_edges.append(edge.edge_id)
+            reasons.append("edge references packet outside registry")
+    for event in runtime_events or []:
+        event_type = str(event.get("event_type", ""))
+        if event_type and not event_type.startswith(
+            ("runtime-", "route-", "packet-", "collective-")
+        ):
+            rejected_events.append(str(event.get("event_id", event_type)))
+            reasons.append("runtime event type is outside protocol runtime vocabulary")
+    if reasons:
+        rejected_items = set(rejected_packets + rejected_edges + rejected_events + rejected_refs)
+        for item in sorted(rejected_items):
+            residual = residual.add_coordinate(
+                f"hidden-injection:{protocol.protocol_id}:{item}",
+                1.0,
+                kind=CoordinateKind.RESIDUAL,
+            )
+    accepted = not reasons and bool(protocol.accepted or protocol.sha256)
+    if not protocol.accepted and not protocol.sha256:
+        reasons.append("protocol frame digest is not accepted or content-addressed")
+        accepted = False
+    return HiddenCapabilityInjectionReport(
+        report_id=f"hidden-injection:{protocol.protocol_id}:{registry.registry_id}",
+        protocol_id=protocol.protocol_id,
+        checked_packet_ids=sorted(packet_ids),
+        rejected_packet_ids=sorted(set(rejected_packets)),
+        rejected_edge_ids=sorted(set(rejected_edges)),
+        rejected_event_ids=sorted(set(rejected_events)),
+        rejected_evidence_refs=sorted(set(rejected_refs)),
+        allowed_source_kinds=sorted(allowed_sources),
+        allowed_route_ids=sorted(allowed_routes),
+        allowed_packet_ids=sorted(allowed_packets),
+        residual_ledger=residual,
+        accepted=accepted,
+        finite_checks_passed=accepted,
+        operationally_usable=accepted,
+        settled=False,
+        reasons=sorted(set(reasons)),
+    )
+
+
+def build_packet_capital_lineage(
+    packet: VerifiedCapabilityPacket | CapabilityPacketCandidate,
+    *,
+    parent_packet_ids: Sequence[str] | None = None,
+    edge_certificate_ids: Sequence[str] | None = None,
+    verifier_resolution_ids: Sequence[str] | None = None,
+    runtime_event_ids: Sequence[str] | None = None,
+    protocol_frame_sha256: str | None = None,
+) -> PacketCapitalLineage:
+    """Build a deterministic lineage record for finite packet capital."""
+
+    source_candidate_id = getattr(packet, "source_candidate_id", None)
+    packet_id = packet.packet_id
+    residual_external = getattr(packet, "residual_external_obligations", [])
+    accepted = bool(protocol_frame_sha256) and not residual_external
+    return PacketCapitalLineage(
+        lineage_id=f"lineage:{packet_id}:{sha256_text(protocol_frame_sha256 or packet_id)[:12]}",
+        packet_id=packet_id,
+        source_candidate_id=source_candidate_id,
+        parent_packet_ids=sorted(set(parent_packet_ids or [])),
+        edge_certificate_ids=sorted(set(edge_certificate_ids or [])),
+        verifier_resolution_ids=sorted(set(verifier_resolution_ids or [])),
+        runtime_event_ids=sorted(set(runtime_event_ids or [])),
+        protocol_frame_sha256=protocol_frame_sha256,
+        residual_external_obligations=sorted(set(residual_external)),
+        accepted=accepted,
+        reasons=[]
+        if accepted
+        else ["packet lineage lacks complete protocol digest or residual-free scope"],
+    )
+
+
 def build_bottleneck_plan(
     registry: CapabilityPacketRegistry,
     dashboard: PsiDashboard,
@@ -876,6 +1264,18 @@ def _reachable_packets(packet_ids: set[str], edges: Sequence[EdgeWitness]) -> se
     return reached
 
 
+def _reachable_from(start: str, adjacency: Mapping[str, set[str]]) -> set[str]:
+    reached = {start}
+    queue: deque[str] = deque([start])
+    while queue:
+        current = queue.popleft()
+        for target in sorted(adjacency.get(current, set())):
+            if target not in reached:
+                reached.add(target)
+                queue.append(target)
+    return reached
+
+
 def _cycle_proxy(edges: Sequence[EdgeWitness]) -> float:
     pairs = {
         (source, edge.target_packet_id)
@@ -930,6 +1330,73 @@ def _hazard_authority_score(registry: CapabilityPacketRegistry) -> float:
             + 0.2 * unsafe_routes / total
             + 0.2 * rollback_missing / total
         ),
+    )
+
+
+def _packet_productivity(packet: CapabilityPacketCandidate) -> float:
+    return max(
+        0.0,
+        packet.expected_downstream_gain
+        - packet.verification_cost
+        - packet.residual_charge
+        - packet.hazard_charge,
+    )
+
+
+def _relation_evidence_from_edge(edge: EdgeWitness) -> dict[str, str]:
+    if edge.edge_type == "packet-to-receiver-compatibility":
+        return {"receiver_family": "overlap"}
+    if edge.edge_type == "semantic-dependency":
+        return {"dependency": ",".join(edge.source_packet_ids)}
+    if edge.edge_type == "execution-path":
+        return {
+            "execution_gate": "declared",
+            "not_executed": "true",
+            "rollback_receipt": "declared",
+        }
+    return {}
+
+
+def _execution_certificate_from_path(
+    registry: CapabilityPacketRegistry,
+    path: AcceptedPacketPath,
+    *,
+    constraint_frame: Mapping[str, object] | None,
+) -> ExecutionAvailablePathCertificate:
+    packet_by_id = {packet.packet_id: packet for packet in registry.packets}
+    edge_by_id = {edge.edge_id: edge for edge in registry.edges}
+    packets = [
+        packet_by_id[packet_id] for packet_id in path.packet_ids if packet_id in packet_by_id
+    ]
+    edges = [edge_by_id[edge_id] for edge_id in path.edge_ids if edge_id in edge_by_id]
+    receivers = sorted({receiver for packet in packets for receiver in packet.receiver_family})
+    refs = sorted(
+        {ref for packet in packets for ref in packet.evidence_refs}
+        | {ref for edge in edges for ref in edge.evidence_refs}
+    )
+    hard_gates = constraint_frame.get("hard_gates") if constraint_frame is not None else None
+    gates = (
+        sorted(str(key) for key in hard_gates) if isinstance(hard_gates, Mapping) else ["ExecGate"]
+    )
+    return ExecutionAvailablePathCertificate(
+        certificate_id=f"execution-available:{path.path_id}",
+        path_id=path.path_id,
+        packet_ids=path.packet_ids,
+        edge_ids=path.edge_ids,
+        route_ids=path.route_ids,
+        not_executed=True,
+        execution_gates=gates,
+        authority_granted=all(
+            not packet.authority_required or packet.authority_granted for packet in packets
+        ),
+        rollback_available=all(packet.rollback_available for packet in packets),
+        receiver_context=receivers,
+        evidence_refs=refs,
+        constraint_frame_id=str(
+            constraint_frame.get("constraint_frame_id", "default-constraint-frame")
+        )
+        if constraint_frame is not None
+        else "default-constraint-frame",
     )
 
 

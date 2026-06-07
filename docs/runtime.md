@@ -1,6 +1,6 @@
 # ECPT Active Agent Runtime
 
-`pic runtime` is the v0.3.2 active loop for agents. It composes the existing
+`pic runtime` is the v0.3.3 active loop for agents. It composes the existing
 finite ECPT planner, SQOT salience scheduler, packet ecology, certificate
 checks, verifier route catalog, provenance policy, and residual ledgers into
 one deterministic report.
@@ -48,6 +48,8 @@ uv run pic runtime step --state examples/runtime_state.json --input examples/run
 uv run pic runtime resolve-evidence --input examples/runtime_step_input_with_evidence.json --profile production
 uv run pic runtime execute-task --state examples/runtime_state.json --task examples/runtime_agent_task.json --policy examples/runtime_executor_policy.json --profile production
 uv run pic runtime run-agent-loop --state examples/runtime_state.json --inputs examples/runtime_loop_inputs.jsonl --store runtime.sqlite --policy examples/runtime_executor_policy.json --profile production
+uv run pic runtime population-step --population examples/agent_population.json --inputs examples/runtime_loop_inputs.jsonl --profile production
+uv run pic runtime collective-certify --population examples/agent_population.json --state examples/collective_runtime_state.json --basin examples/ecpt_basin_contract.json --baseline examples/runtime_baseline_run.json --threshold examples/runtime_threshold.json
 uv run pic runtime apply-results --state examples/runtime_state.json --report runtime-step.json --results examples/runtime_action_results.json --output runtime-next-state.json
 uv run pic runtime compare --baseline examples/runtime_baseline_run.json --candidate examples/runtime_candidate_run.json --threshold examples/runtime_threshold.json
 uv run pic runtime certify-acceleration --baseline examples/runtime_baseline_run.json --candidate examples/runtime_candidate_run.json
@@ -93,6 +95,8 @@ print(report.model_dump(mode="json")["agent_tasks"])
 8. Compare baseline and candidate `RuntimeRunReport` trajectories.
 9. Preserve `residual_ledger`, `event_log`, and `missing_obligations`.
 10. Repeat with `pic runtime loop` or the SDK.
+11. For collective ECPT phase claims, run `pic runtime collective-certify` and
+    keep `settled=false` unless verifier settlement scope is fully discharged.
 
 The runtime accelerates protocol-relative ASI-proxy phase-control by reducing
 agent overhead around evidence routing, semantic edge verification, packet

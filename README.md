@@ -1,11 +1,12 @@
 # Percolation Inversion Compiler
 
-`percolation-inversion-compiler` is a collective ECPT phase acceleration
+`percolation-inversion-compiler` is an ECPT collective phase certificate
 runtime and production-oriented finite verifier-routing SDK for ECPT, BIT, TRC,
-and SQOT. It does not model ASI-proxy progress as one agent rewriting itself or
-changing model weights. It models the ECPT core: many finite capability packets,
-created under declared constraints, become available, verified, receiver-valid,
-liquid, queue-admissible, execution-available, and composable enough to
+and SQOT. It does not model ASI-proxy progress as one agent rewriting itself,
+fine-tuning itself, or changing model weights. It models the ECPT core: a fixed
+population of agents produces many finite capability packets under declared
+constraints; those packets become available, verified, receiver-valid, liquid,
+queue-admissible, execution-available but not executed, and composable enough to
 percolate toward a protocol-relative target basin.
 
 The package turns paper-derived TeX, registry JSON, verifier evidence, agent
@@ -13,9 +14,11 @@ outputs, action results, evidence-store refs, and packet candidate records into
 deterministic JSON: finite checker judgments, proof obligations, residual
 ledgers, salience-queue schedules, typed trace normal forms, frontier extraction
 records, verified packet promotion reports, semantic packet-edge certificates,
-Psi dashboards with SQOT and hazard components, bottleneck-inversion plans,
-runtime event logs, finite acceleration certificates, provenance manifests,
-SBOMs, and portable JSON Schemas for AI agent integration.
+Psi dashboards with SQOT and hazard components, autocatalytic closure
+witnesses, execution-available path certificates, hidden-capability-injection
+reports, collective phase certificates, bottleneck-inversion plans, runtime
+event logs, finite acceleration certificates, provenance manifests, SBOMs, and
+portable JSON Schemas for AI agent integration.
 
 Search terms: certificate compiler, proof obligations, residual ledgers, typed
 trace normal forms, frontier extraction, AI agent integration,
@@ -66,12 +69,14 @@ charges and failure modes.
 
 Three direct ways to use it:
 
-- Use as CLI: run `pic runtime step`, `pic runtime resolve-evidence`,
+- Use as CLI: run `pic runtime step`, `pic runtime population-step`,
+  `pic runtime collective-certify`, `pic runtime resolve-evidence`,
   `pic runtime execute-task`, `pic runtime execute-routes`, `pic runtime
   run-agent-loop`, `pic runtime store init|append|load|export`, `pic runtime
   apply-results`, `pic runtime compare`, `pic runtime certify-acceleration`,
-  `pic ecology paths`, `pic ecology verify-edge`, `pic ecpt plan`, `pic sqot
-  schedule`, and `pic evidence verify`.
+  `pic ecology closures`, `pic ecology execution-paths`, `pic ecology
+  hidden-injection-check`, `pic ecology paths`, `pic ecology verify-edge`, `pic
+  ecpt plan`, `pic sqot schedule`, and `pic evidence verify`.
 - Use as Python SDK: call `build_runtime_step`, `resolve_step_evidence`,
   `execute_runtime_task`, `execute_route_batch`, `run_agent_loop_with_store`,
   `apply_action_results`, `compare_runtime_runs`, `certify_runtime_acceleration`,
@@ -81,7 +86,10 @@ Three direct ways to use it:
   `/runtime/result/apply`, `/runtime/evidence/resolve`, `/runtime/compare`,
   `/runtime/certify-acceleration`, `/runtime/task/execute`,
   `/runtime/routes/execute`, `/runtime/store/append`, `/runtime/store/load`,
-  `/runtime/run-agent-loop`, `/ecology/ingest`, `/evidence/verify`, and `/health`.
+  `/runtime/run-agent-loop`, `/runtime/population/step`,
+  `/runtime/collective/certify`, `/ecology/closures`,
+  `/ecology/execution-paths`, `/ecology/hidden-injection-check`,
+  `/ecology/ingest`, `/evidence/verify`, and `/health`.
   In production set `PIC_RUNTIME_TOKEN` and use `Authorization: Bearer ...`.
 
 What this gives an agent:
@@ -98,6 +106,13 @@ What this gives an agent:
   hash, receiver, and residual obligations;
 - verified packet promotion, packet rejection, and semantic edge certificates;
 - `QS` and `HZ` Psi components for SQOT reserve and hazard/authority load;
+- fixed-population and no-self-rewrite ledgers for ECPT collective phase claims;
+- accepted autocatalytic closure witnesses and execution-available path
+  certificates;
+- hidden-capability-injection checks against a protocol frame digest;
+- collective phase certificates that require closure, execution availability,
+  threshold-crossed Psi, resource-matched baseline, SQOT reserve, and hazard
+  checks;
 - accepted packet paths into ECPT basin contracts;
 - allowlisted autonomous runtime execution and route execution;
 - SQLite-backed runtime stores for event logs and packet-capital accumulation;

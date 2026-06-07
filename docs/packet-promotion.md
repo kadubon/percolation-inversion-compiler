@@ -4,7 +4,7 @@
 or connector-derived metadata. It is not reusable ECPT packet capital until a
 finite promotion check accepts it.
 
-v0.3.2 adds:
+v0.3.3 adds:
 
 - `VerifiedCapabilityPacket`
 - `PacketPromotionPolicy`

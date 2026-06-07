@@ -1,6 +1,6 @@
 # Local Runtime HTTP Service
 
-The optional v0.3.2 service exposes the ECPT active runtime over loopback HTTP.
+The optional v0.3.3 service exposes the ECPT active runtime over loopback HTTP.
 It is behind the `[server]` extra and uses the FastAPI/Uvicorn stack. The
 service returns the same finite certificate, proof-obligation, and residual
 ledger records as the CLI and SDK.
@@ -34,6 +34,11 @@ Endpoints:
 - `POST /runtime/store/append`
 - `POST /runtime/store/load`
 - `POST /runtime/run-agent-loop`
+- `POST /runtime/population/step`
+- `POST /runtime/collective/certify`
+- `POST /ecology/closures`
+- `POST /ecology/execution-paths`
+- `POST /ecology/hidden-injection-check`
 - `POST /ecology/ingest`
 - `POST /evidence/verify`
 - `GET /schemas/openapi.json`
@@ -47,6 +52,8 @@ uv run pic runtime export-openapi --output runtime-openapi.json
 The same payload shape is stored in
 `examples/runtime_service_step_request.json`. The service response is a
 `RuntimeStepReport`, so an agent can use the same schema bundle for CLI, SDK,
-and HTTP integration. v0.3.2 adds result application, evidence resolution,
-runtime comparison, and finite acceleration-certificate endpoints so a local
-agent can close the ECPT loop without embedding Python.
+and HTTP integration. v0.3.3 includes result application, evidence resolution,
+runtime comparison, finite acceleration-certificate endpoints, population steps,
+collective phase certificates, closure witnesses, execution-available paths,
+and hidden-injection checks so a local agent can close the ECPT loop without
+embedding Python.

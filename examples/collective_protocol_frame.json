@@ -1,0 +1,26 @@
+{
+  "accepted": true,
+  "allowed_evidence_prefixes": [
+    "sha256:",
+    "closure:",
+    "regeneration:",
+    "execution:",
+    "rollback:"
+  ],
+  "allowed_packet_ids": [
+    "packet:a",
+    "packet:b"
+  ],
+  "allowed_route_ids": [
+    "adapters.domain.verify_ecpt_proxy_target_contract"
+  ],
+  "allowed_source_kinds": [
+    "agent-output"
+  ],
+  "constraint_frame_id": "default-constraint-frame",
+  "observation_window_id": "demo-window",
+  "protocol_id": "protocol:collective-demo",
+  "route_catalog_digest": "route-catalog-demo",
+  "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+  "validity_domain": "protocol-relative-finite"
+}

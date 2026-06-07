@@ -12,11 +12,22 @@ from percolation_inversion_compiler.core import (
     list_adapter_route_specs,
     resolve_adapter_route,
 )
-from percolation_inversion_compiler.ecology import ingest_agent_output, ingest_live_source
+from percolation_inversion_compiler.ecology import (
+    CapabilityBasinContract,
+    ProtocolFrameDigest,
+    check_no_hidden_capability_injection,
+    find_autocatalytic_closures,
+    find_execution_available_paths,
+    ingest_agent_output,
+    ingest_live_source,
+    registry_from_json,
+)
 from percolation_inversion_compiler.ecology.connectors import infer_live_kind
 from percolation_inversion_compiler.runtime.algorithms import (
     apply_action_results,
+    build_population_runtime_step,
     build_runtime_step,
+    certify_collective_phase,
     certify_runtime_acceleration,
     compare_runtime_runs,
     execute_route_batch,
@@ -26,6 +37,7 @@ from percolation_inversion_compiler.runtime.algorithms import (
     run_runtime_loop,
 )
 from percolation_inversion_compiler.runtime.records import (
+    AgentPopulationState,
     AgentRuntimeConfig,
     AgentTask,
     RouteExecutionRequest,
@@ -51,7 +63,7 @@ def create_runtime_app(settings: RuntimeServiceSettings | None = None) -> Any:
 
     fastapi_app = fastapi.FastAPI(
         title="Percolation Inversion Compiler Runtime",
-        version="0.3.2",
+        version="0.3.3",
         description="Local-first ECPT active ASI-proxy phase-control runtime service.",
     )
     http_exception = fastapi.HTTPException
@@ -246,6 +258,69 @@ def create_runtime_app(settings: RuntimeServiceSettings | None = None) -> Any:
         )
         return {"reports": [report.model_dump(mode="json") for report in reports]}
 
+    async def runtime_population_step(request: Any) -> dict[str, Any]:
+        require_auth(_authorization(request))
+        _check_request_size(request, active_settings.max_request_bytes)
+        payload = await request.json()
+        population = AgentPopulationState.model_validate(payload.get("population"))
+        inputs = [RuntimeStepInput.model_validate(item) for item in payload.get("inputs", [])]
+        config = AgentRuntimeConfig.model_validate(payload.get("config", {}))
+        config = _service_config(config, active_settings, False)
+        report = build_population_runtime_step(population, inputs, config)
+        return report.model_dump(mode="json")
+
+    async def runtime_collective_certify(request: Any) -> dict[str, Any]:
+        require_auth(_authorization(request))
+        _check_request_size(request, active_settings.max_request_bytes)
+        payload = await request.json()
+        certificate = certify_collective_phase(
+            AgentPopulationState.model_validate(payload.get("population")),
+            RuntimeState.model_validate(payload.get("state")),
+            CapabilityBasinContract.model_validate(payload.get("basin")),
+            RuntimeRunReport.model_validate(payload.get("baseline")),
+            payload.get("threshold", {}),
+        )
+        return certificate.model_dump(mode="json")
+
+    async def ecology_closures(request: Any) -> dict[str, Any]:
+        require_auth(_authorization(request))
+        _check_request_size(request, active_settings.max_request_bytes)
+        payload = await request.json()
+        registry = registry_from_json(payload.get("registry", payload))
+        basin_payload = payload.get("basin")
+        basin = (
+            None if basin_payload is None else CapabilityBasinContract.model_validate(basin_payload)
+        )
+        closures = find_autocatalytic_closures(registry, basin)
+        return {"closures": [closure.model_dump(mode="json") for closure in closures]}
+
+    async def ecology_execution_paths(request: Any) -> dict[str, Any]:
+        require_auth(_authorization(request))
+        _check_request_size(request, active_settings.max_request_bytes)
+        payload = await request.json()
+        registry = registry_from_json(payload.get("registry", payload))
+        basin = CapabilityBasinContract.model_validate(payload.get("basin"))
+        paths = find_execution_available_paths(
+            registry,
+            basin,
+            constraint_frame=payload.get("constraint_frame"),
+        )
+        return {"execution_available_paths": [path.model_dump(mode="json") for path in paths]}
+
+    async def ecology_hidden_injection_check(request: Any) -> dict[str, Any]:
+        require_auth(_authorization(request))
+        _check_request_size(request, active_settings.max_request_bytes)
+        payload = await request.json()
+        registry = registry_from_json(payload.get("registry", payload))
+        protocol = ProtocolFrameDigest.model_validate(payload.get("protocol"))
+        events = payload.get("events", [])
+        report = check_no_hidden_capability_injection(
+            registry,
+            protocol,
+            runtime_events=[item for item in events if isinstance(item, dict)],
+        )
+        return report.model_dump(mode="json")
+
     async def ecology_ingest(
         request: Any,
     ) -> dict[str, Any]:
@@ -303,6 +378,11 @@ def create_runtime_app(settings: RuntimeServiceSettings | None = None) -> Any:
         runtime_store_append,
         runtime_store_load,
         runtime_run_agent_loop,
+        runtime_population_step,
+        runtime_collective_certify,
+        ecology_closures,
+        ecology_execution_paths,
+        ecology_hidden_injection_check,
         ecology_ingest,
         evidence_verify,
         openapi_schema,
@@ -329,6 +409,19 @@ def create_runtime_app(settings: RuntimeServiceSettings | None = None) -> Any:
     fastapi_app.add_api_route("/runtime/store/append", runtime_store_append, methods=["POST"])
     fastapi_app.add_api_route("/runtime/store/load", runtime_store_load, methods=["POST"])
     fastapi_app.add_api_route("/runtime/run-agent-loop", runtime_run_agent_loop, methods=["POST"])
+    fastapi_app.add_api_route("/runtime/population/step", runtime_population_step, methods=["POST"])
+    fastapi_app.add_api_route(
+        "/runtime/collective/certify",
+        runtime_collective_certify,
+        methods=["POST"],
+    )
+    fastapi_app.add_api_route("/ecology/closures", ecology_closures, methods=["POST"])
+    fastapi_app.add_api_route("/ecology/execution-paths", ecology_execution_paths, methods=["POST"])
+    fastapi_app.add_api_route(
+        "/ecology/hidden-injection-check",
+        ecology_hidden_injection_check,
+        methods=["POST"],
+    )
     fastapi_app.add_api_route("/ecology/ingest", ecology_ingest, methods=["POST"])
     fastapi_app.add_api_route("/evidence/verify", evidence_verify, methods=["POST"])
     fastapi_app.add_api_route("/schemas/openapi.json", openapi_schema, methods=["GET"])

@@ -97,7 +97,7 @@ not prove the unobserved ASI target or discharge domain obligations by itself.
 
 ## 7. Run the Active Agent Runtime
 
-The v0.3.2 runtime composes ECPT planning, packet ecology, SQOT scheduling,
+The v0.3.3 runtime composes ECPT planning, packet ecology, SQOT scheduling,
 verifier routing, packet promotion, and finite acceleration comparison into one
 agent-facing loop:
 

@@ -1,5 +1,26 @@
 # Changelog
 
+## v0.3.3 - 2026-06-07
+
+- Adds ECPT collective phase certificates: fixed-population/no-self-rewrite
+  ledgers, hidden-capability-injection reports, accepted autocatalytic closure
+  witnesses, execution-available path certificates, packet lineage, and
+  protocol frame digests.
+- Strengthens Psi semantics so AC uses accepted closure witnesses and DE uses
+  execution-available but not executed paths when available; cycle and edge
+  density proxies remain diagnostic fallbacks with residual charges.
+- Adds population runtime APIs, CLI, and service endpoints:
+  `runtime population-step`, `runtime collective-certify`, `ecology closures`,
+  `ecology execution-paths`, and `ecology hidden-injection-check`.
+- Fixes closed-loop route/task reintegration so route execution batches and
+  task results are persisted and can feed later packet promotion without
+  silently settling residual external obligations.
+- Extends SQLite runtime stores with additive tables for route batches,
+  execution reports, population snapshots, and collective phase certificates.
+- Updates README, docs, schemas, and examples around ECPT's core framing:
+  ASI-proxy phase progress is collective packet percolation under constraints,
+  not self-rewrite or model-weight change.
+
 ## v0.3.2 - 2026-06-07
 
 - Reframes the runtime around ECPT collective capability percolation: ASI-proxy progress is packet availability, verification throughput, semantic edge composability, SQOT reserve, capacity/queue ledgers, and resource-matched basin movement rather than self-rewriting.

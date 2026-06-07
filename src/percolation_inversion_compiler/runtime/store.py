@@ -11,7 +11,11 @@ from typing import Any
 
 from percolation_inversion_compiler.runtime.records import (
     AccelerationCertificate,
+    AgentPopulationState,
+    CollectivePhaseCertificate,
+    RouteExecutionBatch,
     RuntimeEvent,
+    RuntimeExecutionReport,
     RuntimeRunReport,
     RuntimeState,
     RuntimeStoreRecord,
@@ -23,24 +27,67 @@ _COUNT_SQL = {
     "events": "SELECT COUNT(*) FROM events",
     "runs": "SELECT COUNT(*) FROM runs",
     "certificates": "SELECT COUNT(*) FROM certificates",
+    "execution_reports": "SELECT COUNT(*) FROM execution_reports",
+    "route_batches": "SELECT COUNT(*) FROM route_batches",
+    "population_snapshots": "SELECT COUNT(*) FROM population_snapshots",
+    "collective_phase_certificates": "SELECT COUNT(*) FROM collective_phase_certificates",
+    "verified_packets": "SELECT COUNT(*) FROM verified_packets",
+    "edge_certificates": "SELECT COUNT(*) FROM edge_certificates",
+    "packet_lineage": "SELECT COUNT(*) FROM packet_lineage",
 }
 _SELECT_SQL = {
     "states": "SELECT payload FROM states WHERE state_id = ?",
     "events": "SELECT payload FROM events WHERE event_id = ?",
     "runs": "SELECT payload FROM runs WHERE run_id = ?",
     "certificates": "SELECT payload FROM certificates WHERE certificate_id = ?",
+    "execution_reports": "SELECT payload FROM execution_reports WHERE report_id = ?",
+    "route_batches": "SELECT payload FROM route_batches WHERE batch_id = ?",
+    "population_snapshots": "SELECT payload FROM population_snapshots WHERE population_id = ?",
+    "collective_phase_certificates": (
+        "SELECT payload FROM collective_phase_certificates WHERE certificate_id = ?"
+    ),
+    "verified_packets": "SELECT payload FROM verified_packets WHERE packet_id = ?",
+    "edge_certificates": "SELECT payload FROM edge_certificates WHERE certificate_id = ?",
+    "packet_lineage": "SELECT payload FROM packet_lineage WHERE lineage_id = ?",
 }
 _SELECT_ALL_SQL = {
     "states": "SELECT payload FROM states ORDER BY payload",
     "events": "SELECT payload FROM events ORDER BY payload",
     "runs": "SELECT payload FROM runs ORDER BY payload",
     "certificates": "SELECT payload FROM certificates ORDER BY payload",
+    "execution_reports": "SELECT payload FROM execution_reports ORDER BY payload",
+    "route_batches": "SELECT payload FROM route_batches ORDER BY payload",
+    "population_snapshots": "SELECT payload FROM population_snapshots ORDER BY payload",
+    "collective_phase_certificates": (
+        "SELECT payload FROM collective_phase_certificates ORDER BY payload"
+    ),
+    "verified_packets": "SELECT payload FROM verified_packets ORDER BY payload",
+    "edge_certificates": "SELECT payload FROM edge_certificates ORDER BY payload",
+    "packet_lineage": "SELECT payload FROM packet_lineage ORDER BY payload",
 }
 _UPSERT_SQL = {
     "states": "INSERT OR REPLACE INTO states (state_id, payload) VALUES (?, ?)",
     "events": "INSERT OR REPLACE INTO events (event_id, payload) VALUES (?, ?)",
     "runs": "INSERT OR REPLACE INTO runs (run_id, payload) VALUES (?, ?)",
     "certificates": ("INSERT OR REPLACE INTO certificates (certificate_id, payload) VALUES (?, ?)"),
+    "execution_reports": (
+        "INSERT OR REPLACE INTO execution_reports (report_id, payload) VALUES (?, ?)"
+    ),
+    "route_batches": "INSERT OR REPLACE INTO route_batches (batch_id, payload) VALUES (?, ?)",
+    "population_snapshots": (
+        "INSERT OR REPLACE INTO population_snapshots (population_id, payload) VALUES (?, ?)"
+    ),
+    "collective_phase_certificates": (
+        "INSERT OR REPLACE INTO collective_phase_certificates "
+        "(certificate_id, payload) VALUES (?, ?)"
+    ),
+    "verified_packets": (
+        "INSERT OR REPLACE INTO verified_packets (packet_id, payload) VALUES (?, ?)"
+    ),
+    "edge_certificates": (
+        "INSERT OR REPLACE INTO edge_certificates (certificate_id, payload) VALUES (?, ?)"
+    ),
+    "packet_lineage": "INSERT OR REPLACE INTO packet_lineage (lineage_id, payload) VALUES (?, ?)",
 }
 
 
@@ -69,6 +116,34 @@ class SQLiteRuntimeStore:
                 "CREATE TABLE IF NOT EXISTS certificates "
                 "(certificate_id TEXT PRIMARY KEY, payload TEXT NOT NULL)"
             )
+            connection.execute(
+                "CREATE TABLE IF NOT EXISTS execution_reports "
+                "(report_id TEXT PRIMARY KEY, payload TEXT NOT NULL)"
+            )
+            connection.execute(
+                "CREATE TABLE IF NOT EXISTS route_batches "
+                "(batch_id TEXT PRIMARY KEY, payload TEXT NOT NULL)"
+            )
+            connection.execute(
+                "CREATE TABLE IF NOT EXISTS population_snapshots "
+                "(population_id TEXT PRIMARY KEY, payload TEXT NOT NULL)"
+            )
+            connection.execute(
+                "CREATE TABLE IF NOT EXISTS collective_phase_certificates "
+                "(certificate_id TEXT PRIMARY KEY, payload TEXT NOT NULL)"
+            )
+            connection.execute(
+                "CREATE TABLE IF NOT EXISTS verified_packets "
+                "(packet_id TEXT PRIMARY KEY, payload TEXT NOT NULL)"
+            )
+            connection.execute(
+                "CREATE TABLE IF NOT EXISTS edge_certificates "
+                "(certificate_id TEXT PRIMARY KEY, payload TEXT NOT NULL)"
+            )
+            connection.execute(
+                "CREATE TABLE IF NOT EXISTS packet_lineage "
+                "(lineage_id TEXT PRIMARY KEY, payload TEXT NOT NULL)"
+            )
             connection.commit()
         return self.record()
 
@@ -84,6 +159,38 @@ class SQLiteRuntimeStore:
     def append_certificate(self, certificate: AccelerationCertificate) -> None:
         self._upsert(
             "certificates",
+            "certificate_id",
+            certificate.certificate_id,
+            certificate.model_dump(mode="json"),
+        )
+
+    def append_execution_report(self, report: RuntimeExecutionReport) -> None:
+        self._upsert(
+            "execution_reports",
+            "report_id",
+            report.report_id,
+            report.model_dump(mode="json"),
+        )
+
+    def append_route_batch(self, batch: RouteExecutionBatch) -> None:
+        self._upsert(
+            "route_batches",
+            "batch_id",
+            batch.batch_id,
+            batch.model_dump(mode="json"),
+        )
+
+    def append_population(self, population: AgentPopulationState) -> None:
+        self._upsert(
+            "population_snapshots",
+            "population_id",
+            population.population_id,
+            population.model_dump(mode="json"),
+        )
+
+    def append_collective_certificate(self, certificate: CollectivePhaseCertificate) -> None:
+        self._upsert(
+            "collective_phase_certificates",
             "certificate_id",
             certificate.certificate_id,
             certificate.model_dump(mode="json"),
@@ -128,6 +235,13 @@ class SQLiteRuntimeStore:
             event_count=counts["events"],
             run_count=counts["runs"],
             certificate_count=counts["certificates"],
+            execution_report_count=counts["execution_reports"],
+            route_batch_count=counts["route_batches"],
+            population_snapshot_count=counts["population_snapshots"],
+            collective_certificate_count=counts["collective_phase_certificates"],
+            verified_packet_count=counts["verified_packets"],
+            edge_certificate_count=counts["edge_certificates"],
+            packet_lineage_count=counts["packet_lineage"],
             accepted=True,
         )
 

@@ -1,14 +1,14 @@
 cff-version: 1.2.0
 message: "If you use this software, cite the software package and the referenced theory papers."
 title: "Percolation Inversion Compiler"
-version: "0.3.2"
+version: "0.3.3"
 authors:
   - family-names: "Takahashi"
     given-names: "K."
 license: "Apache-2.0"
 repository-code: "https://github.com/kadubon/percolation-inversion-compiler"
 date-released: "2026-06-07"
-abstract: "Collective ECPT phase acceleration runtime and finite verifier-routing SDK for ECPT, BIT, TRC, and SQOT, with ASI-proxy packet percolation, autonomous fail-closed execution, evidence stores, semantic edge checks, resource-matched acceleration certificates, salience queues, proof obligations, residual ledgers, provenance, SBOMs, and optional local HTTP service integration."
+abstract: "ECPT collective phase certificate runtime and finite verifier-routing SDK for ECPT, BIT, TRC, and SQOT, with fixed-population/no-self-rewrite ledgers, productive packet closure witnesses, execution-available path certificates, hidden-injection checks, semantic edge verification, resource-matched acceleration certificates, salience queues, proof obligations, residual ledgers, provenance, SBOMs, and optional local HTTP service integration."
 references:
   - type: article
     title: "Executable Capability Percolation Theory"

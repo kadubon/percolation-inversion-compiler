@@ -1,6 +1,6 @@
 # Finite Acceleration Certificates
 
-`PhaseAccelerationScore` ranks one runtime step. v0.3.2 adds finite comparison
+`PhaseAccelerationScore` ranks one runtime step. v0.3.3 adds finite comparison
 records so agents can test whether a candidate ECPT runtime path improves on a
 resource-matched baseline:
 

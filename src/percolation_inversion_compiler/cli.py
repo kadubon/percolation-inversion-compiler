@@ -26,13 +26,17 @@ from percolation_inversion_compiler.ecology import (
     EdgeRelationVerifierSpec,
     EdgeWitnessCertificate,
     PacketSourceKind,
+    ProtocolFrameDigest,
     PsiDashboard,
     build_bottleneck_plan,
     build_edge_witnesses,
     build_packet_registry,
     build_psi_dashboard,
+    check_no_hidden_capability_injection,
     closed_loop_iteration,
     find_accepted_paths_to_basin,
+    find_autocatalytic_closures,
+    find_execution_available_paths,
     infer_live_kind,
     ingest_agent_output,
     ingest_live_source,
@@ -73,6 +77,7 @@ from percolation_inversion_compiler.io.provenance import ProvenanceManifest
 from percolation_inversion_compiler.io.schema import load_data
 from percolation_inversion_compiler.runtime import (
     ActionCommitPolicy,
+    AgentPopulationState,
     AgentRuntimeConfig,
     AgentTask,
     FileEvidenceEnvelopeStore,
@@ -86,7 +91,9 @@ from percolation_inversion_compiler.runtime import (
     RuntimeStepReport,
     SQLiteRuntimeStore,
     apply_action_results,
+    build_population_runtime_step,
     build_runtime_step,
+    certify_collective_phase,
     certify_runtime_acceleration,
     compare_runtime_runs,
     create_runtime_app,
@@ -327,6 +334,14 @@ def _load_runtime_run_report(path: Path) -> RuntimeRunReport:
     if not isinstance(raw, dict):
         raise typer.BadParameter("runtime run file must contain an object")
     return RuntimeRunReport.model_validate(raw)
+
+
+def _load_agent_population_state(path: Path) -> AgentPopulationState:
+    data = load_data(path)
+    raw = data.get("population", data.get("agent_population", data))
+    if not isinstance(raw, dict):
+        raise typer.BadParameter("population file must contain an object")
+    return AgentPopulationState.model_validate(raw)
 
 
 def _load_runtime_inputs(path: Path) -> list[RuntimeStepInput]:
@@ -1138,6 +1153,95 @@ def ecology_paths(
     _dump({"paths": [path.model_dump(mode="json") for path in paths]}, output)
 
 
+@ecology_app.command("closures")
+def ecology_closures(
+    registry: Annotated[
+        Path,
+        typer.Option("--registry", help="CapabilityPacketRegistry JSON/YAML."),
+    ],
+    basin: Annotated[
+        Path | None,
+        typer.Option("--basin", help="Optional CapabilityBasinContract JSON/YAML."),
+    ] = None,
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Find accepted autocatalytic closure witnesses for collective ECPT phase."""
+
+    parsed_registry = registry_from_json(load_data(registry))
+    basin_contract = (
+        None if basin is None else CapabilityBasinContract.model_validate(load_data(basin))
+    )
+    closures = find_autocatalytic_closures(parsed_registry, basin_contract)
+    _dump({"closures": [closure.model_dump(mode="json") for closure in closures]}, output)
+
+
+@ecology_app.command("execution-paths")
+def ecology_execution_paths(
+    registry: Annotated[
+        Path,
+        typer.Option("--registry", help="CapabilityPacketRegistry JSON/YAML."),
+    ],
+    basin: Annotated[
+        Path,
+        typer.Option("--basin", help="CapabilityBasinContract JSON/YAML."),
+    ],
+    constraint_frame: Annotated[
+        Path | None,
+        typer.Option("--constraint-frame", help="Optional constraint-frame JSON/YAML."),
+    ] = None,
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Build execution-available, not-executed path certificates."""
+
+    parsed_registry = registry_from_json(load_data(registry))
+    basin_contract = CapabilityBasinContract.model_validate(load_data(basin))
+    frame = load_data(constraint_frame) if constraint_frame is not None else None
+    paths = find_execution_available_paths(
+        parsed_registry,
+        basin_contract,
+        constraint_frame=frame,
+    )
+    _dump({"execution_available_paths": [path.model_dump(mode="json") for path in paths]}, output)
+
+
+@ecology_app.command("hidden-injection-check")
+def ecology_hidden_injection_check(
+    registry: Annotated[
+        Path,
+        typer.Option("--registry", help="CapabilityPacketRegistry JSON/YAML."),
+    ],
+    events: Annotated[
+        Path,
+        typer.Option("--events", help="Runtime events JSON/YAML object or list."),
+    ],
+    protocol: Annotated[
+        Path,
+        typer.Option("--protocol", help="ProtocolFrameDigest JSON/YAML."),
+    ],
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Check that packets, edges, evidence, and events stay within protocol frame."""
+
+    parsed_registry = registry_from_json(load_data(registry))
+    raw_events = load_data(events)
+    event_items = raw_events.get("events", raw_events.get("runtime_events", []))
+    if not isinstance(event_items, list):
+        raise typer.BadParameter("events file must contain an events list")
+    protocol_frame = ProtocolFrameDigest.model_validate(load_data(protocol))
+    report = check_no_hidden_capability_injection(
+        parsed_registry,
+        protocol_frame,
+        runtime_events=[item for item in event_items if isinstance(item, dict)],
+    )
+    _dump(report.model_dump(mode="json"), output)
+
+
 @ecology_app.command("verify-edge")
 def ecology_verify_edge(
     registry: Annotated[
@@ -1442,6 +1546,84 @@ def runtime_run_agent_loop_command(
         },
         output,
     )
+
+
+@runtime_app.command("population-step")
+def runtime_population_step_command(
+    population: Annotated[
+        Path,
+        typer.Option("--population", help="AgentPopulationState JSON/YAML."),
+    ],
+    inputs: Annotated[
+        Path,
+        typer.Option("--inputs", help="RuntimeStepInput JSONL or JSON with inputs list."),
+    ],
+    store: Annotated[
+        Path | None,
+        typer.Option("--store", help="Optional SQLite runtime store path."),
+    ] = None,
+    profile: Annotated[
+        str,
+        typer.Option("--profile", help="Runtime profile: development, research, or production."),
+    ] = "development",
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Run one population-level collective ECPT runtime step."""
+
+    parsed_population = _load_agent_population_state(population)
+    report = build_population_runtime_step(
+        parsed_population,
+        _load_runtime_inputs(inputs),
+        AgentRuntimeConfig(profile=profile),
+    )
+    if store is not None:
+        runtime_store = SQLiteRuntimeStore(store)
+        if report.next_population is not None:
+            runtime_store.append_population(report.next_population)
+        for agent_report in report.agent_reports:
+            for event in agent_report.event_log_delta.events:
+                runtime_store.append_event(event)
+    _dump(report.model_dump(mode="json"), output)
+
+
+@runtime_app.command("collective-certify")
+def runtime_collective_certify_command(
+    population: Annotated[
+        Path,
+        typer.Option("--population", help="AgentPopulationState JSON/YAML."),
+    ],
+    state: Annotated[
+        Path,
+        typer.Option("--state", help="RuntimeState JSON/YAML."),
+    ],
+    basin: Annotated[
+        Path,
+        typer.Option("--basin", help="CapabilityBasinContract JSON/YAML."),
+    ],
+    baseline: Annotated[
+        Path,
+        typer.Option("--baseline", help="Baseline RuntimeRunReport JSON/YAML."),
+    ],
+    threshold: Annotated[
+        Path | None,
+        typer.Option("--threshold", help="Optional Psi threshold JSON/YAML."),
+    ] = None,
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Certify finite collective ECPT ASI-proxy phase progress."""
+
+    certificate = certify_collective_phase(
+        _load_agent_population_state(population),
+        _load_runtime_state(state),
+        CapabilityBasinContract.model_validate(load_data(basin)),
+        _load_runtime_run_report(baseline),
+        None if threshold is None else _threshold_from_file(threshold),
+    )
+    _dump(certificate.model_dump(mode="json"), output)
 
 
 @runtime_app.command("apply-results")

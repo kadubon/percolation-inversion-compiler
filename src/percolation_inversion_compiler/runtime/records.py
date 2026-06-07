@@ -19,14 +19,19 @@ from percolation_inversion_compiler.core.adapter_routes import (
 from percolation_inversion_compiler.core.ledger import Ledger
 from percolation_inversion_compiler.core.status import ClaimStatus
 from percolation_inversion_compiler.ecology.records import (
+    AutocatalyticClosureWitness,
     BasinReachabilityReport,
     BottleneckInversionPlan,
     CapabilityPacketCandidate,
     CapabilityPacketRegistry,
     EdgeRelationVerificationReport,
     EdgeWitnessCertificate,
+    ExecutionAvailablePathCertificate,
+    HiddenCapabilityInjectionReport,
+    PacketCapitalLineage,
     PacketIngestionReport,
     PacketPromotionReport,
+    ProtocolFrameDigest,
     PsiDashboard,
     VerifiedCapabilityPacket,
 )
@@ -59,6 +64,40 @@ class AgentRuntimeConfig(BaseModel):
     max_tasks: int = 8
     required_routes: list[str] = Field(default_factory=list)
     minimum_task_score: float = 0.0
+
+
+class AgentPolicyIdentity(BaseModel):
+    """Policy identity for one member of a fixed ECPT agent population."""
+
+    agent_id: str
+    policy_digest: str
+    model_digest: str | None = None
+    tool_allowlist_digest: str | None = None
+    self_rewrite_allowed: bool = False
+    weight_update_allowed: bool = False
+    source_kind_allowlist: list[str] = Field(default_factory=list)
+    route_allowlist: list[str] = Field(default_factory=list)
+    accepted: bool = False
+    reasons: list[str] = Field(default_factory=list)
+
+
+class FixedPopulationLedger(BaseModel):
+    """Finite ledger asserting fixed agent identities and no self-rewrite."""
+
+    ledger_id: str
+    before_agents: list[AgentPolicyIdentity] = Field(default_factory=list)
+    after_agents: list[AgentPolicyIdentity] = Field(default_factory=list)
+    observation_window_id: str = "default-observation-window"
+    no_self_rewrite: bool = True
+    no_weight_update: bool = True
+    fixed_population: bool = True
+    policy_digests_unchanged: bool = True
+    residual_ledger: Ledger = Field(default_factory=Ledger)
+    accepted: bool = False
+    finite_checks_passed: bool = False
+    operationally_usable: bool = False
+    settled: bool = False
+    reasons: list[str] = Field(default_factory=list)
 
 
 class ContentAddressedEvidenceRef(BaseModel):
@@ -181,6 +220,72 @@ class RuntimeState(BaseModel):
     verified_packets: list[VerifiedCapabilityPacket] = Field(default_factory=list)
     quarantine_ledger: QuarantineLedger = Field(default_factory=QuarantineLedger)
     last_acceleration_certificate_refs: list[str] = Field(default_factory=list)
+    verifier_resolution_inventory: list[VerifierResolution] = Field(default_factory=list)
+    execution_report_refs: list[str] = Field(default_factory=list)
+    packet_lineage_refs: list[str] = Field(default_factory=list)
+    collective_certificate_refs: list[str] = Field(default_factory=list)
+    route_batch_refs: list[str] = Field(default_factory=list)
+
+
+class AgentPopulationState(BaseModel):
+    """Population-level ECPT runtime state for collective phase certificates."""
+
+    population_id: str
+    agents: list[AgentPolicyIdentity] = Field(default_factory=list)
+    runtime_states: list[RuntimeState] = Field(default_factory=list)
+    fixed_population_ledger: FixedPopulationLedger
+    protocol_frame: ProtocolFrameDigest
+    residual_ledger: Ledger = Field(default_factory=Ledger)
+    step_index: int = 0
+
+
+class PopulationRuntimeStepReport(BaseModel):
+    """Deterministic population step merged from per-agent runtime reports."""
+
+    report_id: str
+    population_id: str
+    step_index: int
+    agent_reports: list[RuntimeStepReport] = Field(default_factory=list)
+    fixed_population_ledger: FixedPopulationLedger
+    hidden_injection_report: HiddenCapabilityInjectionReport
+    aggregate_psi: PsiDashboard | None = None
+    next_population: AgentPopulationState | None = None
+    residual_ledger: Ledger = Field(default_factory=Ledger)
+    accepted: bool = False
+    finite_checks_passed: bool = False
+    operationally_usable: bool = False
+    settled: bool = False
+    reasons: list[str] = Field(default_factory=list)
+
+
+class CollectivePhaseCertificate(BaseModel):
+    """Protocol-relative finite certificate for collective ECPT phase progress."""
+
+    certificate_id: str
+    population_id: str
+    state_id: str
+    basin_id: str
+    protocol_frame: ProtocolFrameDigest
+    fixed_population_ledger: FixedPopulationLedger
+    hidden_injection_report: HiddenCapabilityInjectionReport
+    closure_witnesses: list[AutocatalyticClosureWitness] = Field(default_factory=list)
+    execution_available_paths: list[ExecutionAvailablePathCertificate] = Field(default_factory=list)
+    packet_lineage: list[PacketCapitalLineage] = Field(default_factory=list)
+    psi: PsiDashboard
+    threshold: dict[str, float] = Field(default_factory=dict)
+    threshold_crossed: bool = False
+    resource_matched_baseline: bool = False
+    false_liquidity_bounded: bool = False
+    verification_backlog_bounded: bool = False
+    sqot_reserve_live: bool = False
+    hazard_authority_non_rejecting: bool = False
+    residual_external_obligations: list[str] = Field(default_factory=list)
+    residual_ledger: Ledger = Field(default_factory=Ledger)
+    accepted: bool = False
+    finite_checks_passed: bool = False
+    operationally_usable: bool = False
+    settled: bool = False
+    reasons: list[str] = Field(default_factory=list)
 
 
 class RuntimeStepInput(BaseModel):
@@ -404,6 +509,13 @@ class RuntimeStoreRecord(BaseModel):
     event_count: int = 0
     run_count: int = 0
     certificate_count: int = 0
+    execution_report_count: int = 0
+    route_batch_count: int = 0
+    population_snapshot_count: int = 0
+    collective_certificate_count: int = 0
+    verified_packet_count: int = 0
+    edge_certificate_count: int = 0
+    packet_lineage_count: int = 0
     accepted: bool = False
     reasons: list[str] = Field(default_factory=list)
 

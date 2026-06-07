@@ -1,0 +1,93 @@
+{
+  "edges": [
+    {
+      "accepted": true,
+      "confidence": 0.9,
+      "edge_id": "edge:a-b",
+      "edge_type": "autocatalytic-regeneration",
+      "evidence_refs": [
+        "closure:witness",
+        "regeneration:witness"
+      ],
+      "residual": 0.0,
+      "source_packet_ids": [
+        "packet:a"
+      ],
+      "target_packet_id": "packet:b"
+    },
+    {
+      "accepted": true,
+      "confidence": 0.9,
+      "edge_id": "edge:b-a",
+      "edge_type": "autocatalytic-regeneration",
+      "evidence_refs": [
+        "closure:witness",
+        "regeneration:witness"
+      ],
+      "residual": 0.0,
+      "source_packet_ids": [
+        "packet:b"
+      ],
+      "target_packet_id": "packet:a"
+    }
+  ],
+  "packets": [
+    {
+      "claim": "Finite ECPT collective packet A supports packet B through accepted regeneration evidence.",
+      "content_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "evidence_refs": [
+        "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "closure:witness",
+        "regeneration:witness",
+        "execution:path",
+        "rollback:receipt"
+      ],
+      "expected_downstream_gain": 0.9,
+      "packet_id": "packet:a",
+      "receiver_family": [
+        "agent",
+        "verifier"
+      ],
+      "rollback_available": true,
+      "source_kind": "agent-output",
+      "source_ref": "collective-agent-output-a",
+      "tags": [
+        "ecpt",
+        "phase"
+      ],
+      "verification_cost": 0.1,
+      "verifier_routes": [
+        "adapters.domain.verify_ecpt_proxy_target_contract"
+      ]
+    },
+    {
+      "claim": "Finite ECPT collective packet B regenerates packet A inside the declared target basin.",
+      "content_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "evidence_refs": [
+        "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "closure:witness",
+        "regeneration:witness",
+        "execution:path",
+        "rollback:receipt"
+      ],
+      "expected_downstream_gain": 0.9,
+      "packet_id": "packet:b",
+      "receiver_family": [
+        "agent",
+        "verifier"
+      ],
+      "rollback_available": true,
+      "source_kind": "agent-output",
+      "source_ref": "collective-agent-output-b",
+      "tags": [
+        "ecpt",
+        "phase"
+      ],
+      "verification_cost": 0.1,
+      "verifier_routes": [
+        "adapters.domain.verify_ecpt_proxy_target_contract"
+      ]
+    }
+  ],
+  "registry_id": "collective-packet-registry"
+}
