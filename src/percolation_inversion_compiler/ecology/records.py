@@ -81,6 +81,48 @@ class EdgeWitnessCertificate(BaseModel):
     residual_ledger: Ledger = Field(default_factory=Ledger)
 
 
+class EdgeRelationVerifierSpec(BaseModel):
+    """Portable verifier policy for one packet-edge relation type."""
+
+    relation_type: str
+    required_evidence_markers: list[str] = Field(default_factory=list)
+    required_source_tags: list[str] = Field(default_factory=list)
+    required_target_tags: list[str] = Field(default_factory=list)
+    require_verifier_resolution: bool = False
+    require_receiver_overlap: bool = False
+    minimum_confidence_lower_bound: float = 0.2
+    residual_policy: str = "charge-false-edge-until-relation-evidence-is-accepted"
+
+
+class EdgeRelationVerificationReport(BaseModel):
+    """Semantic finite check for an edge certificate relation."""
+
+    report_id: str
+    certificate_id: str
+    relation_type: str
+    accepted: bool = False
+    finite_checks_passed: bool = False
+    operationally_usable: bool = False
+    settled: bool = False
+    matched_evidence_refs: list[str] = Field(default_factory=list)
+    missing_evidence_markers: list[str] = Field(default_factory=list)
+    residual_ledger: Ledger = Field(default_factory=Ledger)
+    reasons: list[str] = Field(default_factory=list)
+
+
+class AcceptedPacketPath(BaseModel):
+    """Accepted packet path witness into a finite ECPT basin."""
+
+    path_id: str
+    packet_ids: list[str] = Field(default_factory=list)
+    edge_ids: list[str] = Field(default_factory=list)
+    route_ids: list[str] = Field(default_factory=list)
+    cost: float = 0.0
+    residual_ledger: Ledger = Field(default_factory=Ledger)
+    accepted: bool = False
+    reasons: list[str] = Field(default_factory=list)
+
+
 class VerifiedCapabilityPacket(BaseModel):
     """Finite-scope reusable packet capital after verifier and edge checks."""
 
@@ -110,6 +152,31 @@ class PacketPromotionPolicy(BaseModel):
     require_rollback_available: bool = True
     allow_residual_external_obligations: bool = True
     minimum_confidence_lower_bound: float = 0.2
+
+    @classmethod
+    def for_profile(cls, profile: str) -> PacketPromotionPolicy:
+        """Return the packet-promotion policy for an execution profile."""
+
+        normalized = profile.lower()
+        if normalized == "production":
+            return cls(
+                require_route_resolution=True,
+                require_receiver_compatibility=True,
+                require_edge_certificate=True,
+                require_rollback_available=True,
+                allow_residual_external_obligations=False,
+                minimum_confidence_lower_bound=0.5,
+            )
+        if normalized == "research":
+            return cls(
+                require_route_resolution=True,
+                require_receiver_compatibility=True,
+                require_edge_certificate=True,
+                require_rollback_available=True,
+                allow_residual_external_obligations=True,
+                minimum_confidence_lower_bound=0.35,
+            )
+        return cls()
 
 
 class PacketRejection(BaseModel):
@@ -169,6 +236,7 @@ class BasinReachabilityReport(BaseModel):
     accepted: bool = False
     reachable_packet_ids: list[str] = Field(default_factory=list)
     accepted_edge_ids: list[str] = Field(default_factory=list)
+    accepted_paths: list[AcceptedPacketPath] = Field(default_factory=list)
     missing_packet_types: list[str] = Field(default_factory=list)
     missing_edge_types: list[str] = Field(default_factory=list)
     missing_verifier_routes: list[str] = Field(default_factory=list)

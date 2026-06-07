@@ -9,6 +9,7 @@ from pathlib import Path
 
 from percolation_inversion_compiler.core import (
     AdapterRouteSpec,
+    VerifierEvidenceEnvelope,
     VerifierResolution,
     binding_for_route,
     list_adapter_route_specs,
@@ -32,10 +33,12 @@ from percolation_inversion_compiler.ecology import (
     build_packet_registry,
     build_psi_dashboard,
     edge_certificate_from_witness,
+    edge_relation_verifier_spec,
     infer_live_kind,
     ingest_agent_output,
     ingest_live_source,
     ingest_local_file,
+    verify_edge_relation,
 )
 from percolation_inversion_compiler.ecpt import (
     PhaseControlAction,
@@ -46,17 +49,23 @@ from percolation_inversion_compiler.ecpt import (
 )
 from percolation_inversion_compiler.runtime.records import (
     AccelerationCertificate,
+    AccelerationExperimentSuite,
     ActionCommit,
     ActionCommitPolicy,
     AgentRuntimeConfig,
     AgentTask,
     EvidenceResolutionBatch,
     PhaseAccelerationScore,
+    ResourceEnvelope,
+    ResourceMatchedBaselineConfig,
+    RouteExecutionBatch,
     RouteExecutionRequest,
     RuntimeActionResult,
     RuntimeComparisonReport,
     RuntimeEvent,
     RuntimeEventLog,
+    RuntimeExecutionReport,
+    RuntimeExecutorPolicy,
     RuntimeHealthReport,
     RuntimeRunReport,
     RuntimeState,
@@ -69,6 +78,50 @@ from percolation_inversion_compiler.sqot import (
     SalienceQueueRecord,
     build_salience_schedule,
 )
+
+
+class FileEvidenceEnvelopeStore:
+    """Sandboxed content-addressed verifier-envelope store."""
+
+    def __init__(self, root: Path) -> None:
+        self.root = root.resolve()
+
+    def load(self, ref: str, *, profile: str = "development") -> VerifierEvidenceEnvelope | None:
+        path = self._path_for_ref(ref)
+        if path is None or not path.exists() or not path.is_file():
+            return None
+        digest = _file_sha256(path)
+        if ref.startswith("sha256:") and digest != ref.removeprefix("sha256:").lower():
+            return None
+        if profile == "production" and not ref.startswith("sha256:"):
+            return None
+        try:
+            payload = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            return None
+        try:
+            envelope = VerifierEvidenceEnvelope.model_validate(payload)
+        except ValueError:
+            return None
+        if profile == "production" and not envelope.evidence_artifacts:
+            return None
+        return envelope
+
+    def _path_for_ref(self, ref: str) -> Path | None:
+        if ref.startswith("sha256:"):
+            digest = ref.removeprefix("sha256:").lower()
+            if len(digest) != 64 or any(char not in "0123456789abcdef" for char in digest):
+                return None
+            path = self.root / f"{digest}.json"
+        else:
+            raw = Path(ref)
+            if raw.is_absolute() or ".." in raw.parts:
+                return None
+            path = self.root / raw
+        resolved = path.resolve()
+        if self.root not in resolved.parents and resolved != self.root:
+            return None
+        return resolved
 
 
 def build_runtime_step(
@@ -94,17 +147,31 @@ def build_runtime_step(
         *[edge_certificate_from_witness(edge) for edge in edges],
         *step_input.edge_certificates,
     ]
-    promotion_report = promote_runtime_packets(
-        packets,
-        evidence_batch.resolutions,
-        edge_certificates,
-        PacketPromotionPolicy(),
-        report_id=f"packet-promotion:{state.state_id}:{step_input.input_id}",
-    )
     registry = build_packet_registry(
         packets,
         edges,
         registry_id=f"runtime-registry:{state.state_id}:{step_input.input_id}",
+    )
+    edge_relation_reports = [
+        verify_edge_relation(
+            registry,
+            certificate,
+            edge_relation_verifier_spec(certificate.relation_type),
+        )
+        for certificate in edge_certificates
+    ]
+    semantic_edge_certificates = [
+        certificate if report.accepted else certificate.model_copy(update={"accepted": False})
+        for certificate, report in zip(edge_certificates, edge_relation_reports, strict=True)
+    ]
+    for report in edge_relation_reports:
+        residual = residual.combine(report.residual_ledger)
+    promotion_report = promote_runtime_packets(
+        packets,
+        evidence_batch.resolutions,
+        semantic_edge_certificates,
+        PacketPromotionPolicy.for_profile(active_config.profile),
+        report_id=f"packet-promotion:{state.state_id}:{step_input.input_id}",
     )
     residual = residual.combine(registry.residual_ledger)
     threshold = dict(state.psi_threshold)
@@ -220,6 +287,7 @@ def build_runtime_step(
         phase_acceleration_score=score,
         evidence_resolution_batch=evidence_batch,
         promotion_report=promotion_report,
+        edge_relation_reports=edge_relation_reports,
         event_log_delta=event_log_delta,
         verified_packet_count=len(state.verified_packets) + len(promotion_report.verified_packets),
         acceleration_certificate_eligible=bool(
@@ -258,6 +326,7 @@ def resolve_step_evidence(
     step_input: RuntimeStepInput,
     route_catalog: Mapping[str, AdapterRouteSpec] | None = None,
     profile: str = "development",
+    envelope_store: FileEvidenceEnvelopeStore | None = None,
 ) -> EvidenceResolutionBatch:
     """Resolve inline verifier envelopes and preserve unresolved refs as debt."""
 
@@ -272,7 +341,14 @@ def resolve_step_evidence(
     rejected: list[str] = []
     accepted: list[str] = []
     unresolved_refs: list[str] = []
-    for envelope in sorted(step_input.evidence_envelopes, key=lambda item: item.envelope_id):
+    loaded_envelopes, loaded_residual, unresolved_refs = load_evidence_refs(
+        step_input,
+        envelope_store,
+        profile=profile,
+    )
+    residual = residual.combine(loaded_residual)
+    envelopes = [*step_input.evidence_envelopes, *loaded_envelopes]
+    for envelope in sorted(envelopes, key=lambda item: item.envelope_id):
         route_spec = specs.get(envelope.route_id)
         if route_spec is None:
             residual = residual.add_coordinate(
@@ -287,19 +363,12 @@ def resolve_step_evidence(
         residual = residual.combine(resolution.residual_ledger)
         accepted.extend(resolution.accepted_obligation_ids)
         rejected.extend(resolution.rejected_obligation_ids)
-    for ref in sorted(step_input.evidence_envelope_refs):
-        unresolved_refs.append(Path(ref).name)
-        residual = residual.add_coordinate(
-            f"runtime-evidence-ref:{Path(ref).name}:unresolved",
-            1.0,
-            kind=CoordinateKind.RESIDUAL,
-        )
     finite = bool(resolutions) and all(resolution.accepted for resolution in resolutions)
     return EvidenceResolutionBatch(
         batch_id=f"evidence-resolution:{step_input.input_id}",
         envelope_refs=[
             *sorted(step_input.evidence_envelope_refs),
-            *[envelope.envelope_id for envelope in step_input.evidence_envelopes],
+            *[envelope.envelope_id for envelope in envelopes],
         ],
         resolutions=sorted(resolutions, key=lambda item: item.resolution_id),
         accepted_obligations=sorted(set(accepted)),
@@ -311,6 +380,31 @@ def resolve_step_evidence(
         operationally_usable=finite and not unresolved_refs,
         settled=False,
     )
+
+
+def load_evidence_refs(
+    step_input: RuntimeStepInput,
+    envelope_store: FileEvidenceEnvelopeStore | None,
+    *,
+    profile: str = "development",
+) -> tuple[list[VerifierEvidenceEnvelope], Ledger, list[str]]:
+    """Load content-addressed evidence refs without trusting unresolved metadata."""
+
+    residual = Ledger()
+    loaded: list[VerifierEvidenceEnvelope] = []
+    unresolved: list[str] = []
+    for ref in sorted(step_input.evidence_envelope_refs):
+        envelope = envelope_store.load(ref, profile=profile) if envelope_store is not None else None
+        if envelope is None:
+            unresolved.append(Path(ref).name if not ref.startswith("sha256:") else ref)
+            residual = residual.add_coordinate(
+                f"runtime-evidence-ref:{Path(ref).name}:unresolved",
+                1.0,
+                kind=CoordinateKind.RESIDUAL,
+            )
+            continue
+        loaded.append(envelope)
+    return loaded, residual, unresolved
 
 
 def promote_packet_candidate(
@@ -1027,6 +1121,8 @@ def build_runtime_run_report(
     *,
     run_id: str | None = None,
     threshold: Mapping[str, float] | None = None,
+    resource_envelope: ResourceEnvelope | None = None,
+    baseline_config: ResourceMatchedBaselineConfig | None = None,
 ) -> RuntimeRunReport:
     """Summarize a runtime trajectory for finite baseline comparison."""
 
@@ -1037,6 +1133,7 @@ def build_runtime_run_report(
         cumulative = cumulative.combine(report.residual_ledger)
     crossing = _threshold_crossing_step(psi, threshold)
     accepted = bool(reports) and all(report.finite_checks_passed for report in reports)
+    envelope = resource_envelope or _resource_envelope_from_reports(reports)
     return RuntimeRunReport(
         run_id=run_id or f"runtime-run:{initial_state.state_id}:{len(reports)}",
         initial_state_id=initial_state.state_id,
@@ -1045,7 +1142,9 @@ def build_runtime_run_report(
         score_trajectory=scores,
         cumulative_residual_ledger=cumulative,
         threshold_crossing_step=crossing,
-        resource_units=float(len(reports)),
+        resource_units=float(envelope.verifier_calls + envelope.network_calls + len(reports)),
+        resource_envelope=envelope,
+        baseline_config=baseline_config,
         accepted=accepted,
         finite_checks_passed=accepted,
         operationally_usable=accepted and any(report.agent_tasks for report in reports),
@@ -1061,7 +1160,16 @@ def certify_runtime_acceleration(
     """Build a finite ASI-proxy acceleration certificate against a baseline."""
 
     active_threshold = dict(threshold or {})
-    resource_matched = abs(baseline.resource_units - candidate.resource_units) <= 0.0
+    resource_envelope_matched = _resource_envelopes_match(
+        baseline.resource_envelope,
+        candidate.resource_envelope,
+        tolerance=_baseline_tolerance(baseline, candidate),
+    )
+    resource_matched = (
+        abs(baseline.resource_units - candidate.resource_units) <= 0.0
+        and resource_envelope_matched
+        and _baseline_configs_match(baseline, candidate)
+    )
     tau_baseline = (
         None
         if baseline.threshold_crossing_step is None
@@ -1135,6 +1243,7 @@ def certify_runtime_acceleration(
         salience_non_obstructed=salience_non_obstructed,
         false_liquidity_bounded=false_liquidity_bounded,
         verification_backlog_bounded=verification_backlog_bounded,
+        resource_envelope_matched=resource_envelope_matched,
         residual_external_obligations=residual_external,
         residual_ledger=residual,
         accepted=accepted,
@@ -1166,6 +1275,228 @@ def compare_runtime_runs(
     )
 
 
+def build_acceleration_experiment_suite(
+    suite_id: str,
+    comparisons: Sequence[RuntimeComparisonReport],
+    *,
+    negative_control_passed: bool = True,
+) -> AccelerationExperimentSuite:
+    """Aggregate repeated finite acceleration comparisons."""
+
+    residual = Ledger()
+    gains = []
+    reasons: list[str] = []
+    for comparison in comparisons:
+        residual = residual.combine(comparison.acceleration_certificate.residual_ledger)
+        gains.append(comparison.acceleration_certificate.score_gain_lower_bound)
+        reasons.extend(comparison.acceleration_certificate.reasons)
+    lower_bound = min(gains) if gains else 0.0
+    accepted = bool(comparisons) and negative_control_passed and lower_bound > 0.0 and not reasons
+    if not negative_control_passed:
+        reasons.append("negative control failed")
+    return AccelerationExperimentSuite(
+        suite_id=suite_id,
+        paired_comparisons=sorted(comparisons, key=lambda item: item.comparison_id),
+        lower_confidence_bound=lower_bound,
+        negative_control_passed=negative_control_passed,
+        accepted=accepted,
+        finite_checks_passed=accepted,
+        operationally_usable=accepted,
+        settled=False,
+        residual_ledger=residual,
+        reasons=sorted(set(reasons)),
+    )
+
+
+def execute_runtime_task(
+    task: AgentTask,
+    state: RuntimeState,
+    policy: RuntimeExecutorPolicy | None = None,
+    store: object | None = None,
+) -> RuntimeExecutionReport:
+    """Execute one allowlisted runtime task without arbitrary shell execution."""
+
+    active_policy = policy or RuntimeExecutorPolicy()
+    task_kind = task.task_type or task.action_kind
+    residual = Ledger()
+    reasons: list[str] = []
+    if task_kind not in active_policy.allowed_task_types:
+        reasons.append("runtime task type is not allowlisted")
+    if active_policy.require_authority_grant and task.metadata.get("authority_granted") != "true":
+        reasons.append("runtime task lacks authority grant")
+    if active_policy.require_rollback_receipt and not (
+        task.metadata.get("rollback_receipt") or task.rollback_condition
+    ):
+        reasons.append("runtime task lacks rollback receipt")
+    if task.required_routes and active_policy.allowed_route_ids:
+        disallowed = sorted(set(task.required_routes) - set(active_policy.allowed_route_ids))
+        if disallowed:
+            reasons.append("runtime task requires routes outside executor policy")
+    if reasons:
+        residual = residual.add_coordinate(
+            f"runtime-executor:{task.task_id}:rejected",
+            1.0,
+            kind=CoordinateKind.RESIDUAL,
+        )
+    accepted = not reasons
+    action_result = RuntimeActionResult(
+        result_id=f"runtime-execution-result:{task.task_id}",
+        task_id=task.task_id,
+        action_id=task.action_id,
+        executed=accepted,
+        observed_delta={"expected_proxy_gain": task.expected_proxy_gain} if accepted else {},
+        residual_ledger=residual,
+        rollback_available=bool(task.rollback_condition),
+        accepted=accepted,
+        finite_checks_passed=accepted,
+        operationally_usable=accepted,
+        settled=False,
+        reasons=sorted(set(reasons)),
+    )
+    if accepted and store is not None and hasattr(store, "append_event"):
+        event = _runtime_event(
+            event_id=f"event:{state.state_id}:{state.step_index}:{task.task_id}:execute",
+            event_type="runtime-task-executed",
+            step_index=state.step_index,
+            payload_ref=task.task_id,
+            payload=action_result.model_dump(mode="json"),
+            residual_delta=residual,
+        )
+        store.append_event(event)
+    return RuntimeExecutionReport(
+        report_id=f"runtime-execution:{task.task_id}",
+        task_id=task.task_id,
+        task_type=task_kind,
+        accepted=accepted,
+        finite_checks_passed=accepted,
+        operationally_usable=accepted,
+        settled=False,
+        action_result=action_result,
+        residual_ledger=residual,
+        reasons=sorted(set(reasons)),
+    )
+
+
+def execute_route_batch(
+    requests: Sequence[RouteExecutionRequest],
+    evidence_store: FileEvidenceEnvelopeStore | None = None,
+    policy: RuntimeExecutorPolicy | None = None,
+    *,
+    profile: str = "development",
+) -> RouteExecutionBatch:
+    """Execute route requests using evidence envelopes from a sandboxed store."""
+
+    active_policy = policy or RuntimeExecutorPolicy(profile=profile)
+    route_specs = {spec.route_id: spec for spec in list_adapter_route_specs()}
+    route_specs.update({spec.verifier_route: spec for spec in list_adapter_route_specs()})
+    reports: list[RuntimeExecutionReport] = []
+    resolutions: list[VerifierResolution] = []
+    residual = Ledger()
+    reasons: list[str] = []
+    for request in sorted(requests, key=lambda item: item.request_id):
+        route_id = request.route_id
+        if active_policy.allowed_route_ids and route_id not in active_policy.allowed_route_ids:
+            report_residual = Ledger().add_coordinate(
+                f"route-execution:{request.request_id}:disallowed-route",
+                1.0,
+                kind=CoordinateKind.RESIDUAL,
+            )
+            reports.append(
+                RuntimeExecutionReport(
+                    report_id=f"route-execution:{request.request_id}",
+                    task_id=request.request_id,
+                    task_type="route-execution",
+                    residual_ledger=report_residual,
+                    reasons=["route is outside executor policy"],
+                )
+            )
+            residual = residual.combine(report_residual)
+            reasons.append("one or more routes are outside executor policy")
+            continue
+        spec = route_specs.get(route_id) or route_specs.get(request.verifier_route)
+        envelope = (
+            evidence_store.load(f"{request.request_id}.json", profile=profile)
+            if evidence_store is not None
+            else None
+        )
+        if spec is None or envelope is None:
+            report_residual = Ledger().add_coordinate(
+                f"route-execution:{request.request_id}:missing-evidence-or-route",
+                1.0,
+                kind=CoordinateKind.RESIDUAL,
+            )
+            reports.append(
+                RuntimeExecutionReport(
+                    report_id=f"route-execution:{request.request_id}",
+                    task_id=request.request_id,
+                    task_type="route-execution",
+                    residual_ledger=report_residual,
+                    reasons=["route spec or evidence envelope is missing"],
+                )
+            )
+            residual = residual.combine(report_residual)
+            reasons.append("one or more route requests lacked evidence or route specs")
+            continue
+        resolution = resolve_adapter_route(spec, envelope, profile=profile)
+        resolutions.append(resolution)
+        residual = residual.combine(resolution.residual_ledger)
+        accepted = resolution.accepted
+        reports.append(
+            RuntimeExecutionReport(
+                report_id=f"route-execution:{request.request_id}",
+                task_id=request.request_id,
+                task_type="route-execution",
+                accepted=accepted,
+                finite_checks_passed=accepted,
+                operationally_usable=resolution.operationally_usable,
+                settled=resolution.settled,
+                residual_ledger=resolution.residual_ledger,
+                reasons=resolution.reasons,
+            )
+        )
+    accepted = bool(reports) and all(report.accepted for report in reports)
+    return RouteExecutionBatch(
+        batch_id="route-execution-batch",
+        reports=reports,
+        resolutions=sorted(resolutions, key=lambda item: item.resolution_id),
+        accepted=accepted,
+        finite_checks_passed=accepted,
+        operationally_usable=accepted and any(report.operationally_usable for report in reports),
+        settled=False,
+        residual_ledger=residual,
+        reasons=sorted(set(reasons)),
+    )
+
+
+def run_agent_loop_with_store(
+    state: RuntimeState,
+    inputs: Sequence[RuntimeStepInput],
+    executor_policy: RuntimeExecutorPolicy,
+    store: object | None,
+    *,
+    max_steps: int | None = None,
+) -> list[RuntimeStepReport]:
+    """Run runtime loop, execute allowlisted tasks, and persist state snapshots."""
+
+    reports: list[RuntimeStepReport] = []
+    current = state
+    for step_input in list(inputs)[: max_steps or len(inputs)]:
+        report = build_runtime_step(
+            current,
+            step_input,
+            AgentRuntimeConfig(profile=executor_policy.profile),
+        )
+        reports.append(report)
+        if store is not None and hasattr(store, "append_state"):
+            store.append_state(current)
+        for task in report.agent_tasks[: executor_policy.max_tasks]:
+            execute_runtime_task(task, current, executor_policy, store=store)
+        current = loop_state_after_report(current, report)
+    if store is not None and hasattr(store, "append_state"):
+        store.append_state(current)
+    return reports
+
+
 def _runtime_event(
     *,
     event_id: str,
@@ -1191,9 +1522,71 @@ def _event_log_with_hash(events: Sequence[RuntimeEvent]) -> RuntimeEventLog:
     return RuntimeEventLog(events=sorted_events, aggregate_sha256=digest)
 
 
+def _file_sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as stream:
+        for chunk in iter(lambda: stream.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
 def _stable_digest(payload: object) -> str:
     encoded = json.dumps(payload, sort_keys=True, separators=(",", ":"), default=str).encode()
     return hashlib.sha256(encoded).hexdigest()
+
+
+def _resource_envelope_from_reports(reports: Sequence[RuntimeStepReport]) -> ResourceEnvelope:
+    return ResourceEnvelope(
+        wall_time_seconds=float(len(reports)),
+        token_budget=sum(len(report.agent_tasks) for report in reports),
+        verifier_calls=sum(len(report.evidence_resolution_batch.resolutions) for report in reports),
+        network_calls=sum(1 for report in reports if report.allow_live_connectors),
+        compute_cost=float(len(reports)),
+        human_review_budget=0.0,
+        risk_budget=sum(
+            report.phase_acceleration_score.risk_charge
+            + report.phase_acceleration_score.false_liquidity_charge
+            for report in reports
+        ),
+    )
+
+
+def _baseline_tolerance(baseline: RuntimeRunReport, candidate: RuntimeRunReport) -> float:
+    values = [
+        config.tolerance
+        for config in [baseline.baseline_config, candidate.baseline_config]
+        if config is not None
+    ]
+    return max(values, default=0.0)
+
+
+def _baseline_configs_match(baseline: RuntimeRunReport, candidate: RuntimeRunReport) -> bool:
+    left = baseline.baseline_config
+    right = candidate.baseline_config
+    if left is None and right is None:
+        return True
+    if left is None or right is None:
+        return False
+    return (
+        left.observation_protocol_id == right.observation_protocol_id
+        and left.constraint_frame_id == right.constraint_frame_id
+        and sorted(left.receiver_family) == sorted(right.receiver_family)
+        and left.validity_domain == right.validity_domain
+    )
+
+
+def _resource_envelopes_match(
+    baseline: ResourceEnvelope,
+    candidate: ResourceEnvelope,
+    *,
+    tolerance: float = 0.0,
+) -> bool:
+    for field in ResourceEnvelope.model_fields:
+        left = float(getattr(baseline, field))
+        right = float(getattr(candidate, field))
+        if abs(left - right) > tolerance:
+            return False
+    return True
 
 
 def _merge_verified_packets(

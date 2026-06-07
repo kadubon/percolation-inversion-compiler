@@ -70,7 +70,7 @@ An agent connector should implement this policy:
 9. For ECPT active planning, treat `PhaseControlPlan.selected_actions` as
    ranked finite recommendations and route every `missing_obligations` entry
    before main operational execution.
-10. For v0.3.1 active runtime, submit observations through `RuntimeStepInput`,
+10. For v0.3.2 active runtime, submit observations through `RuntimeStepInput`,
     let the runtime rebuild packet edges, update Psi, run SQOT scheduling,
     rank ECPT phase-control tasks, and preserve residual ledgers without
     settling unresolved proof obligations.
@@ -153,7 +153,7 @@ can use the package to organize capability, bottleneck, and cyber-physical
 frontier evidence. They must not treat it as evidence for unobserved ASI,
 unconditional phase transition claims, or uncertified simulator output.
 
-In v0.3.1, the workflow is closed-loop at the runtime level. `pic runtime step`
+In v0.3.2, the workflow is closed-loop at the runtime level. `pic runtime step`
 converts agent output into packets, builds edge witnesses, updates Psi, ranks
 bottleneck and ECPT phase-control tasks, schedules work through SQOT, emits
 verifier route requests, resolves inline evidence, promotes verified packet
@@ -164,6 +164,14 @@ resource-matched baseline. These outputs accelerate protocol-relative
 ASI-proxy phase-control evaluation and routing; they remain diagnostic or
 provisional until verifier evidence discharges the relevant external
 obligations.
+
+For collective ECPT acceleration, do not optimize for packet count alone. Use
+`pic ecology verify-edge` to check semantic packet relations, `pic ecology
+paths` to confirm accepted packet paths into a basin contract, `pic runtime
+execute-task` or `pic runtime run-agent-loop` to run only allowlisted actions,
+and `pic runtime store` to preserve event logs and packet capital across
+iterations. The runtime treats self-declared agent text and executor results as
+observations until evidence routes and edge relation checks accept them.
 
 ## SDK and Service Paths
 

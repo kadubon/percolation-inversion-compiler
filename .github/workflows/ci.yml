@@ -48,7 +48,7 @@ jobs:
         run: uv run mypy src scripts
 
       - name: Test
-        run: uv run pytest --cov=percolation_inversion_compiler --cov-report=term-missing --cov-fail-under=88
+        run: uv run pytest --cov=percolation_inversion_compiler --cov-report=term-missing --cov-fail-under=89
 
       - name: Build package
         run: uv build
@@ -88,10 +88,19 @@ jobs:
           uv run pic ecology build-edges --packets examples/ecology_packets.json --output "$RUNNER_TEMP/ecology-registry.json"
           uv run pic ecology psi --registry "$RUNNER_TEMP/ecology-registry.json" --threshold examples/ecology_threshold.json --output "$RUNNER_TEMP/ecology-psi.json"
           uv run pic ecology plan --registry "$RUNNER_TEMP/ecology-registry.json" --psi "$RUNNER_TEMP/ecology-psi.json" --profile production
+          uv run pic ecology paths --registry "$RUNNER_TEMP/ecology-registry.json" --basin examples/ecpt_basin_contract.json
+          uv run pic ecology verify-edge --registry examples/ecology_packets.json --certificate examples/edge_relation_certificate.json
           uv run pic ecology loop --state examples/ecology_loop_state.json --agent-output "SQOT reserve packet for ECPT active phase-control"
           uv run pic runtime step --state examples/runtime_state.json --input examples/runtime_step_input.json --profile production --output "$RUNNER_TEMP/runtime-step.json"
           uv run pic runtime step --state examples/runtime_state.json --input examples/runtime_step_input_with_evidence.json --profile production --output "$RUNNER_TEMP/runtime-step-evidence.json"
           uv run pic runtime resolve-evidence --input examples/runtime_step_input_with_evidence.json --profile production --output "$RUNNER_TEMP/runtime-evidence.json"
+          uv run pic runtime execute-task --state examples/runtime_state.json --task examples/runtime_agent_task.json --policy examples/runtime_executor_policy.json --profile production --output "$RUNNER_TEMP/runtime-execute-task.json"
+          uv run pic runtime execute-routes --requests examples/runtime_route_requests.json --evidence-store "$RUNNER_TEMP/evidence-store" --profile development --output "$RUNNER_TEMP/runtime-execute-routes.json"
+          uv run pic runtime store init --store "$RUNNER_TEMP/runtime.sqlite"
+          uv run pic runtime store append --store "$RUNNER_TEMP/runtime.sqlite" --state examples/runtime_state.json
+          uv run pic runtime store load --store "$RUNNER_TEMP/runtime.sqlite" --state-id runtime-demo
+          uv run pic runtime store export --store "$RUNNER_TEMP/runtime.sqlite" --output "$RUNNER_TEMP/runtime-store.json"
+          uv run pic runtime run-agent-loop --state examples/runtime_state.json --inputs examples/runtime_loop_inputs.jsonl --store "$RUNNER_TEMP/runtime-loop.sqlite" --policy examples/runtime_executor_policy.json --profile production --output "$RUNNER_TEMP/runtime-agent-loop.json"
           uv run pic runtime apply-results --state examples/runtime_state.json --report "$RUNNER_TEMP/runtime-step-evidence.json" --results examples/runtime_action_results.json --output "$RUNNER_TEMP/runtime-next-state.json"
           uv run pic runtime compare --baseline examples/runtime_baseline_run.json --candidate examples/runtime_candidate_run.json --threshold examples/runtime_threshold.json --output "$RUNNER_TEMP/runtime-comparison.json"
           uv run pic runtime certify-acceleration --baseline examples/runtime_baseline_run.json --candidate examples/runtime_candidate_run.json --output "$RUNNER_TEMP/runtime-acceleration-certificate.json"

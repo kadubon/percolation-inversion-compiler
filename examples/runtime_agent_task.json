@@ -1,0 +1,21 @@
+{
+  "action_id": "example-route-execution",
+  "action_kind": "route-execution",
+  "expected_proxy_gain": 0.25,
+  "metadata": {
+    "authority_granted": "true",
+    "rollback_receipt": "example-rollback-receipt"
+  },
+  "priority_score": 1.0,
+  "required_evidence_kind": [
+    "finite-proxy-target-contract"
+  ],
+  "required_routes": [
+    "adapters.domain.verify_ecpt_proxy_target_contract"
+  ],
+  "residual_coordinates": [],
+  "rollback_condition": "revert-example-route-output",
+  "target_component": "VT",
+  "task_id": "task:example-route-execution",
+  "task_type": "route-execution"
+}

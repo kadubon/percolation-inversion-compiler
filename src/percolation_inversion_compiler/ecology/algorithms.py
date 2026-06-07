@@ -13,6 +13,7 @@ from percolation_inversion_compiler.core.ledger import CoordinateKind, Ledger
 from percolation_inversion_compiler.core.records import CheckResult
 from percolation_inversion_compiler.core.status import ClaimStatus
 from percolation_inversion_compiler.ecology.records import (
+    AcceptedPacketPath,
     BasinReachabilityReport,
     BottleneckIntervention,
     BottleneckInversionPlan,
@@ -20,6 +21,8 @@ from percolation_inversion_compiler.ecology.records import (
     CapabilityPacketCandidate,
     CapabilityPacketRegistry,
     ClosedLoopAgentIteration,
+    EdgeRelationVerificationReport,
+    EdgeRelationVerifierSpec,
     EdgeWitness,
     EdgeWitnessCertificate,
     PacketIngestionReport,
@@ -28,7 +31,63 @@ from percolation_inversion_compiler.ecology.records import (
     VerificationThroughputReport,
 )
 
-_PSI_COMPONENTS = ("G", "DE", "AC", "VT", "LX", "SD", "CV", "FR", "BR")
+_PSI_COMPONENTS = ("G", "DE", "AC", "VT", "LX", "SD", "CV", "FR", "BR", "QS", "HZ")
+
+
+_DEFAULT_EDGE_RELATION_SPECS: dict[str, EdgeRelationVerifierSpec] = {
+    "semantic-dependency": EdgeRelationVerifierSpec(
+        relation_type="semantic-dependency",
+        required_evidence_markers=["sha256:"],
+        minimum_confidence_lower_bound=0.2,
+    ),
+    "theorem-to-code": EdgeRelationVerifierSpec(
+        relation_type="theorem-to-code",
+        required_evidence_markers=["claim:", "code:"],
+        required_source_tags=["theorem"],
+        required_target_tags=["code"],
+        minimum_confidence_lower_bound=0.5,
+    ),
+    "code-to-test": EdgeRelationVerifierSpec(
+        relation_type="code-to-test",
+        required_evidence_markers=["code:", "test:"],
+        required_source_tags=["code"],
+        required_target_tags=["test"],
+        minimum_confidence_lower_bound=0.5,
+    ),
+    "obligation-to-verifier": EdgeRelationVerifierSpec(
+        relation_type="obligation-to-verifier",
+        required_evidence_markers=["obligation:", "verifier:"],
+        require_verifier_resolution=True,
+        minimum_confidence_lower_bound=0.5,
+    ),
+    "packet-to-receiver-compatibility": EdgeRelationVerifierSpec(
+        relation_type="packet-to-receiver-compatibility",
+        required_evidence_markers=["sha256:"],
+        require_receiver_overlap=True,
+        minimum_confidence_lower_bound=0.2,
+    ),
+    "receiver-compatibility": EdgeRelationVerifierSpec(
+        relation_type="receiver-compatibility",
+        required_evidence_markers=["receiver:"],
+        require_receiver_overlap=True,
+        minimum_confidence_lower_bound=0.4,
+    ),
+    "execution-path": EdgeRelationVerifierSpec(
+        relation_type="execution-path",
+        required_evidence_markers=["execution:", "rollback:"],
+        minimum_confidence_lower_bound=0.5,
+    ),
+    "rollback-support": EdgeRelationVerifierSpec(
+        relation_type="rollback-support",
+        required_evidence_markers=["rollback:"],
+        minimum_confidence_lower_bound=0.5,
+    ),
+    "liquidity-transfer": EdgeRelationVerifierSpec(
+        relation_type="liquidity-transfer",
+        required_evidence_markers=["liquidity:"],
+        minimum_confidence_lower_bound=0.4,
+    ),
+}
 
 
 def sha256_text(text: str) -> str:
@@ -308,6 +367,89 @@ def verify_edge_witness_certificate(
     )
 
 
+def edge_relation_verifier_spec(relation_type: str) -> EdgeRelationVerifierSpec:
+    """Return the built-in semantic verifier spec for a relation type."""
+
+    return _DEFAULT_EDGE_RELATION_SPECS.get(
+        relation_type,
+        EdgeRelationVerifierSpec(
+            relation_type=relation_type,
+            required_evidence_markers=["sha256:"],
+        ),
+    )
+
+
+def verify_edge_relation(
+    registry: CapabilityPacketRegistry,
+    certificate: EdgeWitnessCertificate,
+    verifier_spec: EdgeRelationVerifierSpec | None = None,
+) -> EdgeRelationVerificationReport:
+    """Check semantic relation evidence for an edge certificate."""
+
+    spec = verifier_spec or edge_relation_verifier_spec(certificate.relation_type)
+    structural = verify_edge_witness_certificate(registry, certificate)
+    packet_by_id = {packet.packet_id: packet for packet in registry.packets}
+    source_packets = [
+        packet_by_id[packet_id]
+        for packet_id in certificate.source_packet_ids
+        if packet_id in packet_by_id
+    ]
+    target_packet = packet_by_id.get(certificate.target_packet_id)
+    refs = sorted(set(certificate.evidence_refs))
+    reasons = list(structural.reasons)
+    residual = structural.residual_ledger
+    if certificate.relation_type != spec.relation_type:
+        reasons.append("edge relation type does not match verifier spec")
+    if certificate.confidence_lower_bound < spec.minimum_confidence_lower_bound:
+        reasons.append("edge relation confidence is below verifier threshold")
+    missing_markers = [
+        marker
+        for marker in spec.required_evidence_markers
+        if not any(marker in ref for ref in refs)
+    ]
+    if missing_markers:
+        reasons.append("edge relation evidence markers are missing")
+    if spec.required_source_tags and not any(
+        set(packet.tags) & set(spec.required_source_tags) for packet in source_packets
+    ):
+        reasons.append("edge source packet tags do not satisfy relation verifier")
+    if target_packet is None:
+        reasons.append("edge target packet is absent from registry")
+    elif spec.required_target_tags and not (
+        set(target_packet.tags) & set(spec.required_target_tags)
+    ):
+        reasons.append("edge target packet tags do not satisfy relation verifier")
+    if spec.require_receiver_overlap and target_packet is not None:
+        receiver_overlap = any(
+            set(packet.receiver_family) & set(target_packet.receiver_family)
+            for packet in source_packets
+        )
+        if not receiver_overlap:
+            reasons.append("edge relation has no receiver-family overlap")
+    if spec.require_verifier_resolution and certificate.verifier_resolution_id is None:
+        reasons.append("edge relation requires a verifier resolution id")
+    if reasons:
+        residual = residual.add_coordinate(
+            f"edge-relation:{certificate.certificate_id}:semantic-diagnostic",
+            1.0,
+            kind=CoordinateKind.RESIDUAL,
+        )
+    accepted = not reasons and structural.accepted
+    return EdgeRelationVerificationReport(
+        report_id=f"edge-relation:{certificate.certificate_id}:{spec.relation_type}",
+        certificate_id=certificate.certificate_id,
+        relation_type=spec.relation_type,
+        accepted=accepted,
+        finite_checks_passed=not reasons,
+        operationally_usable=accepted,
+        settled=False,
+        matched_evidence_refs=refs,
+        missing_evidence_markers=missing_markers,
+        residual_ledger=residual,
+        reasons=sorted(set(reasons)),
+    )
+
+
 def verification_throughput(
     registry: CapabilityPacketRegistry,
 ) -> VerificationThroughputReport:
@@ -388,6 +530,8 @@ def build_psi_dashboard(
         "CV": max(0.0, 1.0 - registry.residual_ledger.burden_sum()),
         "FR": max(0.0, 1.0 - throughput.false_liquidity_rate),
         "BR": 0.0 if not tag_targets else target_hits / total,
+        "QS": _queue_salience_score(throughput),
+        "HZ": _hazard_authority_score(registry),
     }
     distance = {
         key: max(0.0, active_threshold[key] - components.get(key, 0.0))
@@ -438,16 +582,9 @@ def check_basin_reachability(
     }
     routes = {route for packet in packets for route in packet.verifier_routes}
     missing_routes = sorted(set(basin.required_verifier_routes) - routes)
-    target_hits = {
-        target: [
-            packet.packet_id
-            for packet in packets
-            if target in set(packet.tags) or target in packet.claim or target == packet.packet_id
-        ]
-        for target in basin.target_basis
-    }
-    reachable = sorted({packet_id for hits in target_hits.values() for packet_id in hits})
-    path_cost = sum(max(0.0, 1.0 - edge.confidence + edge.residual) for edge in edges)
+    accepted_paths = find_accepted_paths_to_basin(registry, basin)
+    reachable = sorted({packet_id for path in accepted_paths for packet_id in path.packet_ids})
+    path_cost = min((path.cost for path in accepted_paths), default=0.0)
     missing_packet_types = sorted(
         required for required, present in packet_type_hits.items() if not present
     )
@@ -457,7 +594,7 @@ def check_basin_reachability(
     reasons: list[str] = []
     if not receiver_compatible:
         reasons.append("no packet is compatible with basin receiver family")
-    if basin.target_basis and not reachable:
+    if basin.target_basis and not accepted_paths:
         reasons.append("target basis is not reached by accepted packet paths")
     if missing_packet_types:
         reasons.append("required packet type is missing")
@@ -481,6 +618,7 @@ def check_basin_reachability(
         accepted=accepted,
         reachable_packet_ids=reachable,
         accepted_edge_ids=accepted_edge_ids,
+        accepted_paths=accepted_paths,
         missing_packet_types=missing_packet_types,
         missing_edge_types=missing_edge_types,
         missing_verifier_routes=missing_routes,
@@ -491,6 +629,94 @@ def check_basin_reachability(
         settled=False,
         reasons=sorted(set(reasons)),
     )
+
+
+def find_accepted_paths_to_basin(
+    registry: CapabilityPacketRegistry,
+    basin: CapabilityBasinContract,
+) -> list[AcceptedPacketPath]:
+    """Return accepted finite packet paths satisfying a basin contract."""
+
+    packet_by_id = {packet.packet_id: packet for packet in registry.packets}
+    accepted_edges = [edge for edge in registry.edges if edge.accepted]
+    incoming: dict[str, list[EdgeWitness]] = {}
+    for edge in accepted_edges:
+        incoming.setdefault(edge.target_packet_id, []).append(edge)
+    targets = [
+        packet
+        for packet in registry.packets
+        if not basin.target_basis
+        or any(
+            target in set(packet.tags) or target in packet.claim or target == packet.packet_id
+            for target in basin.target_basis
+        )
+    ]
+    paths: list[AcceptedPacketPath] = []
+    for target in sorted(targets, key=lambda item: item.packet_id):
+        route_ids = sorted(set(target.verifier_routes))
+        residual = Ledger()
+        reasons: list[str] = []
+        edge_ids: list[str] = []
+        packet_ids = [target.packet_id]
+        cost = max(0.0, target.verification_cost + target.residual_charge + target.hazard_charge)
+        queue: deque[tuple[str, int]] = deque([(target.packet_id, 0)])
+        seen = {target.packet_id}
+        while queue:
+            current_id, depth = queue.popleft()
+            if depth >= 4:
+                continue
+            for edge in sorted(incoming.get(current_id, []), key=lambda item: item.edge_id):
+                if basin.required_edge_types and edge.edge_type not in basin.required_edge_types:
+                    continue
+                edge_ids.append(edge.edge_id)
+                cost += max(0.0, 1.0 - edge.confidence + edge.residual)
+                route_ids.extend(
+                    route
+                    for source_id in edge.source_packet_ids
+                    for route in packet_by_id.get(source_id, target).verifier_routes
+                )
+                for source_id in edge.source_packet_ids:
+                    if source_id in packet_by_id and source_id not in seen:
+                        seen.add(source_id)
+                        packet_ids.append(source_id)
+                        queue.append((source_id, depth + 1))
+        if basin.receiver_family and not (set(target.receiver_family) & set(basin.receiver_family)):
+            reasons.append("target packet receiver family does not match basin")
+        missing_routes = sorted(set(basin.required_verifier_routes) - set(route_ids))
+        if missing_routes:
+            reasons.append("accepted path lacks required verifier routes")
+        if basin.required_packet_types and not all(
+            any(
+                required in set(packet_by_id[packet_id].tags)
+                or required == packet_by_id[packet_id].salience_class
+                for packet_id in packet_ids
+                if packet_id in packet_by_id
+            )
+            for required in basin.required_packet_types
+        ):
+            reasons.append("accepted path lacks required packet types")
+        if cost > basin.max_path_cost:
+            reasons.append("accepted path cost exceeds basin maximum")
+        if reasons:
+            for reason in reasons:
+                residual = residual.add_coordinate(
+                    f"accepted-path:{target.packet_id}:{reason.replace(' ', '-')}",
+                    1.0,
+                    kind=CoordinateKind.RESIDUAL,
+                )
+        path = AcceptedPacketPath(
+            path_id=f"accepted-path:{basin.basin_id}:{target.packet_id}",
+            packet_ids=sorted(set(packet_ids)),
+            edge_ids=sorted(set(edge_ids)),
+            route_ids=sorted(set(route_ids)),
+            cost=cost,
+            residual_ledger=residual,
+            accepted=not reasons,
+            reasons=sorted(set(reasons)),
+        )
+        if path.accepted:
+            paths.append(path)
+    return sorted(paths, key=lambda item: (item.cost, item.path_id))
 
 
 def build_bottleneck_plan(
@@ -669,6 +895,44 @@ def _bounded_ratio(numerator: float, denominator: float) -> float:
     return max(0.0, min(1.0, numerator / denominator))
 
 
+def _queue_salience_score(throughput: VerificationThroughputReport) -> float:
+    backlog_charge = min(1.0, throughput.unresolved_obligation_backlog / 10.0)
+    latency_charge = min(1.0, throughput.verifier_latency_proxy)
+    stale_charge = min(1.0, throughput.stale_packet_ratio)
+    obstruction_charge = min(1.0, throughput.low_contribution_queue_occupation)
+    return max(
+        0.0,
+        1.0
+        - (
+            0.35 * backlog_charge
+            + 0.2 * latency_charge
+            + 0.25 * stale_charge
+            + 0.2 * obstruction_charge
+        ),
+    )
+
+
+def _hazard_authority_score(registry: CapabilityPacketRegistry) -> float:
+    packets = registry.packets
+    total = max(1, len(packets))
+    hazard = min(1.0, sum(max(0.0, packet.hazard_charge) for packet in packets) / total)
+    authority_violations = sum(
+        1 for packet in packets if packet.authority_required and not packet.authority_granted
+    )
+    unsafe_routes = sum(1 for packet in packets if not packet.route_safe)
+    rollback_missing = sum(1 for packet in packets if not packet.rollback_available)
+    return max(
+        0.0,
+        1.0
+        - (
+            0.4 * hazard
+            + 0.2 * authority_violations / total
+            + 0.2 * unsafe_routes / total
+            + 0.2 * rollback_missing / total
+        ),
+    )
+
+
 def _action_for_component(component: str) -> str:
     return {
         "G": "build-edge-witnesses",
@@ -680,6 +944,8 @@ def _action_for_component(component: str) -> str:
         "CV": "repair-constraint-viability",
         "FR": "quarantine-false-liquidity",
         "BR": "ingest-target-basin-packets",
+        "QS": "restore-sqot-diagnostic-reserve",
+        "HZ": "reduce-hazard-authority-load",
     }.get(component, "inspect-proxy-component")
 
 

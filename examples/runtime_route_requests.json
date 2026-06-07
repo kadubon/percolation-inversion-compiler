@@ -1,0 +1,21 @@
+{
+  "requests": [
+    {
+      "obligation_category": "proxy-target-grounding",
+      "priority_score": 1.0,
+      "request_id": "runtime-proxy-target-envelope",
+      "required_evidence_kind": [
+        "finite-proxy-target-contract"
+      ],
+      "residual_external_obligations": [],
+      "residual_policy": "charge-proxy-target-ledger-until-grounded",
+      "route_id": "adapters.domain.verify_ecpt_proxy_target_contract",
+      "safe_default": "diagnostic-with-proxy-target-obligation",
+      "settlement_scope": [
+        "finite-proxy-target-contract"
+      ],
+      "status": "diagnostic",
+      "verifier_route": "percolation_inversion_compiler.adapters.domain.verify_ecpt_proxy_target_contract"
+    }
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "allowed_route_ids": [
+    "adapters.domain.verify_ecpt_proxy_target_contract",
+    "adapters.domain.verify_ecpt_numerical_envelope"
+  ],
+  "allowed_task_types": [
+    "evidence-verify",
+    "route-execution",
+    "runtime-step",
+    "runtime-compare",
+    "runtime-certify-acceleration"
+  ],
+  "allow_file_write": false,
+  "allow_network": false,
+  "allow_shell": false,
+  "max_tasks": 4,
+  "profile": "production",
+  "require_authority_grant": true,
+  "require_rollback_receipt": true,
+  "sandbox_root": null
+}

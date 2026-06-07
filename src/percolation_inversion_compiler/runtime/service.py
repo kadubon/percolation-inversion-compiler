@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import importlib
 import os
+from pathlib import Path
 from typing import Any
 
 from percolation_inversion_compiler.core import (
@@ -18,18 +19,25 @@ from percolation_inversion_compiler.runtime.algorithms import (
     build_runtime_step,
     certify_runtime_acceleration,
     compare_runtime_runs,
+    execute_route_batch,
+    execute_runtime_task,
     resolve_step_evidence,
+    run_agent_loop_with_store,
     run_runtime_loop,
 )
 from percolation_inversion_compiler.runtime.records import (
     AgentRuntimeConfig,
+    AgentTask,
+    RouteExecutionRequest,
     RuntimeActionResult,
+    RuntimeExecutorPolicy,
     RuntimeRunReport,
     RuntimeServiceSettings,
     RuntimeState,
     RuntimeStepInput,
     RuntimeStepReport,
 )
+from percolation_inversion_compiler.runtime.store import SQLiteRuntimeStore
 
 
 def create_runtime_app(settings: RuntimeServiceSettings | None = None) -> Any:
@@ -43,7 +51,7 @@ def create_runtime_app(settings: RuntimeServiceSettings | None = None) -> Any:
 
     fastapi_app = fastapi.FastAPI(
         title="Percolation Inversion Compiler Runtime",
-        version="0.3.1",
+        version="0.3.2",
         description="Local-first ECPT active ASI-proxy phase-control runtime service.",
     )
     http_exception = fastapi.HTTPException
@@ -88,6 +96,7 @@ def create_runtime_app(settings: RuntimeServiceSettings | None = None) -> Any:
         request: Any,
     ) -> dict[str, Any]:
         require_auth(_authorization(request))
+        _check_request_size(request, active_settings.max_request_bytes)
         payload = await request.json()
         state = RuntimeState.model_validate(payload.get("state"))
         step_input = RuntimeStepInput.model_validate(payload.get("input"))
@@ -100,6 +109,7 @@ def create_runtime_app(settings: RuntimeServiceSettings | None = None) -> Any:
         request: Any,
     ) -> dict[str, Any]:
         require_auth(_authorization(request))
+        _check_request_size(request, active_settings.max_request_bytes)
         payload = await request.json()
         state = RuntimeState.model_validate(payload.get("state"))
         inputs = [RuntimeStepInput.model_validate(item) for item in payload.get("inputs", [])]
@@ -117,6 +127,7 @@ def create_runtime_app(settings: RuntimeServiceSettings | None = None) -> Any:
         request: Any,
     ) -> dict[str, Any]:
         require_auth(_authorization(request))
+        _check_request_size(request, active_settings.max_request_bytes)
         payload = await request.json()
         state = RuntimeState.model_validate(payload.get("state"))
         report = RuntimeStepReport.model_validate(payload.get("report"))
@@ -128,6 +139,7 @@ def create_runtime_app(settings: RuntimeServiceSettings | None = None) -> Any:
         request: Any,
     ) -> dict[str, Any]:
         require_auth(_authorization(request))
+        _check_request_size(request, active_settings.max_request_bytes)
         payload = await request.json()
         step_input = RuntimeStepInput.model_validate(payload.get("input", payload))
         profile = str(payload.get("profile", active_settings.profile))
@@ -138,6 +150,7 @@ def create_runtime_app(settings: RuntimeServiceSettings | None = None) -> Any:
         request: Any,
     ) -> dict[str, Any]:
         require_auth(_authorization(request))
+        _check_request_size(request, active_settings.max_request_bytes)
         payload = await request.json()
         baseline = RuntimeRunReport.model_validate(payload.get("baseline"))
         candidate = RuntimeRunReport.model_validate(payload.get("candidate"))
@@ -149,6 +162,7 @@ def create_runtime_app(settings: RuntimeServiceSettings | None = None) -> Any:
         request: Any,
     ) -> dict[str, Any]:
         require_auth(_authorization(request))
+        _check_request_size(request, active_settings.max_request_bytes)
         payload = await request.json()
         baseline = RuntimeRunReport.model_validate(payload.get("baseline"))
         candidate = RuntimeRunReport.model_validate(payload.get("candidate"))
@@ -156,10 +170,87 @@ def create_runtime_app(settings: RuntimeServiceSettings | None = None) -> Any:
         certificate = certify_runtime_acceleration(baseline, candidate, threshold)
         return certificate.model_dump(mode="json")
 
+    async def runtime_task_execute(request: Any) -> dict[str, Any]:
+        require_auth(_authorization(request))
+        _check_request_size(request, active_settings.max_request_bytes)
+        payload = await request.json()
+        state = RuntimeState.model_validate(payload.get("state"))
+        task = AgentTask.model_validate(payload.get("task"))
+        policy = RuntimeExecutorPolicy.model_validate(payload.get("policy", {}))
+        policy = policy.model_copy(
+            update={
+                "profile": active_settings.profile,
+                "allowed_route_ids": policy.allowed_route_ids or active_settings.allowed_route_ids,
+            }
+        )
+        return execute_runtime_task(task, state, policy).model_dump(mode="json")
+
+    async def runtime_routes_execute(request: Any) -> dict[str, Any]:
+        require_auth(_authorization(request))
+        _check_request_size(request, active_settings.max_request_bytes)
+        payload = await request.json()
+        requests = [
+            RouteExecutionRequest.model_validate(item) for item in payload.get("requests", [])
+        ]
+        policy = RuntimeExecutorPolicy.model_validate(payload.get("policy", {}))
+        policy = policy.model_copy(
+            update={
+                "profile": active_settings.profile,
+                "allowed_route_ids": policy.allowed_route_ids or active_settings.allowed_route_ids,
+            }
+        )
+        return execute_route_batch(
+            requests,
+            None,
+            policy,
+            profile=active_settings.profile,
+        ).model_dump(mode="json")
+
+    async def runtime_store_append(request: Any) -> dict[str, Any]:
+        require_auth(_authorization(request))
+        _check_request_size(request, active_settings.max_request_bytes)
+        payload = await request.json()
+        store = SQLiteRuntimeStore(Path(str(payload.get("store", "runtime-store.sqlite"))).name)
+        if "state" in payload:
+            store.append_state(RuntimeState.model_validate(payload["state"]))
+        if "run" in payload:
+            store.append_run(RuntimeRunReport.model_validate(payload["run"]))
+        return store.record().model_dump(mode="json")
+
+    async def runtime_store_load(request: Any) -> dict[str, Any]:
+        require_auth(_authorization(request))
+        _check_request_size(request, active_settings.max_request_bytes)
+        payload = await request.json()
+        store = SQLiteRuntimeStore(Path(str(payload.get("store", "runtime-store.sqlite"))).name)
+        state = store.load_state(str(payload.get("state_id", "")))
+        if state is None:
+            return {"accepted": False, "settled": False, "reasons": ["runtime state not found"]}
+        return state.model_dump(mode="json")
+
+    async def runtime_run_agent_loop(request: Any) -> dict[str, Any]:
+        require_auth(_authorization(request))
+        _check_request_size(request, active_settings.max_request_bytes)
+        payload = await request.json()
+        state = RuntimeState.model_validate(payload.get("state"))
+        inputs = [RuntimeStepInput.model_validate(item) for item in payload.get("inputs", [])]
+        policy = RuntimeExecutorPolicy.model_validate(payload.get("policy", {}))
+        policy = policy.model_copy(update={"profile": active_settings.profile})
+        store_ref = payload.get("store")
+        store = SQLiteRuntimeStore(Path(str(store_ref)).name) if store_ref else None
+        reports = run_agent_loop_with_store(
+            state,
+            inputs,
+            policy,
+            store,
+            max_steps=int(payload.get("max_steps", len(inputs))),
+        )
+        return {"reports": [report.model_dump(mode="json") for report in reports]}
+
     async def ecology_ingest(
         request: Any,
     ) -> dict[str, Any]:
         require_auth(_authorization(request))
+        _check_request_size(request, active_settings.max_request_bytes)
         payload = await request.json()
         source = str(payload.get("source", ""))
         kind = str(payload.get("kind", "agent-output"))
@@ -182,6 +273,7 @@ def create_runtime_app(settings: RuntimeServiceSettings | None = None) -> Any:
         request: Any,
     ) -> dict[str, Any]:
         require_auth(_authorization(request))
+        _check_request_size(request, active_settings.max_request_bytes)
         payload = await request.json()
         envelope_data = payload.get("envelope", payload)
         envelope = VerifierEvidenceEnvelope.model_validate(envelope_data)
@@ -206,6 +298,11 @@ def create_runtime_app(settings: RuntimeServiceSettings | None = None) -> Any:
         runtime_evidence_resolve,
         runtime_compare,
         runtime_certify_acceleration,
+        runtime_task_execute,
+        runtime_routes_execute,
+        runtime_store_append,
+        runtime_store_load,
+        runtime_run_agent_loop,
         ecology_ingest,
         evidence_verify,
         openapi_schema,
@@ -227,6 +324,11 @@ def create_runtime_app(settings: RuntimeServiceSettings | None = None) -> Any:
         runtime_certify_acceleration,
         methods=["POST"],
     )
+    fastapi_app.add_api_route("/runtime/task/execute", runtime_task_execute, methods=["POST"])
+    fastapi_app.add_api_route("/runtime/routes/execute", runtime_routes_execute, methods=["POST"])
+    fastapi_app.add_api_route("/runtime/store/append", runtime_store_append, methods=["POST"])
+    fastapi_app.add_api_route("/runtime/store/load", runtime_store_load, methods=["POST"])
+    fastapi_app.add_api_route("/runtime/run-agent-loop", runtime_run_agent_loop, methods=["POST"])
     fastapi_app.add_api_route("/ecology/ingest", ecology_ingest, methods=["POST"])
     fastapi_app.add_api_route("/evidence/verify", evidence_verify, methods=["POST"])
     fastapi_app.add_api_route("/schemas/openapi.json", openapi_schema, methods=["GET"])
@@ -263,6 +365,18 @@ def _service_config(
 def _authorization(request: Any) -> str | None:
     value = request.headers.get("authorization")
     return str(value) if value is not None else None
+
+
+def _check_request_size(request: Any, limit: int) -> None:
+    raw = request.headers.get("content-length")
+    if raw is None:
+        return
+    try:
+        size = int(raw)
+    except ValueError:
+        return
+    if size > limit:
+        raise RuntimeError("runtime request exceeds configured size limit")
 
 
 def _diagnostic(reason: str) -> dict[str, Any]:

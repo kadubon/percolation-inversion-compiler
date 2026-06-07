@@ -22,6 +22,9 @@ from percolation_inversion_compiler.core import (
 )
 from percolation_inversion_compiler.core.frontier import FrontierRecord
 from percolation_inversion_compiler.ecology import (
+    CapabilityBasinContract,
+    EdgeRelationVerifierSpec,
+    EdgeWitnessCertificate,
     PacketSourceKind,
     PsiDashboard,
     build_bottleneck_plan,
@@ -29,11 +32,13 @@ from percolation_inversion_compiler.ecology import (
     build_packet_registry,
     build_psi_dashboard,
     closed_loop_iteration,
+    find_accepted_paths_to_basin,
     infer_live_kind,
     ingest_agent_output,
     ingest_live_source,
     ingest_local_file,
     registry_from_json,
+    verify_edge_relation,
 )
 from percolation_inversion_compiler.ecpt import (
     ASIProxyTargetContract,
@@ -69,18 +74,26 @@ from percolation_inversion_compiler.io.schema import load_data
 from percolation_inversion_compiler.runtime import (
     ActionCommitPolicy,
     AgentRuntimeConfig,
+    AgentTask,
+    FileEvidenceEnvelopeStore,
+    RouteExecutionRequest,
     RuntimeActionResult,
+    RuntimeExecutorPolicy,
     RuntimeRunReport,
     RuntimeServiceSettings,
     RuntimeState,
     RuntimeStepInput,
     RuntimeStepReport,
+    SQLiteRuntimeStore,
     apply_action_results,
     build_runtime_step,
     certify_runtime_acceleration,
     compare_runtime_runs,
     create_runtime_app,
+    execute_route_batch,
+    execute_runtime_task,
     resolve_step_evidence,
+    run_agent_loop_with_store,
     run_runtime_loop,
     run_runtime_service,
     runtime_health,
@@ -108,6 +121,7 @@ ecpt_app = typer.Typer(help="Run ECPT active phase-control planning tools.")
 sqot_app = typer.Typer(help="Run SQOT salience-queue scheduling tools.")
 ecology_app = typer.Typer(help="Run ECPT capability packet ecology tools.")
 runtime_app = typer.Typer(help="Run ECPT active agent runtime loops and local service.")
+runtime_store_app = typer.Typer(help="Manage persistent runtime stores.")
 app.add_typer(demo_app, name="demo")
 app.add_typer(audit_app, name="audit")
 app.add_typer(snapshot_app, name="snapshot")
@@ -120,6 +134,7 @@ app.add_typer(ecpt_app, name="ecpt")
 app.add_typer(sqot_app, name="sqot")
 app.add_typer(ecology_app, name="ecology")
 app.add_typer(runtime_app, name="runtime")
+runtime_app.add_typer(runtime_store_app, name="store")
 console = Console()
 
 
@@ -274,6 +289,36 @@ def _load_runtime_action_results(path: Path) -> list[RuntimeActionResult]:
     if not isinstance(raw, list):
         raise typer.BadParameter("runtime results file must contain a results list")
     return [RuntimeActionResult.model_validate(item) for item in raw]
+
+
+def _load_agent_task(path: Path) -> AgentTask:
+    data = load_data(path)
+    raw = data.get("agent_task", data.get("task", data))
+    if not isinstance(raw, dict):
+        raise typer.BadParameter("agent task file must contain an object")
+    return AgentTask.model_validate(raw)
+
+
+def _load_route_execution_requests(path: Path) -> list[RouteExecutionRequest]:
+    data = load_data(path)
+    raw = data.get("requests", data.get("route_execution_requests"))
+    if not isinstance(raw, list):
+        raise typer.BadParameter("route execution file must contain a requests list")
+    return [RouteExecutionRequest.model_validate(item) for item in raw]
+
+
+def _load_runtime_executor_policy(
+    path: Path | None,
+    *,
+    profile: str = "development",
+) -> RuntimeExecutorPolicy:
+    if path is None:
+        return RuntimeExecutorPolicy(profile=profile)
+    data = load_data(path)
+    raw = data.get("executor_policy", data.get("policy", data))
+    if not isinstance(raw, dict):
+        raise typer.BadParameter("executor policy file must contain an object")
+    return RuntimeExecutorPolicy.model_validate(raw)
 
 
 def _load_runtime_run_report(path: Path) -> RuntimeRunReport:
@@ -1071,6 +1116,60 @@ def ecology_plan(
     _dump(plan.model_dump(mode="json"), output)
 
 
+@ecology_app.command("paths")
+def ecology_paths(
+    registry: Annotated[
+        Path,
+        typer.Option("--registry", help="CapabilityPacketRegistry JSON/YAML."),
+    ],
+    basin: Annotated[
+        Path,
+        typer.Option("--basin", help="CapabilityBasinContract JSON/YAML."),
+    ],
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Find accepted packet paths into an ECPT basin contract."""
+
+    parsed_registry = registry_from_json(load_data(registry))
+    basin_contract = CapabilityBasinContract.model_validate(load_data(basin))
+    paths = find_accepted_paths_to_basin(parsed_registry, basin_contract)
+    _dump({"paths": [path.model_dump(mode="json") for path in paths]}, output)
+
+
+@ecology_app.command("verify-edge")
+def ecology_verify_edge(
+    registry: Annotated[
+        Path,
+        typer.Option("--registry", help="CapabilityPacketRegistry JSON/YAML."),
+    ],
+    certificate: Annotated[
+        Path,
+        typer.Option("--certificate", help="EdgeWitnessCertificate JSON/YAML."),
+    ],
+    relation: Annotated[
+        str | None,
+        typer.Option("--relation", help="Override relation type for built-in verifier."),
+    ] = None,
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Verify finite semantic evidence for an edge relation."""
+
+    parsed_registry = registry_from_json(load_data(registry))
+    certificate_data = load_data(certificate)
+    edge_certificate = EdgeWitnessCertificate.model_validate(
+        certificate_data.get("certificate", certificate_data)
+    )
+    spec = EdgeRelationVerifierSpec(relation_type=relation) if relation is not None else None
+    report = verify_edge_relation(parsed_registry, edge_certificate, spec)
+    _dump(report.model_dump(mode="json"), output)
+    if not report.accepted:
+        raise typer.Exit(1)
+
+
 @ecology_app.command("loop")
 def ecology_loop(
     state: Annotated[
@@ -1212,6 +1311,10 @@ def runtime_resolve_evidence_command(
         str,
         typer.Option("--profile", help="Evidence verification profile."),
     ] = "development",
+    evidence_store: Annotated[
+        Path | None,
+        typer.Option("--evidence-store", help="Optional content-addressed evidence store dir."),
+    ] = None,
     output: Annotated[
         Path | None, typer.Option("--output", "-o", help="Write JSON output.")
     ] = None,
@@ -1219,10 +1322,126 @@ def runtime_resolve_evidence_command(
     """Resolve runtime step evidence envelopes against verifier routes."""
 
     parsed_input = _load_runtime_step_input(step_input)
-    batch = resolve_step_evidence(parsed_input, profile=profile)
+    store = FileEvidenceEnvelopeStore(evidence_store) if evidence_store is not None else None
+    batch = resolve_step_evidence(parsed_input, profile=profile, envelope_store=store)
     _dump(batch.model_dump(mode="json"), output)
     if not batch.accepted and profile == "production":
         raise typer.Exit(1)
+
+
+@runtime_app.command("execute-task")
+def runtime_execute_task_command(
+    state: Annotated[
+        Path,
+        typer.Option("--state", help="RuntimeState JSON/YAML."),
+    ],
+    task: Annotated[
+        Path,
+        typer.Option("--task", help="AgentTask JSON/YAML."),
+    ],
+    policy: Annotated[
+        Path | None,
+        typer.Option("--policy", help="RuntimeExecutorPolicy JSON/YAML."),
+    ] = None,
+    profile: Annotated[
+        str,
+        typer.Option("--profile", help="Executor profile."),
+    ] = "development",
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Execute one allowlisted runtime task without arbitrary shell execution."""
+
+    report = execute_runtime_task(
+        _load_agent_task(task),
+        _load_runtime_state(state),
+        _load_runtime_executor_policy(policy, profile=profile),
+    )
+    _dump(report.model_dump(mode="json"), output)
+    if not report.accepted and profile == "production":
+        raise typer.Exit(1)
+
+
+@runtime_app.command("execute-routes")
+def runtime_execute_routes_command(
+    requests: Annotated[
+        Path,
+        typer.Option("--requests", help="RouteExecutionRequest list JSON/YAML."),
+    ],
+    evidence_store: Annotated[
+        Path,
+        typer.Option("--evidence-store", help="Content-addressed evidence store dir."),
+    ],
+    profile: Annotated[
+        str,
+        typer.Option("--profile", help="Route execution profile."),
+    ] = "development",
+    policy: Annotated[
+        Path | None,
+        typer.Option("--policy", help="RuntimeExecutorPolicy JSON/YAML."),
+    ] = None,
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Execute verifier route requests with sandboxed evidence envelopes."""
+
+    batch = execute_route_batch(
+        _load_route_execution_requests(requests),
+        FileEvidenceEnvelopeStore(evidence_store),
+        _load_runtime_executor_policy(policy, profile=profile),
+        profile=profile,
+    )
+    _dump(batch.model_dump(mode="json"), output)
+    if not batch.accepted and profile == "production":
+        raise typer.Exit(1)
+
+
+@runtime_app.command("run-agent-loop")
+def runtime_run_agent_loop_command(
+    state: Annotated[
+        Path,
+        typer.Option("--state", help="RuntimeState JSON/YAML."),
+    ],
+    inputs: Annotated[
+        Path,
+        typer.Option("--inputs", help="RuntimeStepInput JSONL or JSON with inputs list."),
+    ],
+    store: Annotated[
+        Path,
+        typer.Option("--store", help="SQLite runtime store path."),
+    ],
+    policy: Annotated[
+        Path | None,
+        typer.Option("--policy", help="RuntimeExecutorPolicy JSON/YAML."),
+    ] = None,
+    max_steps: Annotated[int, typer.Option("--max-steps", help="Maximum loop steps.")] = 8,
+    profile: Annotated[
+        str,
+        typer.Option("--profile", help="Executor profile."),
+    ] = "development",
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Run an allowlisted autonomous ECPT agent loop with a persistent store."""
+
+    runtime_store = SQLiteRuntimeStore(store)
+    reports = run_agent_loop_with_store(
+        _load_runtime_state(state),
+        _load_runtime_inputs(inputs),
+        _load_runtime_executor_policy(policy, profile=profile),
+        runtime_store,
+        max_steps=max_steps,
+    )
+    _dump(
+        {
+            "reports": [report.model_dump(mode="json") for report in reports],
+            "store": runtime_store.record().model_dump(mode="json"),
+        },
+        output,
+    )
 
 
 @runtime_app.command("apply-results")
@@ -1375,6 +1594,84 @@ def runtime_service_command(
         run_runtime_service(settings)
     except RuntimeError as exc:
         raise typer.BadParameter(str(exc)) from exc
+
+
+@runtime_store_app.command("init")
+def runtime_store_init_command(
+    store: Annotated[
+        Path,
+        typer.Option("--store", help="SQLite runtime store path."),
+    ],
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Initialize a SQLite runtime store."""
+
+    _dump(SQLiteRuntimeStore(store).record().model_dump(mode="json"), output)
+
+
+@runtime_store_app.command("append")
+def runtime_store_append_command(
+    store: Annotated[
+        Path,
+        typer.Option("--store", help="SQLite runtime store path."),
+    ],
+    state: Annotated[
+        Path | None,
+        typer.Option("--state", help="Optional RuntimeState JSON/YAML to append."),
+    ] = None,
+    run: Annotated[
+        Path | None,
+        typer.Option("--run", help="Optional RuntimeRunReport JSON/YAML to append."),
+    ] = None,
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Append runtime state or run report records to a SQLite store."""
+
+    runtime_store = SQLiteRuntimeStore(store)
+    if state is not None:
+        runtime_store.append_state(_load_runtime_state(state))
+    if run is not None:
+        runtime_store.append_run(_load_runtime_run_report(run))
+    _dump(runtime_store.record().model_dump(mode="json"), output)
+
+
+@runtime_store_app.command("load")
+def runtime_store_load_command(
+    store: Annotated[
+        Path,
+        typer.Option("--store", help="SQLite runtime store path."),
+    ],
+    state_id: Annotated[str, typer.Option("--state-id", help="Runtime state id.")],
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Load one runtime state from a SQLite store."""
+
+    state = SQLiteRuntimeStore(store).load_state(state_id)
+    if state is None:
+        _dump({"accepted": False, "reasons": ["runtime state not found"]}, output)
+        raise typer.Exit(1)
+    _dump(state.model_dump(mode="json"), output)
+
+
+@runtime_store_app.command("export")
+def runtime_store_export_command(
+    store: Annotated[
+        Path,
+        typer.Option("--store", help="SQLite runtime store path."),
+    ],
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Export a deterministic runtime store snapshot."""
+
+    _dump(SQLiteRuntimeStore(store).snapshot().model_dump(mode="json"), output)
 
 
 @ecpt_app.command("plan")

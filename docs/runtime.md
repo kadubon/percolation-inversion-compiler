@@ -1,6 +1,6 @@
 # ECPT Active Agent Runtime
 
-`pic runtime` is the v0.3.1 active loop for agents. It composes the existing
+`pic runtime` is the v0.3.2 active loop for agents. It composes the existing
 finite ECPT planner, SQOT salience scheduler, packet ecology, certificate
 checks, verifier route catalog, provenance policy, and residual ledgers into
 one deterministic report.
@@ -19,7 +19,7 @@ The runtime accepts:
 It returns `RuntimeStepReport`:
 
 - `registry`: updated capability packet registry with finite edge witnesses.
-- `psi`: ECPT ASI-proxy dashboard over `G, DE, AC, VT, LX, SD, CV, FR, BR`.
+- `psi`: ECPT ASI-proxy dashboard over `G, DE, AC, VT, LX, SD, CV, FR, BR, QS, HZ`.
 - `bottleneck_plan`: ranked finite packet-ecology interventions.
 - `phase_run_report`: ECPT phase-control action candidates.
 - `salience_schedule`: SQOT queue decisions for packets, obligations, and
@@ -46,6 +46,8 @@ snapshot metadata, and route availability do not promote a claim to settled.
 uv run pic runtime step --state examples/runtime_state.json --input examples/runtime_step_input.json --profile production
 uv run pic runtime step --state examples/runtime_state.json --input examples/runtime_step_input_with_evidence.json --profile production --output runtime-step.json
 uv run pic runtime resolve-evidence --input examples/runtime_step_input_with_evidence.json --profile production
+uv run pic runtime execute-task --state examples/runtime_state.json --task examples/runtime_agent_task.json --policy examples/runtime_executor_policy.json --profile production
+uv run pic runtime run-agent-loop --state examples/runtime_state.json --inputs examples/runtime_loop_inputs.jsonl --store runtime.sqlite --policy examples/runtime_executor_policy.json --profile production
 uv run pic runtime apply-results --state examples/runtime_state.json --report runtime-step.json --results examples/runtime_action_results.json --output runtime-next-state.json
 uv run pic runtime compare --baseline examples/runtime_baseline_run.json --candidate examples/runtime_candidate_run.json --threshold examples/runtime_threshold.json
 uv run pic runtime certify-acceleration --baseline examples/runtime_baseline_run.json --candidate examples/runtime_candidate_run.json
@@ -93,6 +95,6 @@ print(report.model_dump(mode="json")["agent_tasks"])
 10. Repeat with `pic runtime loop` or the SDK.
 
 The runtime accelerates protocol-relative ASI-proxy phase-control by reducing
-agent overhead around evidence routing, packet prioritization, and bottleneck
-selection. It does not prove unobserved ASI, physical, simulator, or oracle
-outcomes.
+agent overhead around evidence routing, semantic edge verification, packet
+prioritization, allowlisted execution, and bottleneck selection. It does not
+prove unobserved ASI, physical, simulator, or oracle outcomes.

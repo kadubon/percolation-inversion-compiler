@@ -50,6 +50,10 @@ secrets/
 private/
 local/
 downloads/
+*.sqlite
+*.sqlite3
+*.db
+*.db-*
 
 # OS and editor files
 .DS_Store

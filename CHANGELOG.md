@@ -1,5 +1,13 @@
 # Changelog
 
+## v0.3.2 - 2026-06-07
+
+- Reframes the runtime around ECPT collective capability percolation: ASI-proxy progress is packet availability, verification throughput, semantic edge composability, SQOT reserve, capacity/queue ledgers, and resource-matched basin movement rather than self-rewriting.
+- Adds content-addressed evidence ref loading, profile-specific packet promotion policy, semantic edge relation verification, accepted packet paths, and `QS`/`HZ` Psi components for salience reserve and hazard/authority load.
+- Adds resource-envelope matched acceleration certificates, acceleration experiment suites, allowlisted autonomous runtime task and route execution, and SQLite-backed runtime store records.
+- Adds CLI and service surfaces for `runtime execute-task`, `runtime execute-routes`, `runtime run-agent-loop`, `runtime store`, `ecology paths`, and `ecology verify-edge`.
+- Expands docs/examples for collective phase runtime, runtime executor, runtime store, edge relation verifiers, and resource-matched benchmarks while preserving explicit residual obligations for unobserved physical, oracle, simulator, and real ASI outcomes.
+
 ## v0.3.1 - 2026-06-06
 
 - Closes the ECPT active agent runtime loop with action-result application, event logs, evidence resolution batches, verified packet promotion, and runtime run comparison.

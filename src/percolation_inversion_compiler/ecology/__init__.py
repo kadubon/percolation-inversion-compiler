@@ -10,6 +10,8 @@ from percolation_inversion_compiler.ecology.algorithms import (
     check_basin_reachability,
     closed_loop_iteration,
     edge_certificate_from_witness,
+    edge_relation_verifier_spec,
+    find_accepted_paths_to_basin,
     ingest_agent_output,
     ingest_local_file,
     packet_from_text,
@@ -17,10 +19,12 @@ from percolation_inversion_compiler.ecology.algorithms import (
     registry_to_json,
     sha256_text,
     verification_throughput,
+    verify_edge_relation,
     verify_edge_witness_certificate,
 )
 from percolation_inversion_compiler.ecology.connectors import infer_live_kind, ingest_live_source
 from percolation_inversion_compiler.ecology.records import (
+    AcceptedPacketPath,
     BasinReachabilityReport,
     BottleneckIntervention,
     BottleneckInversionPlan,
@@ -28,6 +32,8 @@ from percolation_inversion_compiler.ecology.records import (
     CapabilityPacketCandidate,
     CapabilityPacketRegistry,
     ClosedLoopAgentIteration,
+    EdgeRelationVerificationReport,
+    EdgeRelationVerifierSpec,
     EdgeWitness,
     EdgeWitnessCertificate,
     PacketIngestionReport,
@@ -41,6 +47,7 @@ from percolation_inversion_compiler.ecology.records import (
 )
 
 __all__ = [
+    "AcceptedPacketPath",
     "BasinReachabilityReport",
     "BottleneckIntervention",
     "BottleneckInversionPlan",
@@ -48,6 +55,8 @@ __all__ = [
     "CapabilityPacketCandidate",
     "CapabilityPacketRegistry",
     "ClosedLoopAgentIteration",
+    "EdgeRelationVerificationReport",
+    "EdgeRelationVerifierSpec",
     "EdgeWitness",
     "EdgeWitnessCertificate",
     "PacketIngestionReport",
@@ -65,6 +74,8 @@ __all__ = [
     "check_basin_reachability",
     "closed_loop_iteration",
     "edge_certificate_from_witness",
+    "edge_relation_verifier_spec",
+    "find_accepted_paths_to_basin",
     "infer_live_kind",
     "ingest_agent_output",
     "ingest_live_source",
@@ -74,5 +85,6 @@ __all__ = [
     "registry_to_json",
     "sha256_text",
     "verification_throughput",
+    "verify_edge_relation",
     "verify_edge_witness_certificate",
 ]

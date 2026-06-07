@@ -1,0 +1,15 @@
+{
+  "accepted": true,
+  "certificate_id": "edge-certificate:example-sqot-to-ecpt",
+  "confidence_lower_bound": 0.8,
+  "edge_id": "edge:example-sqot-to-ecpt",
+  "evidence_refs": [
+    "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  ],
+  "false_edge_residual": 0.0,
+  "relation_type": "semantic-dependency",
+  "source_packet_ids": [
+    "packet:sqot-reserve"
+  ],
+  "target_packet_id": "packet:ecpt-edge-witness"
+}

@@ -23,6 +23,7 @@ from percolation_inversion_compiler.ecology.records import (
     BottleneckInversionPlan,
     CapabilityPacketCandidate,
     CapabilityPacketRegistry,
+    EdgeRelationVerificationReport,
     EdgeWitnessCertificate,
     PacketIngestionReport,
     PacketPromotionReport,
@@ -58,6 +59,51 @@ class AgentRuntimeConfig(BaseModel):
     max_tasks: int = 8
     required_routes: list[str] = Field(default_factory=list)
     minimum_task_score: float = 0.0
+
+
+class ContentAddressedEvidenceRef(BaseModel):
+    """Content-addressed reference to a verifier evidence envelope."""
+
+    ref: str
+    sha256: str
+    media_type: str = "application/json"
+    schema_uri: str | None = None
+    provenance_ref: str | None = None
+
+
+class EvidenceEnvelopeStoreRecord(BaseModel):
+    """Portable description of an evidence-envelope store."""
+
+    store_id: str
+    store_kind: str = "file"
+    root_ref: str
+    allowed_ref_prefixes: list[str] = Field(default_factory=list)
+    content_refs: list[ContentAddressedEvidenceRef] = Field(default_factory=list)
+    accepted: bool = False
+    reasons: list[str] = Field(default_factory=list)
+
+
+class ResourceEnvelope(BaseModel):
+    """Finite resource envelope for protocol-competitive runtime comparison."""
+
+    wall_time_seconds: float = 0.0
+    token_budget: int = 0
+    verifier_calls: int = 0
+    network_calls: int = 0
+    compute_cost: float = 0.0
+    human_review_budget: float = 0.0
+    risk_budget: float = 0.0
+
+
+class ResourceMatchedBaselineConfig(BaseModel):
+    """Baseline comparability contract for ECPT acceleration certificates."""
+
+    observation_protocol_id: str = "default-observation-protocol"
+    constraint_frame_id: str = "default-constraint-frame"
+    receiver_family: list[str] = Field(default_factory=list)
+    validity_domain: str = "protocol-relative-finite"
+    resource_envelope: ResourceEnvelope = Field(default_factory=ResourceEnvelope)
+    tolerance: float = 0.0
 
 
 class RuntimeEvent(BaseModel):
@@ -228,6 +274,8 @@ class RuntimeRunReport(BaseModel):
     cumulative_residual_ledger: Ledger = Field(default_factory=Ledger)
     threshold_crossing_step: int | None = None
     resource_units: float = 0.0
+    resource_envelope: ResourceEnvelope = Field(default_factory=ResourceEnvelope)
+    baseline_config: ResourceMatchedBaselineConfig | None = None
     accepted: bool = False
     finite_checks_passed: bool = False
     operationally_usable: bool = False
@@ -250,6 +298,7 @@ class AccelerationCertificate(BaseModel):
     salience_non_obstructed: bool = False
     false_liquidity_bounded: bool = False
     verification_backlog_bounded: bool = False
+    resource_envelope_matched: bool = False
     residual_external_obligations: list[str] = Field(default_factory=list)
     residual_ledger: Ledger = Field(default_factory=Ledger)
     accepted: bool = False
@@ -271,6 +320,103 @@ class RuntimeComparisonReport(BaseModel):
     finite_checks_passed: bool = False
     operationally_usable: bool = False
     settled: bool = False
+
+
+class AccelerationExperimentSuite(BaseModel):
+    """Repeated finite comparisons with residual-aware lower bounds."""
+
+    suite_id: str
+    paired_comparisons: list[RuntimeComparisonReport] = Field(default_factory=list)
+    lower_confidence_bound: float = 0.0
+    negative_control_passed: bool = False
+    accepted: bool = False
+    finite_checks_passed: bool = False
+    operationally_usable: bool = False
+    settled: bool = False
+    residual_ledger: Ledger = Field(default_factory=Ledger)
+    reasons: list[str] = Field(default_factory=list)
+
+
+class RuntimeExecutorPolicy(BaseModel):
+    """Fail-closed policy for autonomous runtime execution."""
+
+    profile: str = "development"
+    allowed_task_types: list[str] = Field(
+        default_factory=lambda: [
+            "evidence-verify",
+            "schema-validate",
+            "snapshot-verify",
+            "parse-audit",
+            "local-packet-ingest",
+            "route-execution",
+            "runtime-step",
+            "runtime-apply-results",
+            "runtime-compare",
+            "runtime-certify-acceleration",
+        ]
+    )
+    allowed_route_ids: list[str] = Field(default_factory=list)
+    allow_network: bool = False
+    allow_file_write: bool = False
+    allow_shell: bool = False
+    sandbox_root: str | None = None
+    require_authority_grant: bool = True
+    require_rollback_receipt: bool = True
+    max_tasks: int = 16
+
+
+class RuntimeExecutionReport(BaseModel):
+    """Result of executing one allowlisted runtime task."""
+
+    report_id: str
+    task_id: str
+    task_type: str
+    accepted: bool = False
+    finite_checks_passed: bool = False
+    operationally_usable: bool = False
+    settled: bool = False
+    action_result: RuntimeActionResult | None = None
+    residual_ledger: Ledger = Field(default_factory=Ledger)
+    reasons: list[str] = Field(default_factory=list)
+
+
+class RouteExecutionBatch(BaseModel):
+    """Batch route-execution result for autonomous runtime loops."""
+
+    batch_id: str
+    reports: list[RuntimeExecutionReport] = Field(default_factory=list)
+    resolutions: list[VerifierResolution] = Field(default_factory=list)
+    accepted: bool = False
+    finite_checks_passed: bool = False
+    operationally_usable: bool = False
+    settled: bool = False
+    residual_ledger: Ledger = Field(default_factory=Ledger)
+    reasons: list[str] = Field(default_factory=list)
+
+
+class RuntimeStoreRecord(BaseModel):
+    """Portable runtime store description."""
+
+    store_id: str
+    store_kind: str = "sqlite"
+    store_ref: str
+    state_count: int = 0
+    event_count: int = 0
+    run_count: int = 0
+    certificate_count: int = 0
+    accepted: bool = False
+    reasons: list[str] = Field(default_factory=list)
+
+
+class RuntimeStoreSnapshot(BaseModel):
+    """Deterministic export of a runtime store."""
+
+    snapshot_id: str
+    states: list[RuntimeState] = Field(default_factory=list)
+    events: list[RuntimeEvent] = Field(default_factory=list)
+    runs: list[RuntimeRunReport] = Field(default_factory=list)
+    certificates: list[AccelerationCertificate] = Field(default_factory=list)
+    aggregate_sha256: str = "0" * 64
 
 
 class RuntimeStepReport(BaseModel):
@@ -299,6 +445,7 @@ class RuntimeStepReport(BaseModel):
     promotion_report: PacketPromotionReport = Field(
         default_factory=lambda: PacketPromotionReport(report_id="packet-promotion:none")
     )
+    edge_relation_reports: list[EdgeRelationVerificationReport] = Field(default_factory=list)
     event_log_delta: RuntimeEventLog = Field(default_factory=RuntimeEventLog)
     basin_reachability: BasinReachabilityReport | None = None
     verified_packet_count: int = 0
@@ -357,3 +504,5 @@ class RuntimeServiceSettings(BaseModel):
     require_token: bool | None = None
     token_env_var: str = "PIC_RUNTIME_TOKEN"
     allow_live_connectors: bool = False
+    max_request_bytes: int = 1_000_000
+    allowed_route_ids: list[str] = Field(default_factory=list)

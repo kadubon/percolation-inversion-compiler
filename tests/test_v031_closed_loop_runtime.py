@@ -24,6 +24,7 @@ from percolation_inversion_compiler.ecology import (
 from percolation_inversion_compiler.io.schema import load_data, schema_by_type
 from percolation_inversion_compiler.runtime import (
     AgentRuntimeConfig,
+    ResourceEnvelope,
     RuntimeActionResult,
     RuntimeRunReport,
     RuntimeServiceSettings,
@@ -63,12 +64,14 @@ def test_evidence_resolution_promotes_finite_scope_packets_without_settling() ->
 
     report = build_runtime_step(state, step_input, AgentRuntimeConfig(profile="production"))
     assert report.evidence_resolution_batch.accepted
-    assert report.promotion_report.verified_packets
-    assert report.verified_packet_count >= len(report.promotion_report.verified_packets)
+    assert not report.promotion_report.verified_packets
+    assert report.promotion_report.rejected_packets
     assert not report.settled
-    assert report.acceleration_certificate_eligible
+    assert not report.acceleration_certificate_eligible
     assert any(
-        packet.residual_external_obligations for packet in report.promotion_report.verified_packets
+        "external domain obligations" in " ".join(packet.reasons)
+        or "accepted edge certificate" in " ".join(packet.reasons)
+        for packet in report.promotion_report.rejected_packets
     )
 
 
@@ -326,7 +329,12 @@ def test_action_results_event_log_and_run_comparison_certificate() -> None:
     assert comparison.accepted
     assert not certificate.settled
 
-    non_matched = candidate_run.model_copy(update={"resource_units": 2.0})
+    non_matched = candidate_run.model_copy(
+        update={
+            "resource_units": 2.0,
+            "resource_envelope": ResourceEnvelope(wall_time_seconds=2.0),
+        }
+    )
     assert not certify_runtime_acceleration(baseline_run, non_matched).accepted
 
 
@@ -378,6 +386,7 @@ def test_action_result_and_acceleration_negative_branches() -> None:
     candidate = candidate.model_copy(
         update={
             "resource_units": 2.0,
+            "resource_envelope": ResourceEnvelope(wall_time_seconds=2.0),
             "cumulative_residual_ledger": candidate.cumulative_residual_ledger.add_coordinate(
                 "candidate:extra-debt",
                 10.0,
