@@ -14,18 +14,18 @@ Search terms: ECPT, BIT, TRC, SQOT, ASI-proxy collective phase, protocol-relativ
 
 ## Core Workflow
 
-```mermaid
-flowchart LR
-  A["fixed agent population"] --> B["packet candidates"]
-  B --> C["evidence + semantic edge checks"]
-  C --> D["verified packet capital"]
-  D --> E["SQOT salience queue"]
-  E --> F["Psi dashboard"]
-  F --> G["bottleneck / phase tasks"]
-  G --> H["action results"]
-  H --> I["runtime store"]
-  I --> J["collective phase certificate"]
-```
+| Step | Runtime object | What the agent gets |
+| --- | --- | --- |
+| 1 | **Fixed agent population** | A declared population, policy digest, model digest, route allowlist, and no-self-rewrite ledger. |
+| 2 | **Packet candidates** | Finite capability packets from agent output, local files, fixtures, repositories, or verifier evidence. |
+| 3 | **Evidence + semantic edge checks** | Hash/provenance checks and typed relations such as theorem-to-code, code-to-test, rollback-support, and execution-path. |
+| 4 | **Verified packet capital** | Reusable packets promoted only after route, receiver, rollback, authority, edge, and residual policies pass. |
+| 5 | **SQOT salience queue** | A priority schedule that preserves diagnostic reserve and quarantines stale, unsafe, or hash-invalid packets. |
+| 6 | **Psi dashboard** | Protocol-relative collective phase components for availability, closure, execution paths, queues, hazards, and basin reachability. |
+| 7 | **Bottleneck / phase tasks** | Ranked finite tasks for verifier routing, packet repair, edge construction, and phase-control planning. |
+| 8 | **Action results** | Execution reports and route resolutions that are applied back into the runtime state. |
+| 9 | **Runtime store** | Persistent event logs, verified packets, route batches, packet lineage, and residual ledgers. |
+| 10 | **Collective phase certificate** | A fail-closed certificate over fixed population, no self-rewrite, no hidden injection, closure, execution availability, Psi thresholds, and resource-matched baseline. |
 
 The runtime is fail-closed: planning can recommend finite ASI-proxy actions, but `settled` remains false unless scoped verifier rules discharge the required finite obligations. Residual external obligations remain explicit.
 
