@@ -15,6 +15,8 @@ from percolation_inversion_compiler.identity.records import (
     AgentIdentityCheckReport,
     AgentIdentityStrength,
     CryptographicAgentIdentity,
+    IdentityContributionStatus,
+    IdentityTrustProfile,
     SignatureSuite,
     SybilResistanceLedger,
     SybilResistancePolicy,
@@ -74,6 +76,155 @@ _STRENGTH_RANK: dict[AgentIdentityStrength, int] = {
     AgentIdentityStrength.HARDWARE_ATTESTED: 2,
     AgentIdentityStrength.INSTITUTIONALLY_ATTESTED: 3,
 }
+
+
+_PROFILE_REQUIRES_ACCEPTED_SYBIL = {
+    IdentityTrustProfile.CONTROLLED.value,
+    IdentityTrustProfile.FEDERATED.value,
+    IdentityTrustProfile.PRODUCTION.value,
+    IdentityTrustProfile.ADVERSARIAL.value,
+}
+
+
+def normalize_identity_profile(profile: str) -> IdentityTrustProfile:
+    """Normalize an operational identity profile."""
+
+    try:
+        return IdentityTrustProfile(profile.lower())
+    except ValueError:
+        return IdentityTrustProfile.PRODUCTION
+
+
+def sybil_policy_for_profile(profile: str) -> SybilResistancePolicy:
+    """Return deterministic Sybil policy defaults for a trust profile."""
+
+    normalized = normalize_identity_profile(profile)
+    if normalized == IdentityTrustProfile.DEVELOPMENT:
+        return SybilResistancePolicy(
+            policy_id="sybil-policy:development",
+            trust_profile=normalized,
+            minimum_identity_strength=AgentIdentityStrength.DECLARED,
+            require_unique_agent_id=True,
+            require_unique_public_key_id=False,
+            require_unique_public_key_fingerprint=False,
+            reject_failed_signatures=False,
+            max_clone_fanout=None,
+            allow_homogeneous_fleet_with_unique_keys=True,
+            metadata={"purpose": "local examples and unsigned diagnostic development"},
+        )
+    if normalized == IdentityTrustProfile.RESEARCH:
+        return SybilResistancePolicy(
+            policy_id="sybil-policy:research",
+            trust_profile=normalized,
+            minimum_identity_strength=AgentIdentityStrength.PUBLIC_KEY_ATTESTED,
+            require_unique_agent_id=True,
+            require_unique_public_key_id=True,
+            require_unique_public_key_fingerprint=True,
+            max_clone_fanout=None,
+            allow_homogeneous_fleet_with_unique_keys=True,
+            metadata={"purpose": "signed research runs without production trust"},
+        )
+    if normalized == IdentityTrustProfile.CONTROLLED:
+        return SybilResistancePolicy(
+            policy_id="sybil-policy:controlled",
+            trust_profile=normalized,
+            minimum_identity_strength=AgentIdentityStrength.PUBLIC_KEY_ATTESTED,
+            require_unique_agent_id=True,
+            require_unique_public_key_id=True,
+            require_unique_public_key_fingerprint=True,
+            max_clone_fanout=1,
+            max_agents_per_fleet=8,
+            allow_homogeneous_fleet_with_unique_keys=True,
+            metadata={"purpose": "internal labs and trusted homogeneous fleets"},
+        )
+    if normalized == IdentityTrustProfile.FEDERATED:
+        return SybilResistancePolicy(
+            policy_id="sybil-policy:federated",
+            trust_profile=normalized,
+            minimum_identity_strength=AgentIdentityStrength.PUBLIC_KEY_ATTESTED,
+            require_unique_agent_id=True,
+            require_unique_public_key_id=True,
+            require_unique_public_key_fingerprint=True,
+            require_issuer_id=True,
+            max_agents_per_issuer=8,
+            max_clone_fanout=1,
+            max_agents_per_fleet=8,
+            allow_homogeneous_fleet_with_unique_keys=True,
+            metadata={"purpose": "multi-issuer federation with issuer quotas"},
+        )
+    if normalized == IdentityTrustProfile.ADVERSARIAL:
+        return SybilResistancePolicy(
+            policy_id="sybil-policy:adversarial",
+            trust_profile=normalized,
+            minimum_identity_strength=AgentIdentityStrength.PUBLIC_KEY_ATTESTED,
+            require_unique_agent_id=True,
+            require_unique_public_key_id=True,
+            require_unique_public_key_fingerprint=True,
+            require_unique_credential_ref=True,
+            require_issuer_id=True,
+            require_credential_ref=True,
+            max_clone_fanout=1,
+            max_agents_per_issuer=1,
+            allow_homogeneous_fleet_with_unique_keys=False,
+            require_distinct_role_or_worker_index_for_fleet=True,
+            metadata={"purpose": "strict adversarial population checks"},
+        )
+    return SybilResistancePolicy(
+        policy_id="sybil-policy:production",
+        trust_profile=IdentityTrustProfile.PRODUCTION,
+        minimum_identity_strength=AgentIdentityStrength.PUBLIC_KEY_ATTESTED,
+        require_unique_agent_id=True,
+        require_unique_public_key_id=True,
+        require_unique_public_key_fingerprint=True,
+        max_clone_fanout=1,
+        max_agents_per_fleet=4,
+        allow_homogeneous_fleet_with_unique_keys=True,
+        metadata={"purpose": "production packet issuer and population checks"},
+    )
+
+
+def identity_contribution_status_for_packet(
+    packet: object,
+    sybil_ledger: SybilResistanceLedger | None,
+    profile: str,
+) -> IdentityContributionStatus:
+    """Classify packet contribution without promoting status."""
+
+    normalized = normalize_identity_profile(profile)
+    agent_id = getattr(packet, "issuer_agent_id", None)
+    public_key_id = getattr(packet, "issuer_public_key_id", None)
+    attestation_id = getattr(packet, "issuer_attestation_id", None)
+    signature_ref = getattr(packet, "issuer_signature_ref", None)
+    if not any([agent_id, public_key_id, attestation_id, signature_ref]):
+        if normalized in {
+            IdentityTrustProfile.PRODUCTION,
+            IdentityTrustProfile.ADVERSARIAL,
+        }:
+            return IdentityContributionStatus.REJECTED
+        if normalized == IdentityTrustProfile.DEVELOPMENT:
+            return IdentityContributionStatus.DIAGNOSTIC
+        return IdentityContributionStatus.PROVISIONAL
+    if not all([agent_id, public_key_id, attestation_id, signature_ref]):
+        return (
+            IdentityContributionStatus.QUARANTINED
+            if normalized in {IdentityTrustProfile.PRODUCTION, IdentityTrustProfile.ADVERSARIAL}
+            else IdentityContributionStatus.DIAGNOSTIC
+        )
+    if sybil_ledger is None:
+        return (
+            IdentityContributionStatus.QUARANTINED
+            if normalized in {IdentityTrustProfile.PRODUCTION, IdentityTrustProfile.ADVERSARIAL}
+            else IdentityContributionStatus.PROVISIONAL
+        )
+    if (
+        agent_id in set(sybil_ledger.accepted_agent_ids)
+        and public_key_id in set(sybil_ledger.accepted_public_key_ids)
+        and sybil_ledger.accepted
+    ):
+        return IdentityContributionStatus.VERIFIED
+    if normalized in _PROFILE_REQUIRES_ACCEPTED_SYBIL:
+        return IdentityContributionStatus.REJECTED
+    return IdentityContributionStatus.DIAGNOSTIC
 
 
 def stable_digest(payload: bytes | str | dict[str, Any] | list[Any]) -> str:
@@ -411,6 +562,12 @@ def check_sybil_resistance(
         identity.credential_ref for identity in identities if identity.credential_ref
     ]
     duplicate_credentials = _duplicates(credential_refs)
+    missing_issuer_ids = sorted(
+        identity.agent_id for identity in identities if not identity.issuer_id
+    )
+    missing_credential_refs = sorted(
+        identity.agent_id for identity in identities if not identity.credential_ref
+    )
 
     if not identities:
         _append_failure(
@@ -456,6 +613,24 @@ def check_sybil_resistance(
             f"sybil:{population_id}:duplicate-credential-ref",
             "duplicate credential ref",
             value=len(duplicate_credentials),
+        )
+    if active_policy.require_issuer_id and missing_issuer_ids:
+        rejected.update(missing_issuer_ids)
+        _append_failure(
+            residual,
+            reasons,
+            f"sybil:{population_id}:missing-issuer-id",
+            "missing issuer id",
+            value=len(missing_issuer_ids),
+        )
+    if active_policy.require_credential_ref and missing_credential_refs:
+        rejected.update(missing_credential_refs)
+        _append_failure(
+            residual,
+            reasons,
+            f"sybil:{population_id}:missing-credential-ref",
+            "missing credential ref",
+            value=len(missing_credential_refs),
         )
 
     revoked_agent_ids = sorted(
@@ -524,6 +699,10 @@ def check_sybil_resistance(
         [identity.issuer_id for identity in identities if identity.issuer_id],
         active_policy.max_agents_per_issuer,
     )
+    fleet_overrepresented = _overrepresented(
+        [identity.fleet_id for identity in identities if identity.fleet_id],
+        active_policy.max_agents_per_fleet,
+    )
     policy_overrepresented = _overrepresented(
         [identity.policy_digest for identity in identities],
         active_policy.max_agents_per_policy_digest,
@@ -532,9 +711,11 @@ def check_sybil_resistance(
         [identity.model_digest for identity in identities if identity.model_digest],
         active_policy.max_agents_per_model_digest,
     )
-    clone_fanout_groups = _clone_fanout_groups(identities, active_policy.max_clone_fanout)
+    clone_fanout_groups = _clone_fanout_groups(identities, active_policy)
     for value in issuer_overrepresented:
         rejected.update(identity.agent_id for identity in identities if identity.issuer_id == value)
+    for value in fleet_overrepresented:
+        rejected.update(identity.agent_id for identity in identities if identity.fleet_id == value)
     for value in policy_overrepresented:
         rejected.update(
             identity.agent_id for identity in identities if identity.policy_digest == value
@@ -550,6 +731,14 @@ def check_sybil_resistance(
             f"sybil:{population_id}:issuer-overrepresentation",
             "issuer overrepresentation",
             value=len(issuer_overrepresented),
+        )
+    if fleet_overrepresented:
+        _append_failure(
+            residual,
+            reasons,
+            f"sybil:{population_id}:fleet-overrepresentation",
+            "fleet overrepresentation",
+            value=len(fleet_overrepresented),
         )
     if policy_overrepresented:
         _append_failure(
@@ -589,7 +778,10 @@ def check_sybil_resistance(
         identity.agent_id
         for identity in identities
         if identity.agent_id not in rejected
-        and report_by_agent.get(identity.agent_id, _empty_report(identity.agent_id)).accepted
+        and (
+            report_by_agent.get(identity.agent_id, _empty_report(identity.agent_id)).accepted
+            or not active_policy.reject_failed_signatures
+        )
     )
     accepted = bool(identities) and not reasons and len(accepted_agent_ids) == len(identities)
     return SybilResistanceLedger(
@@ -599,8 +791,14 @@ def check_sybil_resistance(
         ),
         population_id=population_id,
         policy_id=active_policy.policy_id,
+        trust_profile=active_policy.trust_profile,
         identity_count=len(identities),
         accepted_agent_ids=accepted_agent_ids,
+        accepted_public_key_ids=sorted(
+            identity.public_key_id
+            for identity in identities
+            if identity.agent_id in set(accepted_agent_ids)
+        ),
         rejected_agent_ids=sorted(rejected),
         duplicate_agent_ids=duplicate_agent_ids,
         duplicate_public_key_ids=duplicate_public_key_ids,
@@ -611,10 +809,12 @@ def check_sybil_resistance(
         failed_signature_agent_ids=failed_signature_agent_ids,
         missing_evidence_refs=missing_evidence,
         issuer_overrepresented=issuer_overrepresented,
+        fleet_overrepresented=fleet_overrepresented,
         policy_overrepresented=policy_overrepresented,
         model_overrepresented=model_overrepresented,
         clone_fanout_groups=clone_fanout_groups,
         identity_check_reports=reports,
+        policy_explanation=_policy_explanation(active_policy),
         residual_ledger=residual,
         accepted=accepted,
         finite_checks_passed=accepted,
@@ -663,9 +863,9 @@ def _overrepresented(values: list[str], limit: int | None) -> list[str]:
 
 def _clone_fanout_groups(
     identities: list[CryptographicAgentIdentity],
-    max_clone_fanout: int | None,
+    policy: SybilResistancePolicy,
 ) -> list[str]:
-    if max_clone_fanout is None:
+    if policy.max_clone_fanout is None:
         return []
     groups: dict[tuple[str, str, str], list[str]] = defaultdict(list)
     for identity in identities:
@@ -676,9 +876,53 @@ def _clone_fanout_groups(
                 identity.tool_digest or "",
             )
         ].append(identity.agent_id)
-    return sorted(
-        "|".join(key) for key, agent_ids in groups.items() if len(agent_ids) > max_clone_fanout
-    )
+    rejected: list[str] = []
+    identity_by_agent = {identity.agent_id: identity for identity in identities}
+    for key, agent_ids in sorted(groups.items()):
+        if len(agent_ids) <= policy.max_clone_fanout:
+            continue
+        members = [identity_by_agent[agent_id] for agent_id in agent_ids]
+        public_key_ids = [identity.public_key_id for identity in members]
+        fingerprints = [identity.public_key_fingerprint for identity in members]
+        distinct_keys = len(set(public_key_ids)) == len(public_key_ids) and len(
+            set(fingerprints)
+        ) == len(fingerprints)
+        fleet_ids = {identity.fleet_id for identity in members if identity.fleet_id}
+        all_have_fleet = len(fleet_ids) == 1 and all(identity.fleet_id for identity in members)
+        if (
+            policy.allow_homogeneous_fleet_with_unique_keys
+            and distinct_keys
+            and all_have_fleet
+            and (policy.max_agents_per_fleet is None or len(members) <= policy.max_agents_per_fleet)
+            and _fleet_role_worker_ok(members, policy)
+        ):
+            continue
+        rejected.append("|".join(key))
+    return rejected
+
+
+def _fleet_role_worker_ok(
+    identities: list[CryptographicAgentIdentity],
+    policy: SybilResistancePolicy,
+) -> bool:
+    if not policy.require_distinct_role_or_worker_index_for_fleet:
+        return True
+    keys = [f"{identity.role_id or ''}:{identity.worker_index or ''}" for identity in identities]
+    return all(key != ":" for key in keys) and len(set(keys)) == len(keys)
+
+
+def _policy_explanation(policy: SybilResistancePolicy) -> dict[str, str]:
+    return {
+        "trust_profile": policy.trust_profile.value,
+        "identity_limit": ("cryptographic identity proves protocol-relative key control only"),
+        "homogeneous_fleet": (
+            "same model, policy, and tool digest are allowed only when policy permits "
+            "homogeneous fleets with distinct keys and bounded fleet membership"
+        ),
+        "settlement_limit": (
+            "Sybil resistance does not settle real-world identity or global uniqueness"
+        ),
+    }
 
 
 def _sybil_digest_payload(

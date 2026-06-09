@@ -1001,9 +1001,14 @@ def check_no_hidden_capability_injection(
     runtime_events: Sequence[Mapping[str, object]] | None = None,
     accepted_agent_ids: Sequence[str] | None = None,
     trusted_public_key_ids: Sequence[str] | None = None,
+    profile: str = "development",
+    require_signed_packets: bool = False,
 ) -> HiddenCapabilityInjectionReport:
     """Reject packet, edge, evidence, or event sources outside the protocol frame."""
 
+    normalized_profile = profile.lower()
+    hard_identity_check = normalized_profile in {"production", "adversarial"}
+    signed_required = require_signed_packets or hard_identity_check
     allowed_sources = set(protocol.allowed_source_kinds)
     allowed_routes = set(protocol.allowed_route_ids)
     allowed_packets = set(protocol.allowed_packet_ids)
@@ -1036,17 +1041,35 @@ def check_no_hidden_capability_injection(
                 rejected_refs.append(ref)
                 reasons.append("packet evidence ref is outside allowed evidence prefixes")
         if agent_id_set and packet.issuer_agent_id not in agent_id_set:
-            rejected_packets.append(packet.packet_id)
             rejected_agents.append(packet.issuer_agent_id or "<missing>")
-            reasons.append("packet issuer is outside accepted agent identities")
+            residual = residual.add_coordinate(
+                f"hidden-injection:{protocol.protocol_id}:untrusted-agent",
+                1.0,
+                kind=CoordinateKind.RESIDUAL,
+            )
+            if hard_identity_check:
+                rejected_packets.append(packet.packet_id)
+                reasons.append("packet issuer is outside accepted agent identities")
         if public_key_id_set and packet.issuer_public_key_id not in public_key_id_set:
-            rejected_packets.append(packet.packet_id)
             rejected_agents.append(packet.issuer_agent_id or "<missing>")
-            reasons.append("packet public key is outside trusted identity keys")
-        if (agent_id_set or public_key_id_set) and not packet.issuer_signature_ref:
-            rejected_packets.append(packet.packet_id)
+            residual = residual.add_coordinate(
+                f"hidden-injection:{protocol.protocol_id}:untrusted-public-key",
+                1.0,
+                kind=CoordinateKind.RESIDUAL,
+            )
+            if hard_identity_check:
+                rejected_packets.append(packet.packet_id)
+                reasons.append("packet public key is outside trusted identity keys")
+        if signed_required and not packet.issuer_signature_ref:
             unsigned_packets.append(packet.packet_id)
-            reasons.append("packet issuer signature reference is missing")
+            residual = residual.add_coordinate(
+                f"hidden-injection:{protocol.protocol_id}:unsigned-packet",
+                1.0,
+                kind=CoordinateKind.RESIDUAL,
+            )
+            if hard_identity_check or require_signed_packets:
+                rejected_packets.append(packet.packet_id)
+                reasons.append("packet issuer signature reference is missing")
     packet_ids = {packet.packet_id for packet in registry.packets}
     for edge in registry.edges:
         if edge.target_packet_id not in packet_ids or any(
@@ -1061,6 +1084,37 @@ def check_no_hidden_capability_injection(
         ):
             rejected_events.append(str(event.get("event_id", event_type)))
             reasons.append("runtime event type is outside protocol runtime vocabulary")
+        issuer_agent = event.get("issuer_agent_id")
+        issuer_key = event.get("issuer_public_key_id")
+        event_id = str(event.get("event_id", event_type or "event"))
+        if (
+            hard_identity_check
+            and issuer_agent
+            and agent_id_set
+            and issuer_agent not in agent_id_set
+        ):
+            rejected_events.append(event_id)
+            rejected_agents.append(str(issuer_agent))
+            reasons.append("runtime event issuer is outside accepted agent identities")
+            residual = residual.add_coordinate(
+                f"hidden-injection:{protocol.protocol_id}:untrusted-agent",
+                1.0,
+                kind=CoordinateKind.RESIDUAL,
+            )
+        if (
+            hard_identity_check
+            and issuer_key
+            and public_key_id_set
+            and issuer_key not in public_key_id_set
+        ):
+            rejected_events.append(event_id)
+            rejected_agents.append(str(issuer_agent or "<missing>"))
+            reasons.append("runtime event public key is outside trusted identity keys")
+            residual = residual.add_coordinate(
+                f"hidden-injection:{protocol.protocol_id}:untrusted-public-key",
+                1.0,
+                kind=CoordinateKind.RESIDUAL,
+            )
     if reasons:
         rejected_items = set(
             rejected_packets + rejected_edges + rejected_events + rejected_refs + rejected_agents

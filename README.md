@@ -32,6 +32,8 @@ Search terms: ECPT, BIT, TRC, SQOT, ASI-proxy collective phase, protocol-relativ
 
 The runtime is fail-closed: planning can recommend finite ASI-proxy actions, but `settled` remains false unless scoped verifier rules discharge the required finite obligations. In production, signed identities and Sybil-resistance ledgers can prevent duplicate-key, clone-fanout, revoked, expired, or unsigned agent populations from producing accepted collective certificates. Residual external obligations remain explicit.
 
+v0.3.5 adds practical identity trust profiles so adversarial settings can stay fail-closed without making lab and research workflows fail-dead. Use `development`, `research`, `controlled`, `federated`, `production`, or `adversarial` profiles to choose how cryptographic agent identities, homogeneous fleets, signed packet issuers, and Sybil-resistance ledgers affect packet promotion and collective certificates.
+
 Core contract: registry is metadata, not evidence. Use `pic doctor` and structured checker outputs to distinguish declared status, finite certificate results, proof obligations, and residual ledgers.
 
 ## Quickstart

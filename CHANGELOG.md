@@ -1,5 +1,21 @@
 # Changelog
 
+## v0.3.5 - 2026-06-09
+
+- Adds practical identity trust profiles for development, research,
+  controlled, federated, production, and adversarial ECPT runtime workflows.
+- Wires accepted population identity context into runtime packet promotion so
+  production packet capital is bound to accepted agent IDs and public-key IDs.
+- Adds profile-sensitive Sybil policies, homogeneous fleet handling with
+  distinct keys and fleet quotas, and contribution statuses for verified,
+  provisional, diagnostic, quarantined, and rejected packets.
+- Extends hidden-injection checks, collective certificates, runtime health, and
+  CLI commands with identity readiness diagnostics and fail-closed residual
+  ledgers.
+- Updates docs and CLI references around practical identity profiles while
+  preserving the boundary that cryptographic identity proves only
+  protocol-relative key control.
+
 ## v0.3.4 - 2026-06-09
 
 - Adds optional cryptographic agent identity verification with an Ed25519

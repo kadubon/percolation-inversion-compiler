@@ -8,6 +8,7 @@ from pydantic import BaseModel, Field
 
 from percolation_inversion_compiler.core.ledger import Ledger
 from percolation_inversion_compiler.core.status import ClaimStatus
+from percolation_inversion_compiler.identity.records import IdentityContributionStatus
 
 
 class PacketSourceKind(StrEnum):
@@ -49,6 +50,9 @@ class CapabilityPacketCandidate(BaseModel):
     issuer_public_key_id: str | None = None
     issuer_attestation_id: str | None = None
     issuer_signature_ref: str | None = None
+    identity_contribution_status: IdentityContributionStatus = (
+        IdentityContributionStatus.PROVISIONAL
+    )
     status: ClaimStatus = ClaimStatus.PROVISIONAL
 
 
@@ -252,6 +256,7 @@ class VerifiedCapabilityPacket(BaseModel):
     issuer_agent_id: str | None = None
     issuer_public_key_id: str | None = None
     issuer_attestation_id: str | None = None
+    identity_contribution_status: IdentityContributionStatus = IdentityContributionStatus.VERIFIED
     operationally_usable: bool = False
     settled: bool = False
 
@@ -273,7 +278,7 @@ class PacketPromotionPolicy(BaseModel):
         """Return the packet-promotion policy for an execution profile."""
 
         normalized = profile.lower()
-        if normalized == "production":
+        if normalized in {"production", "adversarial"}:
             return cls(
                 require_route_resolution=True,
                 require_receiver_compatibility=True,
@@ -283,6 +288,17 @@ class PacketPromotionPolicy(BaseModel):
                 require_issuer_in_population=True,
                 allow_residual_external_obligations=False,
                 minimum_confidence_lower_bound=0.5,
+            )
+        if normalized in {"controlled", "federated"}:
+            return cls(
+                require_route_resolution=True,
+                require_receiver_compatibility=True,
+                require_edge_certificate=True,
+                require_rollback_available=True,
+                require_agent_identity_attestation=True,
+                require_issuer_in_population=True,
+                allow_residual_external_obligations=True,
+                minimum_confidence_lower_bound=0.4,
             )
         if normalized == "research":
             return cls(
@@ -305,6 +321,7 @@ class PacketRejection(BaseModel):
     source_candidate_id: str
     reasons: list[str] = Field(default_factory=list)
     residual_ledger: Ledger = Field(default_factory=Ledger)
+    identity_contribution_status: IdentityContributionStatus = IdentityContributionStatus.REJECTED
     status: ClaimStatus = ClaimStatus.DIAGNOSTIC
 
 
@@ -315,6 +332,7 @@ class PacketPromotionReport(BaseModel):
     accepted: bool = False
     verified_packets: list[VerifiedCapabilityPacket] = Field(default_factory=list)
     rejected_packets: list[PacketRejection] = Field(default_factory=list)
+    identity_contribution_summary: dict[str, int] = Field(default_factory=dict)
     residual_ledger: Ledger = Field(default_factory=Ledger)
     safety_invariants: list[str] = Field(
         default_factory=lambda: [

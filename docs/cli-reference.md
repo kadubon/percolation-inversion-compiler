@@ -63,9 +63,12 @@ uv run pic explain external def:null-channel-routing --from-snapshot
 ## Identity And Sybil Resistance
 
 ```powershell
+uv run pic identity explain-profile --profile development
+uv run pic identity explain-profile --profile production
 uv run pic identity verify --identity examples/identity/agent_identity_alice.json
 uv run pic identity verify-attestation --attestation examples/identity/packet_attestation.json --identities examples/identity/agent_identities.json
 uv run pic identity sybil-check --population examples/agent_population_signed.json
+uv run pic identity derive-context --population examples/agent_population_signed.json --profile production --output identity-context.json
 uv run pic identity sybil-check --population examples/identity/sybil_population_duplicate_key.json
 uv run pic identity sybil-check --population examples/identity/sybil_population_clone_fanout.json
 ```
@@ -103,6 +106,7 @@ uv run pic ecology loop --state examples/ecology_loop_state.json --agent-output 
 
 ```powershell
 uv run pic runtime step --state examples/runtime_state.json --input examples/runtime_step_input.json --profile production
+uv run pic runtime step --state examples/runtime_state.json --input examples/runtime_step_input.json --profile production --identity-context identity-context.json
 uv run pic runtime step --state examples/runtime_state.json --input examples/runtime_step_input_with_evidence.json --profile production --output runtime-step.json
 uv run pic runtime loop --state examples/runtime_state.json --inputs examples/runtime_loop_inputs.jsonl --max-steps 2 --profile production
 uv run pic runtime resolve-evidence --input examples/runtime_step_input_with_evidence.json --profile production

@@ -25,6 +25,7 @@ from percolation_inversion_compiler.ecology import (
     CapabilityBasinContract,
     EdgeRelationVerifierSpec,
     EdgeWitnessCertificate,
+    PacketPromotionPolicy,
     PacketSourceKind,
     ProtocolFrameDigest,
     PsiDashboard,
@@ -56,6 +57,7 @@ from percolation_inversion_compiler.identity import (
     AgentIdentityAttestation,
     CryptographicAgentIdentity,
     check_sybil_resistance,
+    sybil_policy_for_profile,
     verify_agent_attestation,
     verify_agent_identity,
 )
@@ -91,6 +93,7 @@ from percolation_inversion_compiler.runtime import (
     RouteExecutionRequest,
     RuntimeActionResult,
     RuntimeExecutorPolicy,
+    RuntimeIdentityContext,
     RuntimeRunReport,
     RuntimeServiceSettings,
     RuntimeState,
@@ -104,6 +107,7 @@ from percolation_inversion_compiler.runtime import (
     certify_runtime_acceleration,
     compare_runtime_runs,
     create_runtime_app,
+    derive_runtime_identity_context,
     execute_route_batch,
     execute_runtime_task,
     resolve_step_evidence,
@@ -281,6 +285,29 @@ def _load_runtime_state(path: Path) -> RuntimeState:
     if not isinstance(raw, dict):
         raise typer.BadParameter("runtime state file must contain an object")
     return RuntimeState.model_validate(raw)
+
+
+def _load_runtime_identity_context(path: Path) -> RuntimeIdentityContext:
+    data = load_data(path)
+    raw = data.get("identity_context", data.get("runtime_identity_context", data))
+    if not isinstance(raw, dict):
+        raise typer.BadParameter("identity context file must contain an object")
+    return RuntimeIdentityContext.model_validate(raw)
+
+
+def _state_with_identity_context(
+    state: RuntimeState,
+    context: RuntimeIdentityContext | None,
+) -> RuntimeState:
+    if context is None:
+        return state
+    return state.model_copy(
+        update={
+            "accepted_agent_ids": context.accepted_agent_ids,
+            "accepted_public_key_ids": context.accepted_public_key_ids,
+            "identity_mode": "cryptographic" if context.accepted else "diagnostic",
+        }
+    )
 
 
 def _load_runtime_step_input(path: Path) -> RuntimeStepInput:
@@ -1374,13 +1401,23 @@ def runtime_step_command(
         typer.Option("--risk-budget", help="SQOT risk budget for this step."),
     ] = 1.0,
     max_tasks: Annotated[int, typer.Option("--max-tasks", help="Maximum tasks to emit.")] = 8,
+    identity_context: Annotated[
+        Path | None,
+        typer.Option(
+            "--identity-context",
+            help="RuntimeIdentityContext JSON/YAML from `pic identity derive-context`.",
+        ),
+    ] = None,
     output: Annotated[
         Path | None, typer.Option("--output", "-o", help="Write JSON output.")
     ] = None,
 ) -> None:
     """Run one ECPT active runtime step."""
 
-    parsed_state = _load_runtime_state(state)
+    parsed_state = _state_with_identity_context(
+        _load_runtime_state(state),
+        None if identity_context is None else _load_runtime_identity_context(identity_context),
+    )
     parsed_input = _load_runtime_step_input(step_input)
     config = _runtime_config(
         profile=profile,
@@ -1885,6 +1922,57 @@ def identity_sybil_check_command(
     )
     _dump(ledger.model_dump(mode="json"), output)
     if not ledger.accepted:
+        raise typer.Exit(1)
+
+
+@identity_app.command("explain-profile")
+def identity_explain_profile_command(
+    profile: Annotated[
+        str,
+        typer.Option("--profile", help="Identity trust profile."),
+    ] = "production",
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Explain Sybil and packet-promotion policy for a trust profile."""
+
+    sybil_policy = sybil_policy_for_profile(profile)
+    promotion_policy = PacketPromotionPolicy.for_profile(profile)
+    _dump(
+        {
+            "profile": sybil_policy.trust_profile.value,
+            "sybil_policy": sybil_policy.model_dump(mode="json"),
+            "packet_promotion_policy": promotion_policy.model_dump(mode="json"),
+            "identity_limit": (
+                "cryptographic identity proves protocol-relative key control only; "
+                "it does not prove legal identity, real-world personhood, "
+                "organizational authority, or global uniqueness"
+            ),
+        },
+        output,
+    )
+
+
+@identity_app.command("derive-context")
+def identity_derive_context_command(
+    population: Annotated[
+        Path,
+        typer.Option("--population", help="AgentPopulationState JSON/YAML."),
+    ],
+    profile: Annotated[
+        str,
+        typer.Option("--profile", help="Identity trust profile."),
+    ] = "production",
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Derive runtime identity context from a signed population."""
+
+    context = derive_runtime_identity_context(_load_agent_population_state(population), profile)
+    _dump(context.model_dump(mode="json"), output)
+    if not context.accepted and profile.lower() in {"production", "adversarial"}:
         raise typer.Exit(1)
 
 

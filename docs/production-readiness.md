@@ -16,9 +16,11 @@ uv run pic doctor --profile production --required-route ecpt.adapters.proxy.veri
 ```
 
 `development` accepts metadata-only evidence for local experimentation.
-`research` keeps warnings visible. `production` requires deterministic
-provenance or canonical source checks, available route bindings, optional
-adapter visibility, and security metadata.
+`research` keeps warnings visible. `controlled` and `federated` are useful for
+signed internal or multi-issuer fleets. `production` and `adversarial` require
+deterministic provenance or canonical source checks, available route bindings,
+optional adapter visibility, security metadata, and identity-ready runtime
+context before signed packet issuers can become verified packet capital.
 
 `--required-route` scopes production checks to the adapter routes an agent is
 actually about to use. Missing optional dependencies for unused routes are
@@ -60,3 +62,21 @@ obligation ledger compiler. It does not mean external physical, oracle,
 simulator, or ASI-proxy claims are settled. Routes with
 `external_domain_required` remain explicit `ExternalProofObligation` boundaries
 until a domain verifier supplies accepted replayable evidence.
+
+## Identity Readiness
+
+For production runtime steps, derive accepted identity context from a signed
+population and pass it into the runtime:
+
+```powershell
+uv run pic identity explain-profile --profile production
+uv run pic identity derive-context --population examples/agent_population_signed.json --profile production --output identity-context.json
+uv run pic runtime health --state examples/runtime_state.json --profile production
+uv run pic runtime step --state examples/runtime_state.json --input examples/runtime_step_input.json --profile production --identity-context identity-context.json
+```
+
+`RuntimeHealthReport` includes `accepted_agent_context_present`,
+`accepted_public_key_context_present`, `cryptographic_identity_required`,
+`can_promote_unsigned_packets`, and `production_identity_ready`. If production
+identity context is missing, packets remain diagnostic or rejected with residual
+coordinates rather than being silently promoted.

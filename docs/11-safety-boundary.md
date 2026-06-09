@@ -29,9 +29,9 @@ Use `operationally_usable` for routing decisions. Use `settled` only for scoped 
 
 ## Identity Boundary
 
-Production collective certificates should require cryptographic agent identities and a `SybilResistanceLedger`. The identity layer proves protocol-relative control of a public key under the declared signature suite. It does not prove legal identity, real-world personhood, or uniqueness outside the declared population and policy.
+Production collective certificates should require cryptographic agent identities and a `SybilResistanceLedger`. Cryptographic identity proves protocol-relative control of a signing key. It does not prove legal identity, real-world personhood, organizational authority, or global uniqueness.
 
-Sybil resistance is also protocol-relative. It rejects duplicate `agent_id` values, duplicate public-key IDs, duplicate public-key fingerprints, revoked or expired identities, failed signatures, issuer overrepresentation, policy/model overrepresentation, and clone fanout according to the declared policy. A rejected identity remains visible in reasons and residual ledgers.
+Sybil resistance is also protocol-relative. It rejects duplicate `agent_id` values, duplicate public-key IDs, duplicate public-key fingerprints, revoked or expired identities, failed signatures, issuer overrepresentation, fleet overrepresentation, and clone fanout according to the selected profile and declared policy. Homogeneous fleets are allowed only when distinct public keys, declared fleet membership, bounded quotas, and residual accounting satisfy the profile. A rejected identity remains visible in reasons and residual ledgers.
 
 ## Residual Ledgers
 

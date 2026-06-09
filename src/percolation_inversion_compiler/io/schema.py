@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from enum import StrEnum
 from pathlib import Path
 from typing import Any
 
@@ -140,6 +141,8 @@ from percolation_inversion_compiler.identity.records import (
     AgentIdentityAttestation,
     AgentIdentityCheckReport,
     CryptographicAgentIdentity,
+    IdentityContributionStatus,
+    IdentityTrustProfile,
     SybilResistanceLedger,
     SybilResistancePolicy,
 )
@@ -185,6 +188,7 @@ from percolation_inversion_compiler.runtime.records import (
     RuntimeExecutionReport,
     RuntimeExecutorPolicy,
     RuntimeHealthReport,
+    RuntimeIdentityContext,
     RuntimeRunReport,
     RuntimeServiceSettings,
     RuntimeState,
@@ -245,7 +249,7 @@ def registry_json_schema() -> dict[str, Any]:
     return Registry.model_json_schema()
 
 
-def schema_model_map() -> dict[str, type[BaseModel]]:
+def schema_model_map() -> dict[str, type[Any]]:
     """Return stable public schema model names."""
 
     return {
@@ -290,6 +294,8 @@ def schema_model_map() -> dict[str, type[BaseModel]]:
         "ConfidenceLedger": ConfidenceLedger,
         "ControlledTransition": ControlledTransition,
         "CryptographicAgentIdentity": CryptographicAgentIdentity,
+        "IdentityContributionStatus": IdentityContributionStatus,
+        "IdentityTrustProfile": IdentityTrustProfile,
         "DKWCertificate": DKWCertificate,
         "DiagnosticReservePolicy": DiagnosticReservePolicy,
         "DischargeRouteBinding": DischargeRouteBinding,
@@ -385,6 +391,7 @@ def schema_model_map() -> dict[str, type[BaseModel]]:
         "RuntimeExecutionReport": RuntimeExecutionReport,
         "RuntimeExecutorPolicy": RuntimeExecutorPolicy,
         "RuntimeHealthReport": RuntimeHealthReport,
+        "RuntimeIdentityContext": RuntimeIdentityContext,
         "RuntimeRunReport": RuntimeRunReport,
         "RuntimeServiceSettings": RuntimeServiceSettings,
         "RuntimeState": RuntimeState,
@@ -435,7 +442,7 @@ def schema_by_type(type_name: str = "Registry") -> dict[str, Any]:
 
     schemas = schema_model_map()
     try:
-        return schemas[type_name].model_json_schema()
+        return _schema_for_type(type_name, schemas[type_name])
     except KeyError as exc:
         available = ", ".join(sorted(schemas))
         raise ValueError(f"unknown schema type {type_name!r}; available: {available}") from exc
@@ -443,8 +450,20 @@ def schema_by_type(type_name: str = "Registry") -> dict[str, Any]:
 
 def schema_bundle() -> PortabilitySchemaBundle:
     return PortabilitySchemaBundle(
-        schemas={name: model.model_json_schema() for name, model in schema_model_map().items()}
+        schemas={name: _schema_for_type(name, model) for name, model in schema_model_map().items()}
     )
+
+
+def _schema_for_type(name: str, model: type[Any]) -> dict[str, Any]:
+    if issubclass(model, BaseModel):
+        return model.model_json_schema()
+    if issubclass(model, StrEnum):
+        return {
+            "enum": [item.value for item in model],
+            "title": name,
+            "type": "string",
+        }
+    raise TypeError(f"unsupported schema type for {name}: {model!r}")
 
 
 def validate_data(data: dict[str, Any], schema: dict[str, Any] | None = None) -> list[str]:

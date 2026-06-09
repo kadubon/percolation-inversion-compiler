@@ -53,7 +53,14 @@ from percolation_inversion_compiler.ecpt import (
     build_phase_control_plan,
     reachable_mass,
 )
-from percolation_inversion_compiler.identity import check_sybil_resistance
+from percolation_inversion_compiler.identity import (
+    IdentityContributionStatus,
+    SybilResistancePolicy,
+    check_sybil_resistance,
+    identity_contribution_status_for_packet,
+    normalize_identity_profile,
+    sybil_policy_for_profile,
+)
 from percolation_inversion_compiler.runtime.records import (
     AccelerationCertificate,
     AccelerationExperimentSuite,
@@ -78,6 +85,7 @@ from percolation_inversion_compiler.runtime.records import (
     RuntimeExecutionReport,
     RuntimeExecutorPolicy,
     RuntimeHealthReport,
+    RuntimeIdentityContext,
     RuntimeRunReport,
     RuntimeState,
     RuntimeStepInput,
@@ -181,12 +189,35 @@ def build_runtime_step(
         state.verifier_resolution_inventory,
         evidence_batch.resolutions,
     )
+    identity_profile = active_config.identity_profile or active_config.profile
+    promotion_policy = PacketPromotionPolicy.for_profile(identity_profile)
+    if packets and promotion_policy.require_issuer_in_population and not state.accepted_agent_ids:
+        residual = residual.add_coordinate(
+            f"runtime-identity:{state.state_id}:missing-accepted-agent-context",
+            1.0,
+            kind=CoordinateKind.RESIDUAL,
+        )
+        reasons.append("accepted agent identity context is missing for packet promotion")
+    if (
+        packets
+        and promotion_policy.require_issuer_in_population
+        and not state.accepted_public_key_ids
+    ):
+        residual = residual.add_coordinate(
+            f"runtime-identity:{state.state_id}:missing-accepted-public-key-context",
+            1.0,
+            kind=CoordinateKind.RESIDUAL,
+        )
+        reasons.append("accepted public key identity context is missing for packet promotion")
     promotion_report = promote_runtime_packets(
         packets,
         route_inventory,
         semantic_edge_certificates,
-        PacketPromotionPolicy.for_profile(active_config.profile),
+        promotion_policy,
         report_id=f"packet-promotion:{state.state_id}:{step_input.input_id}",
+        accepted_agent_ids=state.accepted_agent_ids,
+        accepted_public_key_ids=state.accepted_public_key_ids,
+        identity_profile=identity_profile,
     )
     residual = residual.combine(registry.residual_ledger)
     threshold = dict(state.psi_threshold)
@@ -430,12 +461,18 @@ def promote_packet_candidate(
     *,
     accepted_agent_ids: Sequence[str] | None = None,
     accepted_public_key_ids: Sequence[str] | None = None,
+    identity_profile: str = "development",
 ) -> VerifiedCapabilityPacket | PacketRejection:
     """Promote one packet candidate to finite-scope reusable packet capital."""
 
     active_policy = policy or PacketPromotionPolicy()
     residual = Ledger()
     reasons: list[str] = []
+    contribution_status = identity_contribution_status_for_packet(
+        candidate,
+        None,
+        identity_profile,
+    )
     if candidate.expires_at == "expired":
         reasons.append("packet candidate is expired")
     if not candidate.evidence_hash_valid:
@@ -467,28 +504,42 @@ def promote_packet_candidate(
                     1.0,
                     kind=CoordinateKind.RESIDUAL,
                 )
+    if active_policy.require_issuer_in_population:
+        if accepted_agent_ids is None:
+            reasons.append("accepted agent identity context is missing")
+            residual = residual.add_coordinate(
+                f"packet-promotion:{candidate.packet_id}:missing-accepted-agent-context",
+                1.0,
+                kind=CoordinateKind.RESIDUAL,
+            )
+        elif candidate.issuer_agent_id not in set(accepted_agent_ids):
+            reasons.append("packet issuer is outside accepted population")
+            residual = residual.add_coordinate(
+                f"packet-promotion:{candidate.packet_id}:issuer-outside-population",
+                1.0,
+                kind=CoordinateKind.RESIDUAL,
+            )
+        if accepted_public_key_ids is None:
+            reasons.append("accepted public key identity context is missing")
+            residual = residual.add_coordinate(
+                f"packet-promotion:{candidate.packet_id}:missing-accepted-public-key-context",
+                1.0,
+                kind=CoordinateKind.RESIDUAL,
+            )
+        elif candidate.issuer_public_key_id not in set(accepted_public_key_ids):
+            reasons.append("packet issuer public key is outside accepted population")
+            residual = residual.add_coordinate(
+                f"packet-promotion:{candidate.packet_id}:issuer-key-outside-population",
+                1.0,
+                kind=CoordinateKind.RESIDUAL,
+            )
     if (
-        active_policy.require_issuer_in_population
-        and accepted_agent_ids is not None
-        and candidate.issuer_agent_id not in set(accepted_agent_ids)
+        candidate.issuer_agent_id in set(accepted_agent_ids or [])
+        and candidate.issuer_public_key_id in set(accepted_public_key_ids or [])
+        and candidate.issuer_attestation_id
+        and candidate.issuer_signature_ref
     ):
-        reasons.append("packet issuer is outside accepted population")
-        residual = residual.add_coordinate(
-            f"packet-promotion:{candidate.packet_id}:issuer-outside-population",
-            1.0,
-            kind=CoordinateKind.RESIDUAL,
-        )
-    if (
-        active_policy.require_issuer_in_population
-        and accepted_public_key_ids is not None
-        and candidate.issuer_public_key_id not in set(accepted_public_key_ids)
-    ):
-        reasons.append("packet issuer public key is outside accepted population")
-        residual = residual.add_coordinate(
-            f"packet-promotion:{candidate.packet_id}:issuer-key-outside-population",
-            1.0,
-            kind=CoordinateKind.RESIDUAL,
-        )
+        contribution_status = IdentityContributionStatus.VERIFIED
     if candidate.evidence_refs and not any(
         ref.endswith(candidate.content_sha256) or candidate.content_sha256 in ref
         for ref in candidate.evidence_refs
@@ -556,6 +607,7 @@ def promote_packet_candidate(
             source_candidate_id=candidate.packet_id,
             reasons=sorted(set(reasons)),
             residual_ledger=residual,
+            identity_contribution_status=contribution_status,
         )
     settlement_scope = sorted(
         {scope for resolution in matched_resolutions for scope in resolution.settled_scope}
@@ -586,6 +638,7 @@ def promote_packet_candidate(
         issuer_agent_id=candidate.issuer_agent_id,
         issuer_public_key_id=candidate.issuer_public_key_id,
         issuer_attestation_id=candidate.issuer_attestation_id,
+        identity_contribution_status=contribution_status,
         operationally_usable=liquidity > 0.0,
         settled=False,
     )
@@ -600,6 +653,7 @@ def promote_runtime_packets(
     report_id: str = "packet-promotion:runtime",
     accepted_agent_ids: Sequence[str] | None = None,
     accepted_public_key_ids: Sequence[str] | None = None,
+    identity_profile: str = "development",
 ) -> PacketPromotionReport:
     """Promote a deterministic batch of runtime packet candidates."""
 
@@ -614,6 +668,7 @@ def promote_runtime_packets(
             policy,
             accepted_agent_ids=accepted_agent_ids,
             accepted_public_key_ids=accepted_public_key_ids,
+            identity_profile=identity_profile,
         )
         residual = residual.combine(result.residual_ledger)
         if isinstance(result, VerifiedCapabilityPacket):
@@ -625,8 +680,22 @@ def promote_runtime_packets(
         accepted=bool(verified),
         verified_packets=verified,
         rejected_packets=rejected,
+        identity_contribution_summary=_identity_contribution_summary([*verified, *rejected]),
         residual_ledger=residual,
     )
+
+
+def _identity_contribution_summary(
+    packets: Sequence[object],
+) -> dict[str, int]:
+    summary = {status.value: 0 for status in IdentityContributionStatus}
+    for packet in packets:
+        status = getattr(packet, "identity_contribution_status", None)
+        if isinstance(status, IdentityContributionStatus):
+            summary[status.value] += 1
+        elif isinstance(status, str) and status in summary:
+            summary[status] += 1
+    return dict(sorted((key, value) for key, value in summary.items() if value))
 
 
 def runtime_health(
@@ -636,6 +705,9 @@ def runtime_health(
     """Return a finite runtime health report without performing agent actions."""
 
     active_config = config or AgentRuntimeConfig()
+    identity_profile = active_config.identity_profile or active_config.profile
+    normalized_identity_profile = normalize_identity_profile(identity_profile)
+    promotion_policy = PacketPromotionPolicy.for_profile(identity_profile)
     dashboard = build_psi_dashboard(
         state.packet_registry,
         threshold=active_config.psi_threshold or state.psi_threshold or None,
@@ -652,11 +724,18 @@ def runtime_health(
         and route not in {spec.verifier_route for spec in list_adapter_route_specs()}
     ]
     checks = {
+        "accepted_agent_context": "present" if state.accepted_agent_ids else "missing",
+        "accepted_public_key_context": "present" if state.accepted_public_key_ids else "missing",
+        "identity_mode": state.identity_mode,
         "live_connectors": "enabled" if active_config.allow_live_connectors else "disabled",
         "packet_registry": "present" if state.packet_registry.packets else "empty",
         "residual_ledger": "nonempty" if state.residual_ledger.coordinates else "empty",
         "required_routes": "complete" if not missing else "missing",
     }
+    identity_required = _profile_requires_identity(identity_profile)
+    production_identity_ready = not identity_required or (
+        bool(state.accepted_agent_ids) and bool(state.accepted_public_key_ids)
+    )
     accepted = not missing and bool(state.phase_actions or state.packet_registry.packets)
     return RuntimeHealthReport(
         report_id=f"runtime-health:{state.state_id}:{active_config.profile}",
@@ -674,7 +753,40 @@ def runtime_health(
         + state.packet_registry.residual_ledger.burden_sum(),
         psi_components=dashboard.components,
         missing_obligations=missing,
+        identity_mode=state.identity_mode,
+        accepted_agent_context_present=bool(state.accepted_agent_ids),
+        accepted_public_key_context_present=bool(state.accepted_public_key_ids),
+        cryptographic_identity_required=identity_required,
+        sybil_policy_profile=normalized_identity_profile.value,
+        can_promote_unsigned_packets=not promotion_policy.require_agent_identity_attestation,
+        production_identity_ready=production_identity_ready,
+        identity_contribution_summary=_identity_contribution_summary(state.packet_registry.packets),
         checks=checks,
+    )
+
+
+def derive_runtime_identity_context(
+    population: AgentPopulationState,
+    profile: str = "development",
+) -> RuntimeIdentityContext:
+    """Derive accepted runtime identity context from a population state."""
+
+    policy = _population_sybil_policy(population, profile)
+    ledger = check_sybil_resistance(
+        population.population_id,
+        population.cryptographic_identities,
+        policy,
+        [attestation.attestation_id for attestation in population.identity_attestations],
+    )
+    normalized_profile = normalize_identity_profile(profile)
+    return RuntimeIdentityContext(
+        context_id=f"runtime-identity-context:{population.population_id}:{normalized_profile.value}",
+        identity_profile=normalized_profile,
+        accepted_agent_ids=ledger.accepted_agent_ids,
+        accepted_public_key_ids=ledger.accepted_public_key_ids,
+        sybil_ledger=ledger,
+        accepted=ledger.accepted,
+        reasons=ledger.reasons,
     )
 
 
@@ -1679,15 +1791,17 @@ def build_population_runtime_step(
     """Run one deterministic step over a fixed population of runtime states."""
 
     active_config = config or AgentRuntimeConfig()
+    identity_profile = active_config.identity_profile or active_config.profile
     ledger = check_fixed_population_ledger(population.fixed_population_ledger)
+    sybil_policy = _population_sybil_policy(population, identity_profile)
     sybil = (
         check_sybil_resistance(
             population.population_id,
             population.cryptographic_identities,
-            population.sybil_resistance_policy,
+            sybil_policy,
             [attestation.attestation_id for attestation in population.identity_attestations],
         )
-        if _profile_requires_identity(active_config.profile) or population.cryptographic_identities
+        if _profile_requires_identity(identity_profile) or population.cryptographic_identities
         else None
     )
     reports: list[RuntimeStepReport] = []
@@ -1703,7 +1817,14 @@ def build_population_runtime_step(
             if index < len(step_inputs)
             else RuntimeStepInput(input_id=f"population-empty-input:{runtime_state.state_id}")
         )
-        report = build_runtime_step(runtime_state, step_input, active_config)
+        runtime_state_with_identity = runtime_state.model_copy(
+            update={
+                "accepted_agent_ids": [] if sybil is None else sybil.accepted_agent_ids,
+                "accepted_public_key_ids": [] if sybil is None else sybil.accepted_public_key_ids,
+                "identity_mode": "cryptographic" if sybil is not None else "declared",
+            }
+        )
+        report = build_runtime_step(runtime_state_with_identity, step_input, active_config)
         reports.append(report)
         residual = residual.combine(report.residual_ledger)
         next_states.append(loop_state_after_report(runtime_state, report))
@@ -1717,11 +1838,8 @@ def build_population_runtime_step(
             for event in report.event_log_delta.events
         ],
         accepted_agent_ids=[] if sybil is None else sybil.accepted_agent_ids,
-        trusted_public_key_ids=[
-            identity.public_key_id
-            for identity in population.cryptographic_identities
-            if sybil is not None and identity.agent_id in set(sybil.accepted_agent_ids)
-        ],
+        trusted_public_key_ids=[] if sybil is None else sybil.accepted_public_key_ids,
+        profile=identity_profile,
     )
     residual = residual.combine(hidden.residual_ledger)
     aggregate_psi = build_psi_dashboard(
@@ -1733,12 +1851,13 @@ def build_population_runtime_step(
         update={
             "runtime_states": next_states,
             "fixed_population_ledger": ledger,
+            "sybil_resistance_policy": sybil_policy,
             "sybil_resistance_ledger": sybil,
             "residual_ledger": residual,
             "step_index": population.step_index + 1,
         }
     )
-    sybil_required = _profile_requires_identity(active_config.profile)
+    sybil_required = _profile_requires_identity(identity_profile)
     sybil_accepted = sybil.accepted if sybil is not None else not sybil_required
     accepted = (
         ledger.accepted
@@ -1783,27 +1902,26 @@ def certify_collective_phase(
 ) -> CollectivePhaseCertificate:
     """Build an ECPT collective packet-phase certificate."""
 
+    identity_profile = profile
     active_threshold = dict(threshold or state.psi_threshold or {})
     fixed = check_fixed_population_ledger(population.fixed_population_ledger)
+    sybil_policy = _population_sybil_policy(population, identity_profile)
     sybil = (
         check_sybil_resistance(
             population.population_id,
             population.cryptographic_identities,
-            population.sybil_resistance_policy,
+            sybil_policy,
             [attestation.attestation_id for attestation in population.identity_attestations],
         )
-        if _profile_requires_identity(profile) or population.cryptographic_identities
+        if _profile_requires_identity(identity_profile) or population.cryptographic_identities
         else None
     )
     hidden = check_no_hidden_capability_injection(
         state.packet_registry,
         population.protocol_frame,
         accepted_agent_ids=[] if sybil is None else sybil.accepted_agent_ids,
-        trusted_public_key_ids=[
-            identity.public_key_id
-            for identity in population.cryptographic_identities
-            if sybil is not None and identity.agent_id in set(sybil.accepted_agent_ids)
-        ],
+        trusted_public_key_ids=[] if sybil is None else sybil.accepted_public_key_ids,
+        profile=identity_profile,
     )
     closures = find_autocatalytic_closures(state.packet_registry, basin)
     paths = find_execution_available_paths(
@@ -1858,10 +1976,27 @@ def certify_collective_phase(
         reasons.append("fixed population/no-self-rewrite ledger rejected")
     if not hidden.accepted:
         reasons.append("hidden capability injection check rejected")
-    if _profile_requires_identity(profile) and sybil is None:
+    if _profile_requires_identity(identity_profile) and sybil is None:
         reasons.append("production collective certificate requires cryptographic identities")
     if sybil is not None and not sybil.accepted:
-        reasons.append("Sybil-resistance ledger rejected")
+        if _profile_requires_identity(identity_profile):
+            reasons.append("Sybil-resistance ledger rejected under selected profile")
+        else:
+            reasons.append("identity trust profile is diagnostic only")
+    contribution_summary = _identity_contribution_summary(
+        [
+            packet.model_copy(
+                update={
+                    "identity_contribution_status": identity_contribution_status_for_packet(
+                        packet,
+                        sybil,
+                        identity_profile,
+                    )
+                }
+            )
+            for packet in state.packet_registry.packets
+        ]
+    )
     if not any(witness.accepted for witness in closures):
         reasons.append("no accepted autocatalytic closure witness")
     if not any(path.accepted for path in paths):
@@ -1891,7 +2026,9 @@ def certify_collective_phase(
         identity_attestation_refs=sorted(
             attestation.attestation_id for attestation in population.identity_attestations
         ),
-        minimum_identity_strength=population.sybil_resistance_policy.minimum_identity_strength.value,
+        minimum_identity_strength=sybil_policy.minimum_identity_strength.value,
+        identity_profile=normalize_identity_profile(identity_profile).value,
+        identity_contribution_summary=contribution_summary,
         closure_witnesses=closures,
         execution_available_paths=paths,
         packet_lineage=lineage,
@@ -1933,7 +2070,21 @@ def _runtime_event(
 
 
 def _profile_requires_identity(profile: str) -> bool:
-    return profile.lower() == "production"
+    return normalize_identity_profile(profile).value in {
+        "controlled",
+        "federated",
+        "production",
+        "adversarial",
+    }
+
+
+def _population_sybil_policy(
+    population: AgentPopulationState,
+    profile: str,
+) -> SybilResistancePolicy:
+    if population.sybil_resistance_policy.policy_id != "default-sybil-policy":
+        return population.sybil_resistance_policy
+    return sybil_policy_for_profile(profile)
 
 
 def _event_log_with_hash(events: Sequence[RuntimeEvent]) -> RuntimeEventLog:

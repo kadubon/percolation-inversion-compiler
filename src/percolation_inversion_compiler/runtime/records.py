@@ -44,6 +44,7 @@ from percolation_inversion_compiler.ecpt.records import (
 from percolation_inversion_compiler.identity.records import (
     AgentIdentityAttestation,
     CryptographicAgentIdentity,
+    IdentityTrustProfile,
     SybilResistanceLedger,
     SybilResistancePolicy,
 )
@@ -62,6 +63,7 @@ class AgentRuntimeConfig(BaseModel):
     """Runtime knobs for deterministic active agent loops."""
 
     profile: str = "development"
+    identity_profile: str | None = None
     action_commit_policy: ActionCommitPolicy = ActionCommitPolicy.REQUIRE_VERIFIER_RESOLUTION
     allow_live_connectors: bool = False
     attention_budget: float = 1.0
@@ -70,6 +72,18 @@ class AgentRuntimeConfig(BaseModel):
     max_tasks: int = 8
     required_routes: list[str] = Field(default_factory=list)
     minimum_task_score: float = 0.0
+
+
+class RuntimeIdentityContext(BaseModel):
+    """Accepted identity context derived from a population Sybil ledger."""
+
+    context_id: str = "runtime-identity-context"
+    identity_profile: IdentityTrustProfile = IdentityTrustProfile.DEVELOPMENT
+    accepted_agent_ids: list[str] = Field(default_factory=list)
+    accepted_public_key_ids: list[str] = Field(default_factory=list)
+    sybil_ledger: SybilResistanceLedger | None = None
+    accepted: bool = False
+    reasons: list[str] = Field(default_factory=list)
 
 
 class AgentPolicyIdentity(BaseModel):
@@ -232,6 +246,9 @@ class RuntimeState(BaseModel):
     collective_certificate_refs: list[str] = Field(default_factory=list)
     route_batch_refs: list[str] = Field(default_factory=list)
     identity_attestation_refs: list[str] = Field(default_factory=list)
+    accepted_agent_ids: list[str] = Field(default_factory=list)
+    accepted_public_key_ids: list[str] = Field(default_factory=list)
+    identity_mode: str = "declared"
 
 
 class AgentPopulationState(BaseModel):
@@ -283,6 +300,8 @@ class CollectivePhaseCertificate(BaseModel):
     sybil_resistance_ledger: SybilResistanceLedger | None = None
     identity_attestation_refs: list[str] = Field(default_factory=list)
     minimum_identity_strength: str = "public-key-attested"
+    identity_profile: str = "development"
+    identity_contribution_summary: dict[str, int] = Field(default_factory=dict)
     closure_witnesses: list[AutocatalyticClosureWitness] = Field(default_factory=list)
     execution_available_paths: list[ExecutionAvailablePathCertificate] = Field(default_factory=list)
     packet_lineage: list[PacketCapitalLineage] = Field(default_factory=list)
@@ -618,6 +637,14 @@ class RuntimeHealthReport(BaseModel):
     residual_debt: float = 0.0
     psi_components: dict[str, float] = Field(default_factory=dict)
     missing_obligations: list[str] = Field(default_factory=list)
+    identity_mode: str = "declared"
+    accepted_agent_context_present: bool = False
+    accepted_public_key_context_present: bool = False
+    cryptographic_identity_required: bool = False
+    sybil_policy_profile: str = "development"
+    can_promote_unsigned_packets: bool = True
+    production_identity_ready: bool = False
+    identity_contribution_summary: dict[str, int] = Field(default_factory=dict)
     checks: dict[str, str] = Field(default_factory=dict)
     safety_invariants: list[str] = Field(
         default_factory=lambda: [

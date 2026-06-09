@@ -25,6 +25,27 @@ class AgentIdentityStrength(StrEnum):
     REVOKED = "revoked"
 
 
+class IdentityTrustProfile(StrEnum):
+    """Operational trust profile for protocol-relative identity checks."""
+
+    DEVELOPMENT = "development"
+    RESEARCH = "research"
+    CONTROLLED = "controlled"
+    FEDERATED = "federated"
+    PRODUCTION = "production"
+    ADVERSARIAL = "adversarial"
+
+
+class IdentityContributionStatus(StrEnum):
+    """How identity evidence may contribute to runtime packet capital."""
+
+    VERIFIED = "verified"
+    PROVISIONAL = "provisional"
+    DIAGNOSTIC = "diagnostic"
+    QUARANTINED = "quarantined"
+    REJECTED = "rejected"
+
+
 class CryptographicAgentIdentity(BaseModel):
     """Public-key-backed identity for an agent inside a declared protocol."""
 
@@ -40,6 +61,9 @@ class CryptographicAgentIdentity(BaseModel):
     policy_digest: str
     model_digest: str | None = None
     tool_digest: str | None = None
+    fleet_id: str | None = None
+    role_id: str | None = None
+    worker_index: str | None = None
     issuer_id: str | None = None
     credential_ref: str | None = None
     issued_at: str | None = None
@@ -94,11 +118,14 @@ class SybilResistancePolicy(BaseModel):
     """Population-level policy for protocol-relative Sybil resistance."""
 
     policy_id: str = "default-sybil-policy"
+    trust_profile: IdentityTrustProfile = IdentityTrustProfile.PRODUCTION
     minimum_identity_strength: AgentIdentityStrength = AgentIdentityStrength.PUBLIC_KEY_ATTESTED
     require_unique_agent_id: bool = True
     require_unique_public_key_id: bool = True
     require_unique_public_key_fingerprint: bool = True
     require_unique_credential_ref: bool = False
+    require_issuer_id: bool = False
+    require_credential_ref: bool = False
     reject_revoked: bool = True
     reject_expired: bool = True
     reject_failed_signatures: bool = True
@@ -106,6 +133,9 @@ class SybilResistancePolicy(BaseModel):
     max_agents_per_policy_digest: int | None = None
     max_agents_per_model_digest: int | None = None
     max_clone_fanout: int | None = 1
+    max_agents_per_fleet: int | None = None
+    allow_homogeneous_fleet_with_unique_keys: bool = True
+    require_distinct_role_or_worker_index_for_fleet: bool = False
     required_identity_evidence_refs: list[str] = Field(default_factory=list)
     metadata: dict[str, str] = Field(default_factory=dict)
 
@@ -116,8 +146,10 @@ class SybilResistanceLedger(BaseModel):
     ledger_id: str
     population_id: str
     policy_id: str
+    trust_profile: IdentityTrustProfile = IdentityTrustProfile.PRODUCTION
     identity_count: int
     accepted_agent_ids: list[str] = Field(default_factory=list)
+    accepted_public_key_ids: list[str] = Field(default_factory=list)
     rejected_agent_ids: list[str] = Field(default_factory=list)
     duplicate_agent_ids: list[str] = Field(default_factory=list)
     duplicate_public_key_ids: list[str] = Field(default_factory=list)
@@ -128,9 +160,11 @@ class SybilResistanceLedger(BaseModel):
     failed_signature_agent_ids: list[str] = Field(default_factory=list)
     missing_evidence_refs: list[str] = Field(default_factory=list)
     issuer_overrepresented: list[str] = Field(default_factory=list)
+    fleet_overrepresented: list[str] = Field(default_factory=list)
     policy_overrepresented: list[str] = Field(default_factory=list)
     model_overrepresented: list[str] = Field(default_factory=list)
     clone_fanout_groups: list[str] = Field(default_factory=list)
+    policy_explanation: dict[str, str] = Field(default_factory=dict)
     identity_check_reports: list[AgentIdentityCheckReport] = Field(default_factory=list)
     residual_ledger: Ledger = Field(default_factory=Ledger)
     accepted: bool = False
