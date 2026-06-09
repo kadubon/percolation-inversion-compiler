@@ -2,6 +2,8 @@
 
 `percolation-inversion-compiler` is a production-oriented finite verifier-routing and ECPT collective phase runtime for AI agents. It compiles capability packet candidates, verifier evidence, semantic edge checks, SQOT salience queues, residual ledgers, and runtime events into deterministic JSON so agents can evaluate an **ASI-proxy collective phase** under declared protocols. ECPT phase progress here is collective packet percolation: it does not require self-rewriting, fine-tuning, or model-weight changes.
 
+The abbreviations refer to the four source theories used by the repository: **ECPT** is Executable Capability Percolation Theory, the collective capability-packet phase model; **BIT** is Bottleneck Inversion Theory, the witness calculus for unlockable potential and frontier extraction; **TRC** is Typed Reality Compilation, the typed trace and tolerance-ledger compiler for cyber-physical frontiers; and **SQOT** is Salience-Queue Occupation Theory, the salience scheduling and attention-occupation layer.
+
 Search terms: ECPT, BIT, TRC, SQOT, ASI-proxy collective phase, protocol-relative ASI-proxy phase-control, certificate compiler, proof obligations, residual ledgers, salience queue, packet ecology, semantic edge verification, typed trace normal forms, frontier extraction, AI agent integration, verifier SDK.
 
 ## What It Does Not Do
