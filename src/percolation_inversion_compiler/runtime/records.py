@@ -41,6 +41,12 @@ from percolation_inversion_compiler.ecpt.records import (
     PhaseControlRunReport,
     PhaseControlState,
 )
+from percolation_inversion_compiler.identity.records import (
+    AgentIdentityAttestation,
+    CryptographicAgentIdentity,
+    SybilResistanceLedger,
+    SybilResistancePolicy,
+)
 from percolation_inversion_compiler.sqot.records import QuarantineLedger, SalienceScheduleReport
 
 
@@ -225,6 +231,7 @@ class RuntimeState(BaseModel):
     packet_lineage_refs: list[str] = Field(default_factory=list)
     collective_certificate_refs: list[str] = Field(default_factory=list)
     route_batch_refs: list[str] = Field(default_factory=list)
+    identity_attestation_refs: list[str] = Field(default_factory=list)
 
 
 class AgentPopulationState(BaseModel):
@@ -235,6 +242,10 @@ class AgentPopulationState(BaseModel):
     runtime_states: list[RuntimeState] = Field(default_factory=list)
     fixed_population_ledger: FixedPopulationLedger
     protocol_frame: ProtocolFrameDigest
+    cryptographic_identities: list[CryptographicAgentIdentity] = Field(default_factory=list)
+    identity_attestations: list[AgentIdentityAttestation] = Field(default_factory=list)
+    sybil_resistance_policy: SybilResistancePolicy = Field(default_factory=SybilResistancePolicy)
+    sybil_resistance_ledger: SybilResistanceLedger | None = None
     residual_ledger: Ledger = Field(default_factory=Ledger)
     step_index: int = 0
 
@@ -248,6 +259,7 @@ class PopulationRuntimeStepReport(BaseModel):
     agent_reports: list[RuntimeStepReport] = Field(default_factory=list)
     fixed_population_ledger: FixedPopulationLedger
     hidden_injection_report: HiddenCapabilityInjectionReport
+    sybil_resistance_ledger: SybilResistanceLedger | None = None
     aggregate_psi: PsiDashboard | None = None
     next_population: AgentPopulationState | None = None
     residual_ledger: Ledger = Field(default_factory=Ledger)
@@ -268,6 +280,9 @@ class CollectivePhaseCertificate(BaseModel):
     protocol_frame: ProtocolFrameDigest
     fixed_population_ledger: FixedPopulationLedger
     hidden_injection_report: HiddenCapabilityInjectionReport
+    sybil_resistance_ledger: SybilResistanceLedger | None = None
+    identity_attestation_refs: list[str] = Field(default_factory=list)
+    minimum_identity_strength: str = "public-key-attested"
     closure_witnesses: list[AutocatalyticClosureWitness] = Field(default_factory=list)
     execution_available_paths: list[ExecutionAvailablePathCertificate] = Field(default_factory=list)
     packet_lineage: list[PacketCapitalLineage] = Field(default_factory=list)
@@ -516,6 +531,9 @@ class RuntimeStoreRecord(BaseModel):
     verified_packet_count: int = 0
     edge_certificate_count: int = 0
     packet_lineage_count: int = 0
+    identity_count: int = 0
+    attestation_count: int = 0
+    sybil_ledger_count: int = 0
     accepted: bool = False
     reasons: list[str] = Field(default_factory=list)
 
@@ -528,6 +546,9 @@ class RuntimeStoreSnapshot(BaseModel):
     events: list[RuntimeEvent] = Field(default_factory=list)
     runs: list[RuntimeRunReport] = Field(default_factory=list)
     certificates: list[AccelerationCertificate] = Field(default_factory=list)
+    identities: list[CryptographicAgentIdentity] = Field(default_factory=list)
+    attestations: list[AgentIdentityAttestation] = Field(default_factory=list)
+    sybil_ledgers: list[SybilResistanceLedger] = Field(default_factory=list)
     aggregate_sha256: str = "0" * 64
 
 

@@ -9,6 +9,11 @@ from contextlib import closing
 from pathlib import Path
 from typing import Any
 
+from percolation_inversion_compiler.identity.records import (
+    AgentIdentityAttestation,
+    CryptographicAgentIdentity,
+    SybilResistanceLedger,
+)
 from percolation_inversion_compiler.runtime.records import (
     AccelerationCertificate,
     AgentPopulationState,
@@ -34,6 +39,9 @@ _COUNT_SQL = {
     "verified_packets": "SELECT COUNT(*) FROM verified_packets",
     "edge_certificates": "SELECT COUNT(*) FROM edge_certificates",
     "packet_lineage": "SELECT COUNT(*) FROM packet_lineage",
+    "identities": "SELECT COUNT(*) FROM identities",
+    "attestations": "SELECT COUNT(*) FROM attestations",
+    "sybil_ledgers": "SELECT COUNT(*) FROM sybil_ledgers",
 }
 _SELECT_SQL = {
     "states": "SELECT payload FROM states WHERE state_id = ?",
@@ -49,6 +57,9 @@ _SELECT_SQL = {
     "verified_packets": "SELECT payload FROM verified_packets WHERE packet_id = ?",
     "edge_certificates": "SELECT payload FROM edge_certificates WHERE certificate_id = ?",
     "packet_lineage": "SELECT payload FROM packet_lineage WHERE lineage_id = ?",
+    "identities": "SELECT payload FROM identities WHERE public_key_id = ?",
+    "attestations": "SELECT payload FROM attestations WHERE attestation_id = ?",
+    "sybil_ledgers": "SELECT payload FROM sybil_ledgers WHERE ledger_id = ?",
 }
 _SELECT_ALL_SQL = {
     "states": "SELECT payload FROM states ORDER BY payload",
@@ -64,6 +75,9 @@ _SELECT_ALL_SQL = {
     "verified_packets": "SELECT payload FROM verified_packets ORDER BY payload",
     "edge_certificates": "SELECT payload FROM edge_certificates ORDER BY payload",
     "packet_lineage": "SELECT payload FROM packet_lineage ORDER BY payload",
+    "identities": "SELECT payload FROM identities ORDER BY payload",
+    "attestations": "SELECT payload FROM attestations ORDER BY payload",
+    "sybil_ledgers": "SELECT payload FROM sybil_ledgers ORDER BY payload",
 }
 _UPSERT_SQL = {
     "states": "INSERT OR REPLACE INTO states (state_id, payload) VALUES (?, ?)",
@@ -88,6 +102,9 @@ _UPSERT_SQL = {
         "INSERT OR REPLACE INTO edge_certificates (certificate_id, payload) VALUES (?, ?)"
     ),
     "packet_lineage": "INSERT OR REPLACE INTO packet_lineage (lineage_id, payload) VALUES (?, ?)",
+    "identities": "INSERT OR REPLACE INTO identities (public_key_id, payload) VALUES (?, ?)",
+    "attestations": ("INSERT OR REPLACE INTO attestations (attestation_id, payload) VALUES (?, ?)"),
+    "sybil_ledgers": "INSERT OR REPLACE INTO sybil_ledgers (ledger_id, payload) VALUES (?, ?)",
 }
 
 
@@ -144,6 +161,18 @@ class SQLiteRuntimeStore:
                 "CREATE TABLE IF NOT EXISTS packet_lineage "
                 "(lineage_id TEXT PRIMARY KEY, payload TEXT NOT NULL)"
             )
+            connection.execute(
+                "CREATE TABLE IF NOT EXISTS identities "
+                "(public_key_id TEXT PRIMARY KEY, payload TEXT NOT NULL)"
+            )
+            connection.execute(
+                "CREATE TABLE IF NOT EXISTS attestations "
+                "(attestation_id TEXT PRIMARY KEY, payload TEXT NOT NULL)"
+            )
+            connection.execute(
+                "CREATE TABLE IF NOT EXISTS sybil_ledgers "
+                "(ledger_id TEXT PRIMARY KEY, payload TEXT NOT NULL)"
+            )
             connection.commit()
         return self.record()
 
@@ -187,6 +216,12 @@ class SQLiteRuntimeStore:
             population.population_id,
             population.model_dump(mode="json"),
         )
+        for identity in population.cryptographic_identities:
+            self.append_identity(identity)
+        for attestation in population.identity_attestations:
+            self.append_attestation(attestation)
+        if population.sybil_resistance_ledger is not None:
+            self.append_sybil_ledger(population.sybil_resistance_ledger)
 
     def append_collective_certificate(self, certificate: CollectivePhaseCertificate) -> None:
         self._upsert(
@@ -194,6 +229,30 @@ class SQLiteRuntimeStore:
             "certificate_id",
             certificate.certificate_id,
             certificate.model_dump(mode="json"),
+        )
+
+    def append_identity(self, identity: CryptographicAgentIdentity) -> None:
+        self._upsert(
+            "identities",
+            "public_key_id",
+            identity.public_key_id,
+            identity.model_dump(mode="json"),
+        )
+
+    def append_attestation(self, attestation: AgentIdentityAttestation) -> None:
+        self._upsert(
+            "attestations",
+            "attestation_id",
+            attestation.attestation_id,
+            attestation.model_dump(mode="json"),
+        )
+
+    def append_sybil_ledger(self, ledger: SybilResistanceLedger) -> None:
+        self._upsert(
+            "sybil_ledgers",
+            "ledger_id",
+            ledger.ledger_id,
+            ledger.model_dump(mode="json"),
         )
 
     def load_state(self, state_id: str) -> RuntimeState | None:
@@ -207,11 +266,23 @@ class SQLiteRuntimeStore:
         certificates = [
             AccelerationCertificate.model_validate(item) for item in self._load_all("certificates")
         ]
+        identities = [
+            CryptographicAgentIdentity.model_validate(item) for item in self._load_all("identities")
+        ]
+        attestations = [
+            AgentIdentityAttestation.model_validate(item) for item in self._load_all("attestations")
+        ]
+        sybil_ledgers = [
+            SybilResistanceLedger.model_validate(item) for item in self._load_all("sybil_ledgers")
+        ]
         payload = {
             "states": [state.model_dump(mode="json") for state in states],
             "events": [event.model_dump(mode="json") for event in events],
             "runs": [run.model_dump(mode="json") for run in runs],
             "certificates": [certificate.model_dump(mode="json") for certificate in certificates],
+            "identities": [identity.model_dump(mode="json") for identity in identities],
+            "attestations": [attestation.model_dump(mode="json") for attestation in attestations],
+            "sybil_ledgers": [ledger.model_dump(mode="json") for ledger in sybil_ledgers],
         }
         return RuntimeStoreSnapshot(
             snapshot_id=snapshot_id,
@@ -219,6 +290,9 @@ class SQLiteRuntimeStore:
             events=events,
             runs=runs,
             certificates=certificates,
+            identities=identities,
+            attestations=attestations,
+            sybil_ledgers=sybil_ledgers,
             aggregate_sha256=_stable_store_digest(payload),
         )
 
@@ -242,6 +316,9 @@ class SQLiteRuntimeStore:
             verified_packet_count=counts["verified_packets"],
             edge_certificate_count=counts["edge_certificates"],
             packet_lineage_count=counts["packet_lineage"],
+            identity_count=counts["identities"],
+            attestation_count=counts["attestations"],
+            sybil_ledger_count=counts["sybil_ledgers"],
             accepted=True,
         )
 

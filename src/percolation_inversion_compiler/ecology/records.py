@@ -45,6 +45,10 @@ class CapabilityPacketCandidate(BaseModel):
     evidence_hash_valid: bool = True
     rollback_available: bool = True
     hazard_charge: float = 0.0
+    issuer_agent_id: str | None = None
+    issuer_public_key_id: str | None = None
+    issuer_attestation_id: str | None = None
+    issuer_signature_ref: str | None = None
     status: ClaimStatus = ClaimStatus.PROVISIONAL
 
 
@@ -216,6 +220,8 @@ class HiddenCapabilityInjectionReport(BaseModel):
     rejected_edge_ids: list[str] = Field(default_factory=list)
     rejected_event_ids: list[str] = Field(default_factory=list)
     rejected_evidence_refs: list[str] = Field(default_factory=list)
+    rejected_agent_ids: list[str] = Field(default_factory=list)
+    unsigned_packet_ids: list[str] = Field(default_factory=list)
     allowed_source_kinds: list[str] = Field(default_factory=list)
     allowed_route_ids: list[str] = Field(default_factory=list)
     allowed_packet_ids: list[str] = Field(default_factory=list)
@@ -243,6 +249,9 @@ class VerifiedCapabilityPacket(BaseModel):
     residual_ledger: Ledger = Field(default_factory=Ledger)
     expires_at: str | None = None
     rollback_receipt: str | None = None
+    issuer_agent_id: str | None = None
+    issuer_public_key_id: str | None = None
+    issuer_attestation_id: str | None = None
     operationally_usable: bool = False
     settled: bool = False
 
@@ -254,6 +263,8 @@ class PacketPromotionPolicy(BaseModel):
     require_receiver_compatibility: bool = True
     require_edge_certificate: bool = False
     require_rollback_available: bool = True
+    require_agent_identity_attestation: bool = False
+    require_issuer_in_population: bool = False
     allow_residual_external_obligations: bool = True
     minimum_confidence_lower_bound: float = 0.2
 
@@ -268,6 +279,8 @@ class PacketPromotionPolicy(BaseModel):
                 require_receiver_compatibility=True,
                 require_edge_certificate=True,
                 require_rollback_available=True,
+                require_agent_identity_attestation=True,
+                require_issuer_in_population=True,
                 allow_residual_external_obligations=False,
                 minimum_confidence_lower_bound=0.5,
             )
@@ -277,6 +290,8 @@ class PacketPromotionPolicy(BaseModel):
                 require_receiver_compatibility=True,
                 require_edge_certificate=True,
                 require_rollback_available=True,
+                require_agent_identity_attestation=True,
+                require_issuer_in_population=False,
                 allow_residual_external_obligations=True,
                 minimum_confidence_lower_bound=0.35,
             )

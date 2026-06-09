@@ -1,6 +1,6 @@
 # Edge Relation Verifiers
 
-ECPT packet edges need more than tag overlap. v0.3.3 adds semantic finite edge
+ECPT packet edges need more than tag overlap. v0.3.4 adds semantic finite edge
 checks for relation types such as:
 
 - `theorem-to-code`

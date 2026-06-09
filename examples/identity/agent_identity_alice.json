@@ -1,0 +1,22 @@
+{
+  "identity": {
+    "agent_id": "agent:alice",
+    "credential_ref": "credential:agent:alice",
+    "expires_at": null,
+    "identity_strength": "public-key-attested",
+    "issued_at": "2026-06-09T00:00:00Z",
+    "issuer_id": "pic-example-issuer",
+    "key_type": "ed25519-public",
+    "metadata": {},
+    "model_digest": "model:fixed:alpha",
+    "policy_digest": "policy:phase-control:v1",
+    "public_key_b64": "ZoBUOa5+N6p6zqswiBZTGwPwEEjvruzvW6xWnRSXp6s=",
+    "public_key_fingerprint": "6b1a8345aa94b42500c5f52aa8c580cf05e90dff8fbb7c6a4e5f96922784ced9",
+    "public_key_id": "key:alice:ed25519",
+    "revoked": false,
+    "signature_b64": "f5AxoRVj1OYEo3XJ02F51XMErns2L+cfrka7cWb2Apdc2El1q3BxbBMYmZnFc7oEiKzxTdBxbl2vnQ452H0WBA==",
+    "signature_payload_sha256": "5660ffaa8d2f4aaa742d0771adc4293740baa5a0b4e0af77ee730706f9ce34e0",
+    "signature_suite": "ed25519",
+    "tool_digest": "toolset:pic-runtime:v1"
+  }
+}

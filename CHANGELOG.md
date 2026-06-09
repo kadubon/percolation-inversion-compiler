@@ -1,5 +1,24 @@
 # Changelog
 
+## v0.3.4 - 2026-06-09
+
+- Adds optional cryptographic agent identity verification with an Ed25519
+  provider boundary that can be replaced or supplemented by future signature
+  suites without changing runtime or certificate semantics.
+- Adds `CryptographicAgentIdentity`, `AgentIdentityAttestation`,
+  `SybilResistancePolicy`, `SybilResistanceLedger`, and
+  `AgentIdentityCheckReport` records plus the `pic identity` CLI group.
+- Hardens production population runtime and collective certification with
+  protocol-relative Sybil-resistance checks: duplicate agent IDs, duplicate key
+  IDs, duplicate key fingerprints, revoked/expired credentials, failed
+  signatures, overrepresentation, and clone fanout all fail closed.
+- Extends packet promotion and hidden-injection checks so production packet
+  capital requires issuer identity evidence, accepted public keys, rollback,
+  authority, route safety, hash binding, and residual-ledger preservation.
+- Extends SQLite runtime stores, schema exports, docs, and examples for signed
+  populations while preserving the boundary that cryptographic identity proves
+  protocol-relative key control, not real-world legal identity or real ASI.
+
 ## v0.3.3 - 2026-06-07
 
 - Adds ECPT collective phase certificates: fixed-population/no-self-rewrite

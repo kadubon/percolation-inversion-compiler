@@ -1,6 +1,6 @@
 # ECPT Closed-Loop Runtime
 
-v0.3.3 closes the agent loop around the ECPT active runtime:
+v0.3.4 closes the agent loop around the ECPT active runtime:
 
 ```text
 observe -> packetize -> resolve evidence -> promote verified packets

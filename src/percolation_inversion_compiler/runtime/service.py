@@ -279,6 +279,7 @@ def create_runtime_app(settings: RuntimeServiceSettings | None = None) -> Any:
             CapabilityBasinContract.model_validate(payload.get("basin")),
             RuntimeRunReport.model_validate(payload.get("baseline")),
             payload.get("threshold", {}),
+            profile=active_settings.profile,
         )
         return certificate.model_dump(mode="json")
 

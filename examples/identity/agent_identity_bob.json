@@ -1,0 +1,22 @@
+{
+  "identity": {
+    "agent_id": "agent:bob",
+    "credential_ref": "credential:agent:bob",
+    "expires_at": null,
+    "identity_strength": "public-key-attested",
+    "issued_at": "2026-06-09T00:00:00Z",
+    "issuer_id": "pic-example-issuer",
+    "key_type": "ed25519-public",
+    "metadata": {},
+    "model_digest": "model:fixed:beta",
+    "policy_digest": "policy:phase-control:v1",
+    "public_key_b64": "+DKCK2H1WUCyK+4kh0C5Bb/dBtvvoNIWqFZaum3Aeb0=",
+    "public_key_fingerprint": "74878ff7c89c1a4900e41df9ffd357f614b437b3c2532e439410451f0c9d549c",
+    "public_key_id": "key:bob:ed25519",
+    "revoked": false,
+    "signature_b64": "V7VY6KUM2rXm1JrBl8LlHMTk9AKu0BMMFJgTsp7VDCoq2aQSCayee/UzF0o4/qitxM2Wueg2fNieTkDSH9V8Ag==",
+    "signature_payload_sha256": "2e84ecfb4b3a835281f87f2d6f9daaaee8427bdd071a1ad85457f7e8afaae35d",
+    "signature_suite": "ed25519",
+    "tool_digest": "toolset:pic-runtime:v1"
+  }
+}

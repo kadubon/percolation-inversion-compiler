@@ -7,6 +7,7 @@ This repository is intentionally useful for agents, but it is fail-closed. It he
 - No package-level proof of real ASI.
 - No proof of unobserved physical, simulator, oracle, or policy outcomes.
 - No requirement for self-rewrite, fine-tuning, or model-weight changes.
+- No claim that a declared `agent_id` proves legal identity, real-world personhood, or world-global uniqueness.
 - No promotion from declared status, registry metadata, snapshot metadata, queue priority, or agent text.
 - No implicit settlement of external obligations.
 
@@ -25,6 +26,12 @@ Production service defaults:
 ## Status Discipline
 
 Use `operationally_usable` for routing decisions. Use `settled` only for scoped finite obligations actually discharged by verifier rules. A useful recommendation may still have `settled=false`.
+
+## Identity Boundary
+
+Production collective certificates should require cryptographic agent identities and a `SybilResistanceLedger`. The identity layer proves protocol-relative control of a public key under the declared signature suite. It does not prove legal identity, real-world personhood, or uniqueness outside the declared population and policy.
+
+Sybil resistance is also protocol-relative. It rejects duplicate `agent_id` values, duplicate public-key IDs, duplicate public-key fingerprints, revoked or expired identities, failed signatures, issuer overrepresentation, policy/model overrepresentation, and clone fanout according to the declared policy. A rejected identity remains visible in reasons and residual ledgers.
 
 ## Residual Ledgers
 

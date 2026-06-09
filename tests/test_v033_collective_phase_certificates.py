@@ -527,4 +527,6 @@ def test_v033_service_collective_phase_endpoints(monkeypatch: pytest.MonkeyPatch
         },
     )
     assert cert.status_code == 200
-    assert cert.json()["accepted"]
+    payload = cert.json()
+    assert not payload["accepted"]
+    assert "Sybil-resistance ledger rejected" in payload["reasons"]

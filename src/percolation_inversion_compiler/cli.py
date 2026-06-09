@@ -52,6 +52,13 @@ from percolation_inversion_compiler.ecpt import (
     build_phase_control_plan,
     reachable_mass,
 )
+from percolation_inversion_compiler.identity import (
+    AgentIdentityAttestation,
+    CryptographicAgentIdentity,
+    check_sybil_resistance,
+    verify_agent_attestation,
+    verify_agent_identity,
+)
 from percolation_inversion_compiler.io import (
     audit_theory_source,
     build_operational_readiness_report,
@@ -129,6 +136,7 @@ sqot_app = typer.Typer(help="Run SQOT salience-queue scheduling tools.")
 ecology_app = typer.Typer(help="Run ECPT capability packet ecology tools.")
 runtime_app = typer.Typer(help="Run ECPT active agent runtime loops and local service.")
 runtime_store_app = typer.Typer(help="Manage persistent runtime stores.")
+identity_app = typer.Typer(help="Verify cryptographic agent identities and Sybil ledgers.")
 app.add_typer(demo_app, name="demo")
 app.add_typer(audit_app, name="audit")
 app.add_typer(snapshot_app, name="snapshot")
@@ -142,6 +150,7 @@ app.add_typer(sqot_app, name="sqot")
 app.add_typer(ecology_app, name="ecology")
 app.add_typer(runtime_app, name="runtime")
 runtime_app.add_typer(runtime_store_app, name="store")
+app.add_typer(identity_app, name="identity")
 console = Console()
 
 
@@ -342,6 +351,32 @@ def _load_agent_population_state(path: Path) -> AgentPopulationState:
     if not isinstance(raw, dict):
         raise typer.BadParameter("population file must contain an object")
     return AgentPopulationState.model_validate(raw)
+
+
+def _load_agent_identity(path: Path) -> CryptographicAgentIdentity:
+    data = load_data(path)
+    raw = data.get("identity", data.get("cryptographic_agent_identity", data))
+    if not isinstance(raw, dict):
+        raise typer.BadParameter("identity file must contain an object")
+    return CryptographicAgentIdentity.model_validate(raw)
+
+
+def _load_agent_identities(path: Path) -> list[CryptographicAgentIdentity]:
+    data = load_data(path)
+    raw = data.get("identities", data.get("cryptographic_agent_identities", data))
+    if isinstance(raw, dict):
+        return [CryptographicAgentIdentity.model_validate(raw)]
+    if not isinstance(raw, list):
+        raise typer.BadParameter("identities file must contain an identities list")
+    return [CryptographicAgentIdentity.model_validate(item) for item in raw]
+
+
+def _load_identity_attestation(path: Path) -> AgentIdentityAttestation:
+    data = load_data(path)
+    raw = data.get("attestation", data.get("agent_identity_attestation", data))
+    if not isinstance(raw, dict):
+        raise typer.BadParameter("attestation file must contain an object")
+    return AgentIdentityAttestation.model_validate(raw)
 
 
 def _load_runtime_inputs(path: Path) -> list[RuntimeStepInput]:
@@ -1610,6 +1645,13 @@ def runtime_collective_certify_command(
         Path | None,
         typer.Option("--threshold", help="Optional Psi threshold JSON/YAML."),
     ] = None,
+    profile: Annotated[
+        str,
+        typer.Option(
+            "--profile",
+            help="Certificate profile: development, research, or production.",
+        ),
+    ] = "development",
     output: Annotated[
         Path | None, typer.Option("--output", "-o", help="Write JSON output.")
     ] = None,
@@ -1622,6 +1664,7 @@ def runtime_collective_certify_command(
         CapabilityBasinContract.model_validate(load_data(basin)),
         _load_runtime_run_report(baseline),
         None if threshold is None else _threshold_from_file(threshold),
+        profile=profile,
     )
     _dump(certificate.model_dump(mode="json"), output)
 
@@ -1776,6 +1819,73 @@ def runtime_service_command(
         run_runtime_service(settings)
     except RuntimeError as exc:
         raise typer.BadParameter(str(exc)) from exc
+
+
+@identity_app.command("verify")
+def identity_verify_command(
+    identity: Annotated[
+        Path,
+        typer.Option("--identity", help="CryptographicAgentIdentity JSON/YAML."),
+    ],
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Verify a protocol-relative cryptographic agent identity."""
+
+    report = verify_agent_identity(_load_agent_identity(identity))
+    _dump(report.model_dump(mode="json"), output)
+    if not report.accepted:
+        raise typer.Exit(1)
+
+
+@identity_app.command("verify-attestation")
+def identity_verify_attestation_command(
+    attestation: Annotated[
+        Path,
+        typer.Option("--attestation", help="AgentIdentityAttestation JSON/YAML."),
+    ],
+    identities: Annotated[
+        Path,
+        typer.Option("--identities", help="Known CryptographicAgentIdentity list JSON/YAML."),
+    ],
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Verify a signed agent identity attestation."""
+
+    report = verify_agent_attestation(
+        _load_identity_attestation(attestation),
+        _load_agent_identities(identities),
+    )
+    _dump(report.model_dump(mode="json"), output)
+    if not report.accepted:
+        raise typer.Exit(1)
+
+
+@identity_app.command("sybil-check")
+def identity_sybil_check_command(
+    population: Annotated[
+        Path,
+        typer.Option("--population", help="AgentPopulationState JSON/YAML."),
+    ],
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Check a population for protocol-relative Sybil-resistance failures."""
+
+    parsed_population = _load_agent_population_state(population)
+    ledger = check_sybil_resistance(
+        parsed_population.population_id,
+        parsed_population.cryptographic_identities,
+        parsed_population.sybil_resistance_policy,
+        [attestation.attestation_id for attestation in parsed_population.identity_attestations],
+    )
+    _dump(ledger.model_dump(mode="json"), output)
+    if not ledger.accepted:
+        raise typer.Exit(1)
 
 
 @runtime_store_app.command("init")

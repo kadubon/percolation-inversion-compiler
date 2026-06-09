@@ -1,6 +1,6 @@
 # ECPT Active Phase-Control Runtime
 
-v0.3.3 includes an ECPT-first active runtime for autonomous agents. The runtime
+v0.3.4 includes an ECPT-first active runtime for autonomous agents. The runtime
 does not claim to prove a real ASI phase transition. It ranks finite,
 protocol-relative interventions that may increase an ASI-proxy capability
 target under explicit constraints, verifier routes, and residual ledgers.

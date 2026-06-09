@@ -1,6 +1,6 @@
 # Benchmarks
 
-v0.3.3 treats acceleration as a finite, protocol-relative measurement problem.
+v0.3.4 treats acceleration as a finite, protocol-relative measurement problem.
 The package does not claim to prove an unobserved ASI transition. It gives
 agents measurable proxy loops for comparing packet ecology workflows.
 

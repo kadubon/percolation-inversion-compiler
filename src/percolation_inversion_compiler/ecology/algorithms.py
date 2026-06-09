@@ -999,6 +999,8 @@ def check_no_hidden_capability_injection(
     protocol: ProtocolFrameDigest,
     *,
     runtime_events: Sequence[Mapping[str, object]] | None = None,
+    accepted_agent_ids: Sequence[str] | None = None,
+    trusted_public_key_ids: Sequence[str] | None = None,
 ) -> HiddenCapabilityInjectionReport:
     """Reject packet, edge, evidence, or event sources outside the protocol frame."""
 
@@ -1011,7 +1013,11 @@ def check_no_hidden_capability_injection(
     rejected_edges: list[str] = []
     rejected_events: list[str] = []
     rejected_refs: list[str] = []
+    rejected_agents: list[str] = []
+    unsigned_packets: list[str] = []
     reasons: list[str] = []
+    agent_id_set = set(accepted_agent_ids or [])
+    public_key_id_set = set(trusted_public_key_ids or [])
     for packet in registry.packets:
         if allowed_sources and packet.source_kind.value not in allowed_sources:
             rejected_packets.append(packet.packet_id)
@@ -1029,6 +1035,18 @@ def check_no_hidden_capability_injection(
             if not any(ref.startswith(prefix) for prefix in allowed_prefixes):
                 rejected_refs.append(ref)
                 reasons.append("packet evidence ref is outside allowed evidence prefixes")
+        if agent_id_set and packet.issuer_agent_id not in agent_id_set:
+            rejected_packets.append(packet.packet_id)
+            rejected_agents.append(packet.issuer_agent_id or "<missing>")
+            reasons.append("packet issuer is outside accepted agent identities")
+        if public_key_id_set and packet.issuer_public_key_id not in public_key_id_set:
+            rejected_packets.append(packet.packet_id)
+            rejected_agents.append(packet.issuer_agent_id or "<missing>")
+            reasons.append("packet public key is outside trusted identity keys")
+        if (agent_id_set or public_key_id_set) and not packet.issuer_signature_ref:
+            rejected_packets.append(packet.packet_id)
+            unsigned_packets.append(packet.packet_id)
+            reasons.append("packet issuer signature reference is missing")
     packet_ids = {packet.packet_id for packet in registry.packets}
     for edge in registry.edges:
         if edge.target_packet_id not in packet_ids or any(
@@ -1044,7 +1062,9 @@ def check_no_hidden_capability_injection(
             rejected_events.append(str(event.get("event_id", event_type)))
             reasons.append("runtime event type is outside protocol runtime vocabulary")
     if reasons:
-        rejected_items = set(rejected_packets + rejected_edges + rejected_events + rejected_refs)
+        rejected_items = set(
+            rejected_packets + rejected_edges + rejected_events + rejected_refs + rejected_agents
+        )
         for item in sorted(rejected_items):
             residual = residual.add_coordinate(
                 f"hidden-injection:{protocol.protocol_id}:{item}",
@@ -1063,6 +1083,8 @@ def check_no_hidden_capability_injection(
         rejected_edge_ids=sorted(set(rejected_edges)),
         rejected_event_ids=sorted(set(rejected_events)),
         rejected_evidence_refs=sorted(set(rejected_refs)),
+        rejected_agent_ids=sorted(set(rejected_agents)),
+        unsigned_packet_ids=sorted(set(unsigned_packets)),
         allowed_source_kinds=sorted(allowed_sources),
         allowed_route_ids=sorted(allowed_routes),
         allowed_packet_ids=sorted(allowed_packets),

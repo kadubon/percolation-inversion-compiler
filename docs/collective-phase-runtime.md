@@ -1,6 +1,6 @@
 # Collective Phase Runtime
 
-v0.3.3 aligns the runtime with ECPT's collective phase certificate picture. The
+v0.3.4 aligns the runtime with ECPT's collective phase certificate picture. The
 runtime does not depend on a single agent rewriting itself, fine-tuning itself,
 or changing model weights. It treats progress as finite capability packets
 becoming verified, receiver-valid, queue-admissible, execution-available but not

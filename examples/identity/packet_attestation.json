@@ -1,0 +1,26 @@
+{
+  "attestation": {
+    "agent_id": "agent:alice",
+    "attestation_id": "attestation:alice:packet-control",
+    "evidence_refs": [
+      "sha256:6b1a8345aa94b42500c5f52aa8c580cf05e90dff8fbb7c6a4e5f96922784ced9"
+    ],
+    "expires_at": null,
+    "issued_at": "2026-06-09T00:00:00Z",
+    "metadata": {},
+    "nonce": "nonce:attestation:alice:packet-control",
+    "payload_digest": "e0387b254ae73735513d6a5f91f73b420f98e9a3146039fc1226e4d6798736b5",
+    "public_key_id": "key:alice:ed25519",
+    "revoked": false,
+    "signature_b64": "7XZrZ0qF8CZBOPqx4LSSDziHOvx3n4jC3BLfh7+6u4db8XyjoVb+VdzuCJT8E987c3mCtjE6D+zMHWqVek6RAg==",
+    "signature_payload_sha256": "e0387b254ae73735513d6a5f91f73b420f98e9a3146039fc1226e4d6798736b5",
+    "signature_suite": "ed25519"
+  },
+  "packet_issuer_fields": {
+    "issuer_agent_id": "agent:alice",
+    "issuer_attestation_id": "attestation:alice:packet-control",
+    "issuer_public_key_id": "key:alice:ed25519",
+    "issuer_signature_ref": "sha256:e0387b254ae73735513d6a5f91f73b420f98e9a3146039fc1226e4d6798736b5",
+    "packet_id": "packet:alice-demo"
+  }
+}

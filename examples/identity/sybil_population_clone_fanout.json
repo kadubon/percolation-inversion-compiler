@@ -1,0 +1,255 @@
+{
+  "population": {
+    "agents": [
+      {
+        "accepted": true,
+        "agent_id": "agent:alice",
+        "model_digest": "model:fixed:alpha",
+        "policy_digest": "policy:phase-control:v1",
+        "reasons": [],
+        "route_allowlist": [
+          "ecpt-numerical-envelope"
+        ],
+        "self_rewrite_allowed": false,
+        "source_kind_allowlist": [
+          "local",
+          "agent-output"
+        ],
+        "tool_allowlist_digest": "toolset:pic-runtime:v1",
+        "weight_update_allowed": false
+      },
+      {
+        "accepted": true,
+        "agent_id": "agent:charlie",
+        "model_digest": "model:fixed:alpha",
+        "policy_digest": "policy:phase-control:v1",
+        "reasons": [],
+        "route_allowlist": [
+          "ecpt-numerical-envelope"
+        ],
+        "self_rewrite_allowed": false,
+        "source_kind_allowlist": [
+          "local",
+          "agent-output"
+        ],
+        "tool_allowlist_digest": "toolset:pic-runtime:v1",
+        "weight_update_allowed": false
+      }
+    ],
+    "cryptographic_identities": [
+      {
+        "agent_id": "agent:alice",
+        "credential_ref": "credential:agent:alice",
+        "expires_at": null,
+        "identity_strength": "public-key-attested",
+        "issued_at": "2026-06-09T00:00:00Z",
+        "issuer_id": "pic-example-issuer",
+        "key_type": "ed25519-public",
+        "metadata": {},
+        "model_digest": "model:fixed:alpha",
+        "policy_digest": "policy:phase-control:v1",
+        "public_key_b64": "ZoBUOa5+N6p6zqswiBZTGwPwEEjvruzvW6xWnRSXp6s=",
+        "public_key_fingerprint": "6b1a8345aa94b42500c5f52aa8c580cf05e90dff8fbb7c6a4e5f96922784ced9",
+        "public_key_id": "key:alice:ed25519",
+        "revoked": false,
+        "signature_b64": "f5AxoRVj1OYEo3XJ02F51XMErns2L+cfrka7cWb2Apdc2El1q3BxbBMYmZnFc7oEiKzxTdBxbl2vnQ452H0WBA==",
+        "signature_payload_sha256": "5660ffaa8d2f4aaa742d0771adc4293740baa5a0b4e0af77ee730706f9ce34e0",
+        "signature_suite": "ed25519",
+        "tool_digest": "toolset:pic-runtime:v1"
+      },
+      {
+        "agent_id": "agent:charlie",
+        "credential_ref": "credential:agent:charlie",
+        "expires_at": null,
+        "identity_strength": "public-key-attested",
+        "issued_at": "2026-06-09T00:00:00Z",
+        "issuer_id": "pic-example-issuer",
+        "key_type": "ed25519-public",
+        "metadata": {},
+        "model_digest": "model:fixed:alpha",
+        "policy_digest": "policy:phase-control:v1",
+        "public_key_b64": "Lblwec5enePtxRF+qZ0m4X7Xs8R++pWaZv/XMmaUoLg=",
+        "public_key_fingerprint": "82b3da971d57d5ccb8e9725620d38701af56cab39eafc694ba0af213a44d7e47",
+        "public_key_id": "key:charlie:ed25519",
+        "revoked": false,
+        "signature_b64": "PQ88DIC/kCf1zcXB3kQq1JFBhnym9jRum7jIuR1vm1U5u2sW17TPzXN08LSw4L31Mc1ensKtJku5xwQ+21LjCA==",
+        "signature_payload_sha256": "5ff62224a18fd8bb00b2abbc13ddb9e1d1b4f907e7920958e20afcaed0cdf06f",
+        "signature_suite": "ed25519",
+        "tool_digest": "toolset:pic-runtime:v1"
+      }
+    ],
+    "fixed_population_ledger": {
+      "accepted": false,
+      "after_agents": [
+        {
+          "accepted": true,
+          "agent_id": "agent:alice",
+          "model_digest": "model:fixed:alpha",
+          "policy_digest": "policy:phase-control:v1",
+          "reasons": [],
+          "route_allowlist": [
+            "ecpt-numerical-envelope"
+          ],
+          "self_rewrite_allowed": false,
+          "source_kind_allowlist": [
+            "local",
+            "agent-output"
+          ],
+          "tool_allowlist_digest": "toolset:pic-runtime:v1",
+          "weight_update_allowed": false
+        },
+        {
+          "accepted": true,
+          "agent_id": "agent:charlie",
+          "model_digest": "model:fixed:alpha",
+          "policy_digest": "policy:phase-control:v1",
+          "reasons": [],
+          "route_allowlist": [
+            "ecpt-numerical-envelope"
+          ],
+          "self_rewrite_allowed": false,
+          "source_kind_allowlist": [
+            "local",
+            "agent-output"
+          ],
+          "tool_allowlist_digest": "toolset:pic-runtime:v1",
+          "weight_update_allowed": false
+        }
+      ],
+      "before_agents": [
+        {
+          "accepted": true,
+          "agent_id": "agent:alice",
+          "model_digest": "model:fixed:alpha",
+          "policy_digest": "policy:phase-control:v1",
+          "reasons": [],
+          "route_allowlist": [
+            "ecpt-numerical-envelope"
+          ],
+          "self_rewrite_allowed": false,
+          "source_kind_allowlist": [
+            "local",
+            "agent-output"
+          ],
+          "tool_allowlist_digest": "toolset:pic-runtime:v1",
+          "weight_update_allowed": false
+        },
+        {
+          "accepted": true,
+          "agent_id": "agent:charlie",
+          "model_digest": "model:fixed:alpha",
+          "policy_digest": "policy:phase-control:v1",
+          "reasons": [],
+          "route_allowlist": [
+            "ecpt-numerical-envelope"
+          ],
+          "self_rewrite_allowed": false,
+          "source_kind_allowlist": [
+            "local",
+            "agent-output"
+          ],
+          "tool_allowlist_digest": "toolset:pic-runtime:v1",
+          "weight_update_allowed": false
+        }
+      ],
+      "finite_checks_passed": false,
+      "fixed_population": true,
+      "ledger_id": "fixed-population:population:clone-fanout-demo",
+      "no_self_rewrite": true,
+      "no_weight_update": true,
+      "observation_window_id": "default-observation-window",
+      "operationally_usable": false,
+      "policy_digests_unchanged": true,
+      "reasons": [],
+      "residual_ledger": {
+        "coordinates": {}
+      },
+      "settled": false
+    },
+    "identity_attestations": [
+      {
+        "agent_id": "agent:alice",
+        "attestation_id": "attestation:alice:packet-control",
+        "evidence_refs": [
+          "sha256:6b1a8345aa94b42500c5f52aa8c580cf05e90dff8fbb7c6a4e5f96922784ced9"
+        ],
+        "expires_at": null,
+        "issued_at": "2026-06-09T00:00:00Z",
+        "metadata": {},
+        "nonce": "nonce:attestation:alice:packet-control",
+        "payload_digest": "e0387b254ae73735513d6a5f91f73b420f98e9a3146039fc1226e4d6798736b5",
+        "public_key_id": "key:alice:ed25519",
+        "revoked": false,
+        "signature_b64": "7XZrZ0qF8CZBOPqx4LSSDziHOvx3n4jC3BLfh7+6u4db8XyjoVb+VdzuCJT8E987c3mCtjE6D+zMHWqVek6RAg==",
+        "signature_payload_sha256": "e0387b254ae73735513d6a5f91f73b420f98e9a3146039fc1226e4d6798736b5",
+        "signature_suite": "ed25519"
+      },
+      {
+        "agent_id": "agent:charlie",
+        "attestation_id": "attestation:charlie:packet-control",
+        "evidence_refs": [
+          "sha256:82b3da971d57d5ccb8e9725620d38701af56cab39eafc694ba0af213a44d7e47"
+        ],
+        "expires_at": null,
+        "issued_at": "2026-06-09T00:00:00Z",
+        "metadata": {},
+        "nonce": "nonce:attestation:charlie:packet-control",
+        "payload_digest": "4553f246a59f16e417a8fdf05ddf3816e5650f4c96905ba21ecbee1809b0455f",
+        "public_key_id": "key:charlie:ed25519",
+        "revoked": false,
+        "signature_b64": "X2tiyZ/z4oOTSxQ2roon7xK85JP3W+8qXLYJiYQ9IdPoGtx3aS1CcSq3tuNQmRETA356do6bhOuDpghdc3ThBg==",
+        "signature_payload_sha256": "4553f246a59f16e417a8fdf05ddf3816e5650f4c96905ba21ecbee1809b0455f",
+        "signature_suite": "ed25519"
+      }
+    ],
+    "population_id": "population:clone-fanout-demo",
+    "protocol_frame": {
+      "accepted": true,
+      "allowed_evidence_prefixes": [
+        "sha256:"
+      ],
+      "allowed_packet_ids": [
+        "packet:alice-demo",
+        "packet:bob-demo",
+        "packet:charlie-demo"
+      ],
+      "allowed_route_ids": [
+        "ecpt-numerical-envelope"
+      ],
+      "allowed_source_kinds": [
+        "local",
+        "agent-output"
+      ],
+      "constraint_frame_id": "default-constraint-frame",
+      "observation_window_id": "default-observation-window",
+      "protocol_id": "protocol:population:clone-fanout-demo",
+      "reasons": [],
+      "route_catalog_digest": "route-catalog:demo",
+      "sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+      "validity_domain": "protocol-relative-finite"
+    },
+    "residual_ledger": {
+      "coordinates": {}
+    },
+    "runtime_states": [],
+    "step_index": 0,
+    "sybil_resistance_ledger": null,
+    "sybil_resistance_policy": {
+      "max_agents_per_issuer": null,
+      "max_agents_per_model_digest": null,
+      "max_agents_per_policy_digest": null,
+      "max_clone_fanout": 1,
+      "metadata": {},
+      "minimum_identity_strength": "public-key-attested",
+      "policy_id": "sybil-policy:clone-demo",
+      "reject_expired": true,
+      "reject_failed_signatures": true,
+      "reject_revoked": true,
+      "require_unique_agent_id": true,
+      "require_unique_credential_ref": false,
+      "require_unique_public_key_fingerprint": true,
+      "require_unique_public_key_id": true,
+      "required_identity_evidence_refs": []
+    }
+  }
+}

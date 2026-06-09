@@ -1,6 +1,6 @@
 # Collective Phase Certificates
 
-`CollectivePhaseCertificate` is the v0.3.3 ECPT certificate that asks whether a
+`CollectivePhaseCertificate` is the v0.3.4 ECPT certificate that asks whether a
 finite packet ecology has crossed a protocol-relative ASI-proxy phase threshold.
 It is not a proof of real ASI or physical outcomes.
 

@@ -2,7 +2,7 @@
 
 `PhaseAccelerationScore` is a finite ranking signal for agent work. It is not a
 certificate that ASI has been achieved. It summarizes how a runtime step changes
-the protocol-relative ASI-proxy planning surface. v0.3.3 adds
+the protocol-relative ASI-proxy planning surface. v0.3.4 adds
 `AccelerationCertificate` for baseline/candidate comparison; the score ranks a
 step, while the certificate checks a finite run-level acceleration claim.
 

@@ -42,11 +42,22 @@ uv run pic runtime collective-certify --population examples/agent_population.jso
 
 The certificate is protocol-relative. Acceptance means the finite checks passed for the declared population, packet registry, basin, baseline, and threshold. It does not prove real ASI.
 
-## 5. Run The Minimal Walkthrough
+## 5. Check Signed Population Identity
+
+Use this path when a production collective certificate should reject unsigned or Sybil-like populations.
+
+```powershell
+uv run pic identity verify --identity examples/identity/agent_identity_alice.json
+uv run pic identity sybil-check --population examples/agent_population_signed.json
+```
+
+The result proves protocol-relative key control under the declared signature suite. It does not prove real-world legal identity or global uniqueness.
+
+## 6. Run The Minimal Walkthrough
 
 See [examples/walkthrough_collective_phase](../examples/walkthrough_collective_phase/README.md) for the same flow with command explanations.
 
-## 6. Use Canonical TeX When Available
+## 7. Use Canonical TeX When Available
 
 ```powershell
 $env:PIC_CANONICAL_TEX_DIR = "path\to\canonical\tex"

@@ -136,6 +136,13 @@ from percolation_inversion_compiler.ecpt.records import (
     ReachableMassRecursionCertificate,
     SettlementReturnRAFCertificate,
 )
+from percolation_inversion_compiler.identity.records import (
+    AgentIdentityAttestation,
+    AgentIdentityCheckReport,
+    CryptographicAgentIdentity,
+    SybilResistanceLedger,
+    SybilResistancePolicy,
+)
 from percolation_inversion_compiler.io.provenance import (
     AttestationRecord,
     ProvenanceManifest,
@@ -247,6 +254,8 @@ def schema_model_map() -> dict[str, type[BaseModel]]:
         "AccelerationCertificate": AccelerationCertificate,
         "AccelerationExperimentSuite": AccelerationExperimentSuite,
         "AgentConnectorSpec": AgentConnectorSpec,
+        "AgentIdentityAttestation": AgentIdentityAttestation,
+        "AgentIdentityCheckReport": AgentIdentityCheckReport,
         "AgentPolicyIdentity": AgentPolicyIdentity,
         "AgentPopulationState": AgentPopulationState,
         "AgentRuntimeConfig": AgentRuntimeConfig,
@@ -280,6 +289,7 @@ def schema_model_map() -> dict[str, type[BaseModel]]:
         "CollectivePhaseCertificate": CollectivePhaseCertificate,
         "ConfidenceLedger": ConfidenceLedger,
         "ControlledTransition": ControlledTransition,
+        "CryptographicAgentIdentity": CryptographicAgentIdentity,
         "DKWCertificate": DKWCertificate,
         "DiagnosticReservePolicy": DiagnosticReservePolicy,
         "DischargeRouteBinding": DischargeRouteBinding,
@@ -396,6 +406,8 @@ def schema_model_map() -> dict[str, type[BaseModel]]:
         "StatusAlgebraRecord": StatusAlgebraRecord,
         "StoppedEvidenceSheafCertificate": StoppedEvidenceSheafCertificate,
         "StrictTexParseReport": StrictTexParseReport,
+        "SybilResistanceLedger": SybilResistanceLedger,
+        "SybilResistancePolicy": SybilResistancePolicy,
         "TRCStateRecord": TRCStateRecord,
         "TRCCompileResult": TRCCompileResult,
         "ToleranceAllocationCertificate": ToleranceAllocationCertificate,

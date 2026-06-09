@@ -22,7 +22,8 @@ def _publish_safety_main() -> int:
 def test_citation_cff_references_all_papers() -> None:
     data = yaml.safe_load((ROOT / "CITATION.cff").read_text(encoding="utf-8"))
     dois = {reference["doi"] for reference in data["references"]}
-    assert data["version"] == "0.3.3"
+    assert data["version"] == "0.3.4"
+    assert data["doi"] == "10.5281/zenodo.20569166"
     assert data["repository-code"] == "https://github.com/kadubon/percolation-inversion-compiler"
     assert "OWNER/" not in data["repository-code"]
     assert "10.5281/zenodo.20535654" in dois

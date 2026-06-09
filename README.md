@@ -9,6 +9,7 @@ Search terms: ECPT, BIT, TRC, SQOT, ASI-proxy collective phase, protocol-relativ
 - It does not prove real ASI, physical, simulator, oracle, or policy outcomes.
 - It does not execute unsafe actions or grant authority to mutate repositories, shells, networks, or models.
 - It does not require or model self-rewrite, fine-tuning, or model-weight updates.
+- It does not treat a declared `agent_id` as proof of identity or global uniqueness.
 - It does not treat registry metadata, declared status, queue priority, or agent text as evidence.
 - It does not silently promote unresolved external obligations to `settled`.
 
@@ -16,7 +17,7 @@ Search terms: ECPT, BIT, TRC, SQOT, ASI-proxy collective phase, protocol-relativ
 
 | Step | Runtime object | What the agent gets |
 | --- | --- | --- |
-| 1 | **Fixed agent population** | A declared population, policy digest, model digest, route allowlist, and no-self-rewrite ledger. |
+| 1 | **Fixed agent population** | A declared population, policy digest, model digest, route allowlist, optional cryptographic identity attestations, Sybil-resistance ledger, and no-self-rewrite ledger. |
 | 2 | **Packet candidates** | Finite capability packets from agent output, local files, fixtures, repositories, or verifier evidence. |
 | 3 | **Evidence + semantic edge checks** | Hash/provenance checks and typed relations such as theorem-to-code, code-to-test, rollback-support, and execution-path. |
 | 4 | **Verified packet capital** | Reusable packets promoted only after route, receiver, rollback, authority, edge, and residual policies pass. |
@@ -27,7 +28,7 @@ Search terms: ECPT, BIT, TRC, SQOT, ASI-proxy collective phase, protocol-relativ
 | 9 | **Runtime store** | Persistent event logs, verified packets, route batches, packet lineage, and residual ledgers. |
 | 10 | **Collective phase certificate** | A fail-closed certificate over fixed population, no self-rewrite, no hidden injection, closure, execution availability, Psi thresholds, and resource-matched baseline. |
 
-The runtime is fail-closed: planning can recommend finite ASI-proxy actions, but `settled` remains false unless scoped verifier rules discharge the required finite obligations. Residual external obligations remain explicit.
+The runtime is fail-closed: planning can recommend finite ASI-proxy actions, but `settled` remains false unless scoped verifier rules discharge the required finite obligations. In production, signed identities and Sybil-resistance ledgers can prevent duplicate-key, clone-fanout, revoked, expired, or unsigned agent populations from producing accepted collective certificates. Residual external obligations remain explicit.
 
 Core contract: registry is metadata, not evidence. Use `pic doctor` and structured checker outputs to distinguish declared status, finite certificate results, proof obligations, and residual ledgers.
 
@@ -80,11 +81,13 @@ For a complete command inventory, see [CLI reference](docs/cli-reference.md).
 - Runtime: [Runtime](docs/runtime.md), [Closed-loop runtime](docs/runtime-closed-loop.md), [Population runtime](docs/population-runtime.md), [Runtime service](docs/runtime-service.md), [Runtime executor](docs/runtime-executor.md), [Runtime store](docs/runtime-store.md)
 - Collective phase: [Collective phase runtime](docs/collective-phase-runtime.md), [Collective phase certificate](docs/04-collective-phase-certificate.md), [No-self-rewrite ledger](docs/no-self-rewrite-ledger.md), [Safety boundary](docs/11-safety-boundary.md)
 - Packet ecology: [Packet ecology runtime](docs/ecpt-packet-ecology-runtime.md), [Edge relation verifiers](docs/edge-relation-verifiers.md), [Packet promotion](docs/packet-promotion.md), [SQOT salience scheduler](docs/sqot.md)
-- Verification and operations: [External obligations](docs/external-obligations.md), [Verifier SDK](docs/verifier-sdk.md), [Production readiness](docs/production-readiness.md), [Provenance and SBOM](docs/provenance-and-sbom.md), [CLI reference](docs/cli-reference.md)
+- Verification and operations: [Identity and Sybil resistance](docs/identity-and-sybil-resistance.md), [External obligations](docs/external-obligations.md), [Verifier SDK](docs/verifier-sdk.md), [Production readiness](docs/production-readiness.md), [Provenance and SBOM](docs/provenance-and-sbom.md), [CLI reference](docs/cli-reference.md)
 - Theory and portability: [Architecture](docs/architecture.md), [Mathematical contracts](docs/mathematical-contracts.md), [Theory coverage](docs/theory-coverage.md), [Porting guide](docs/porting.md), [Benchmarks](docs/benchmarks.md)
 - Walkthrough: [Collective phase walkthrough](examples/walkthrough_collective_phase/README.md)
 
 ## Canonical Sources
+
+Repository/software concept DOI: <https://doi.org/10.5281/zenodo.20569166>
 
 - Takahashi, K. (2026). *Executable Capability Percolation Theory*. Zenodo. <https://doi.org/10.5281/zenodo.20535654>
 - Takahashi, K. (2026). *Bottleneck Inversion Theory: Machine-Readable Witness Calculus for Unlockable Potential*. Zenodo. <https://doi.org/10.5281/zenodo.20545356>

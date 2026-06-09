@@ -1,6 +1,6 @@
 [project]
 name = "percolation-inversion-compiler"
-version = "0.3.3"
+version = "0.3.4"
 description = "ECPT collective phase certificate runtime and finite verifier-routing SDK for ASI-proxy packet percolation, fixed-population ledgers, execution-available paths, semantic edge checks, residual ledgers, provenance, and agent integration."
 readme = "README.md"
 requires-python = ">=3.11"
@@ -47,7 +47,7 @@ lp = [
   "highspy>=1.8",
 ]
 all = [
-  "percolation-inversion-compiler[science,ot,lp,connectors,server]",
+  "percolation-inversion-compiler[science,ot,lp,connectors,server,identity]",
 ]
 connectors = [
   "httpx>=0.27",
@@ -55,6 +55,9 @@ connectors = [
 server = [
   "fastapi>=0.115",
   "uvicorn>=0.32",
+]
+identity = [
+  "cryptography>=42",
 ]
 dev = [
   "bandit[toml]>=1.7",

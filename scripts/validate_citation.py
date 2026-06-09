@@ -14,8 +14,9 @@ REQUIRED_DOIS = {
     "10.5281/zenodo.20526451",
 }
 EXPECTED_REPOSITORY = "https://github.com/kadubon/percolation-inversion-compiler"
-EXPECTED_VERSION = "0.3.3"
-EXPECTED_DATE_RELEASED = "2026-06-07"
+EXPECTED_VERSION = "0.3.4"
+EXPECTED_DATE_RELEASED = "2026-06-09"
+EXPECTED_CONCEPT_DOI = "10.5281/zenodo.20569166"
 
 
 def main() -> int:
@@ -33,6 +34,8 @@ def main() -> int:
         failures.append("repository-code still contains a placeholder owner")
     if str(data.get("version")) != EXPECTED_VERSION:
         failures.append(f"version must be {EXPECTED_VERSION}")
+    if data.get("doi") != EXPECTED_CONCEPT_DOI:
+        failures.append(f"top-level doi must be {EXPECTED_CONCEPT_DOI}")
     if data.get("license") != "Apache-2.0":
         failures.append("license must be Apache-2.0")
     if data.get("date-released") != EXPECTED_DATE_RELEASED:

@@ -60,6 +60,16 @@ uv run pic evidence discharge --envelope examples/evidence_envelope.json --oblig
 uv run pic explain external def:null-channel-routing --from-snapshot
 ```
 
+## Identity And Sybil Resistance
+
+```powershell
+uv run pic identity verify --identity examples/identity/agent_identity_alice.json
+uv run pic identity verify-attestation --attestation examples/identity/packet_attestation.json --identities examples/identity/agent_identities.json
+uv run pic identity sybil-check --population examples/agent_population_signed.json
+uv run pic identity sybil-check --population examples/identity/sybil_population_duplicate_key.json
+uv run pic identity sybil-check --population examples/identity/sybil_population_clone_fanout.json
+```
+
 ## ECPT Active Planning
 
 ```powershell
@@ -104,6 +114,7 @@ uv run pic runtime compare --baseline examples/runtime_baseline_run.json --candi
 uv run pic runtime certify-acceleration --baseline examples/runtime_baseline_run.json --candidate examples/runtime_candidate_run.json
 uv run pic runtime population-step --population examples/agent_population.json --inputs examples/runtime_loop_inputs.jsonl --profile production
 uv run pic runtime collective-certify --population examples/agent_population.json --state examples/collective_runtime_state.json --basin examples/ecpt_basin_contract.json --baseline examples/runtime_baseline_run.json --threshold examples/runtime_threshold.json
+uv run pic runtime collective-certify --profile production --population examples/agent_population_signed.json --state examples/collective_runtime_state.json --basin examples/ecpt_basin_contract.json --baseline examples/runtime_baseline_run.json --threshold examples/runtime_threshold.json
 uv run pic runtime health --state examples/runtime_state.json --profile production
 uv run pic runtime export-openapi --output runtime-openapi.json
 uv run pic runtime service --host 127.0.0.1 --port 8765 --profile production

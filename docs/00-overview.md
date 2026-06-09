@@ -7,6 +7,7 @@ The central ECPT interpretation used by this repository is collective phase prog
 ## Inputs
 
 - Theory snapshots or canonical TeX sources.
+- Optional cryptographic identities and attestations for production populations.
 - Capability packet candidates from local files, agent output, repositories, or connector fixtures.
 - Verifier evidence envelopes and content-addressed evidence refs.
 - Runtime state, action results, route execution batches, and SQOT queue records.
@@ -21,10 +22,13 @@ The central ECPT interpretation used by this repository is collective phase prog
 - Psi dashboards for finite collective-phase proxies.
 - Bottleneck tasks and phase-control recommendations.
 - Runtime event logs, persistent store snapshots, and collective phase certificates.
+- Identity check reports and Sybil-resistance ledgers for adversarial populations.
 
 ## Safety Boundary
 
 The package does not prove real ASI or unobserved physical/oracle outcomes. It provides protocol-relative ASI-proxy checks and routing records. A result can be useful for an agent even when `settled=false`, because unresolved obligations remain explicit and machine-readable.
+
+Cryptographic identity proves protocol-relative key control only. It does not prove legal identity, real-world personhood, or world-global uniqueness. Sybil-resistance ledgers prove compliance with the declared population policy.
 
 ## Primary Concepts
 
@@ -34,11 +38,13 @@ The package does not prove real ASI or unobserved physical/oracle outcomes. It p
 - **SQOT salience queue**: a finite scheduling layer that accounts for diagnostic reserve, stale packets, hazards, cost, and residual reduction.
 - **Psi dashboard**: a vector of finite proxy components including graph availability, dependency/execution availability, autocatalytic closure, verification throughput, queue state, hazard load, and basin reachability.
 - **Collective phase certificate**: a protocol-relative certificate that checks fixed population, no self-rewrite, no hidden injection, closure, execution availability, Psi thresholds, SQOT reserve, hazard/authority checks, and resource-matched baseline.
+- **Sybil-resistance ledger**: a protocol-relative population check over signed identities, duplicate keys, revoked/expired credentials, overrepresentation, and clone fanout.
 
 ## Reading Order
 
 1. [Quickstart](01-quickstart.md)
 2. [Collective phase certificate](04-collective-phase-certificate.md)
 3. [Safety boundary](11-safety-boundary.md)
-4. [CLI reference](cli-reference.md)
-5. [Agent integration](agent-integration.md)
+4. [Identity and Sybil resistance](identity-and-sybil-resistance.md)
+5. [CLI reference](cli-reference.md)
+6. [Agent integration](agent-integration.md)

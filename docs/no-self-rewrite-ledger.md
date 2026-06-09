@@ -1,7 +1,7 @@
 # No Self-Rewrite Ledger
 
 ECPT collective phase progress is modeled as packet percolation under a declared
-protocol, not as one model rewriting its own weights. v0.3.3 makes this an
+protocol, not as one model rewriting its own weights. v0.3.4 makes this an
 explicit runtime invariant through `AgentPolicyIdentity` and
 `FixedPopulationLedger`.
 

@@ -1,6 +1,6 @@
 # Resource-Matched Benchmarks
 
-ECPT acceleration claims are comparative. v0.3.3 adds `ResourceEnvelope` and
+ECPT acceleration claims are comparative. v0.3.4 adds `ResourceEnvelope` and
 `ResourceMatchedBaselineConfig` so candidate runs are compared against baselines
 with matching operational resources.
 

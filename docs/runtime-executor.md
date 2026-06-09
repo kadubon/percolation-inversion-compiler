@@ -1,6 +1,6 @@
 # Runtime Executor
 
-The v0.3.3 executor is deliberately narrow. It can run allowlisted finite runtime
+The v0.3.4 executor is deliberately narrow. It can run allowlisted finite runtime
 tasks, but it does not provide general shell automation or unrestricted network
 access. This matches ECPT's distinction between execution-available capability
 and unconstrained execution.
