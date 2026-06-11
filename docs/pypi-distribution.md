@@ -1,9 +1,9 @@
 # PyPI Distribution
 
-v0.4.1 is the distribution-stability patch for publishing
+v0.4.1 is the distribution-stability patch for
 `percolation-inversion-compiler` on PyPI. It keeps the v0.4.0 ALT and ECPT
 runtime behavior intact while hardening package metadata, install-time
-expectations, and upload provenance.
+expectations, curated installed demos, and upload provenance.
 
 ## Install Modes
 
@@ -74,11 +74,11 @@ uv sync --all-extras --dev
 
 ## Trusted Publishing
 
-PyPI publication should use the `PyPI Publish` GitHub Actions workflow. It is
-triggered when a GitHub Release is published, verifies that the release tag
-matches the package version, builds the wheel and sdist, runs `twine check`, and
-uses `uv publish --trusted-publishing always` with PyPI Trusted Publishing
-through GitHub OIDC.
+PyPI publication uses the `PyPI Publish` GitHub Actions workflow. It can be
+triggered from a GitHub Release or manually from the matching version tag,
+verifies that the release tag matches the package version, builds the wheel and
+sdist, runs `twine check`, and uses `uv publish --trusted-publishing always`
+with PyPI Trusted Publishing through GitHub OIDC.
 
 Required PyPI Trusted Publisher settings:
 
@@ -94,7 +94,7 @@ the publication workflow instead of falling back to token upload.
 
 ## Pre-Publish Checks
 
-Run these before creating the v0.4.1 release:
+Run these before publishing or republishing the v0.4.1 distributions:
 
 ```powershell
 uv run pytest

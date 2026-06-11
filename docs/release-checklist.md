@@ -34,4 +34,5 @@
   environment `pypi`.
 - Confirm certificate, residual-ledger, and `ExternalProofObligation` wording remains
   protocol-relative and does not claim unobserved physical or ASI proof.
-- Create an annotated version tag and verify GitHub CI/Security success on `main`.
+- Create or verify the annotated version tag, publish from the matching tag via
+  Trusted Publishing, and verify GitHub CI/Security success on `main`.

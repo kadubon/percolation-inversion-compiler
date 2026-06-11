@@ -6,8 +6,8 @@ This repository is an AI agent runtime verification and ECPT collective phase ac
 
 It is not an ASI detector, a real ASI proof system, or a self-modifying AI system. It does not require self-rewrite, fine-tuning, or model-weight changes.
 
-v0.4.1 is prepared as a PyPI distribution snapshot with a beta API surface. The
-PyPI package is enough for `pic agent explain`, `pic demo installed-smoke`,
+v0.4.1 is the PyPI distribution snapshot with a beta API surface. The PyPI
+package is enough for `pic agent explain`, `pic demo installed-smoke`,
 `pic demo bootstrap`, `pic agent intake --text "..."`, `pic snapshot list`, and
 `pic schema --all --output-dir schemas`. Full practical use is clone
 recommended: commands that reference the root `examples/...` tree, canonical
