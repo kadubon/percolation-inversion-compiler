@@ -71,7 +71,31 @@ print(report.settled)  # Expected to remain False unless scoped verifier rules s
 
 ## Safe CLI Path
 
+Installed package path:
+
 ```powershell
+python -m pip install percolation-inversion-compiler
+pic agent explain
+pic demo installed-smoke --profile development
+pic demo bootstrap --output-dir pic-demo
+pic runtime step --state pic-demo/runtime_state.json --input pic-demo/runtime_step_input.json --profile development
+pic agent guide --profile development
+pic agent intake --text "Candidate packet: route evidence and preserve residuals." --profile development
+pic snapshot list
+pic schema --type AgentIntakeReport
+```
+
+Use the installed package path for curated demo smoke checks, bundled snapshots,
+schema export, and your own JSON inputs. Clone the repository for full practical
+use with repository fixtures and `examples/...`.
+
+Source checkout path with repository fixtures:
+
+```powershell
+powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
+git clone https://github.com/kadubon/percolation-inversion-compiler.git
+cd percolation-inversion-compiler
+uv sync --all-extras --dev
 uv run pic agent explain
 uv run pic agent guide --profile development
 uv run pic agent readiness --profile development
@@ -83,6 +107,18 @@ uv run pic ecology ingest-general --source examples/agent_network/feed.xml --kin
 uv run pic ecology bridge-runtime --report examples/agent_network/general_intake_report.example.json
 uv run pic agent message contract --message examples/agent_network/agent_message.json
 uv run pic agent message ingest --message examples/agent_network/agent_message.json
+```
+
+macOS/Linux uv install:
+
+```sh
+curl -LsSf https://astral.sh/uv/install.sh | sh
+```
+
+Fallback uv install:
+
+```powershell
+python -m pip install uv
 ```
 
 Production identity context flow:

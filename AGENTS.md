@@ -6,6 +6,46 @@ This repository is an AI agent runtime verification and ECPT collective phase ac
 
 It is not an ASI detector, a real ASI proof system, or a self-modifying AI system. It does not require self-rewrite, fine-tuning, or model-weight changes.
 
+v0.4.1 is prepared as a PyPI distribution snapshot with a beta API surface. The
+PyPI package is enough for `pic agent explain`, `pic demo installed-smoke`,
+`pic demo bootstrap`, `pic agent intake --text "..."`, `pic snapshot list`, and
+`pic schema --all --output-dir schemas`. Full practical use is clone
+recommended: commands that reference the root `examples/...` tree, canonical
+TeX audits, development fixtures, and release engineering checks require this
+repository checkout.
+
+## Install Modes
+
+Installed package path:
+
+```powershell
+python -m pip install percolation-inversion-compiler
+pic demo installed-smoke --profile development
+pic demo bootstrap --output-dir pic-demo
+pic runtime step --state pic-demo/runtime_state.json --input pic-demo/runtime_step_input.json --profile development
+```
+
+Full source-checkout path:
+
+```powershell
+powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
+git clone https://github.com/kadubon/percolation-inversion-compiler.git
+cd percolation-inversion-compiler
+uv sync --all-extras --dev
+```
+
+Unix shell uv install:
+
+```sh
+curl -LsSf https://astral.sh/uv/install.sh | sh
+```
+
+Fallback uv install:
+
+```powershell
+python -m pip install uv
+```
+
 ## First Files To Read
 
 - `README.md`
@@ -16,6 +56,7 @@ It is not an ASI detector, a real ASI proof system, or a self-modifying AI syste
 - `docs/alt.md`
 - `docs/identity-and-sybil-resistance.md`
 - `docs/04-collective-phase-certificate.md`
+- `docs/pypi-distribution.md`
 - `src/percolation_inversion_compiler/runtime/records.py`
 - `src/percolation_inversion_compiler/runtime/algorithms.py`
 - `src/percolation_inversion_compiler/ecology/records.py`
@@ -47,6 +88,20 @@ uv run pic runtime health --state examples/runtime_state.json --profile developm
 uv run pic runtime step --state examples/runtime_state.json --input examples/runtime_step_input.json --profile development
 uv run pic identity derive-context --population examples/agent_population_signed.json --profile production --output identity-context.json
 uv run pic runtime step --state examples/runtime_state.json --input examples/runtime_step_input.json --profile production --identity-context identity-context.json
+```
+
+Installed package smoke commands:
+
+```powershell
+python -m pip install percolation-inversion-compiler
+pic agent explain
+pic demo installed-smoke --profile development
+pic demo bootstrap --output-dir pic-demo
+pic runtime step --state pic-demo/runtime_state.json --input pic-demo/runtime_step_input.json --profile development
+pic agent guide --profile development
+pic agent intake --text "Candidate packet: preserve residuals." --profile development
+pic snapshot list
+pic schema --type AgentIntakeReport
 ```
 
 Unix shell:

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+from importlib.resources import files
 from pathlib import Path
 from typing import Annotated, Any
 
@@ -17,6 +18,7 @@ from percolation_inversion_compiler.agent import (
     agent_feature_readiness,
     agent_manifest_payload,
     agent_network_readiness,
+    agent_safety_invariants,
     build_agent_communication_guide,
     build_agent_workflow_guide,
     minimal_runtime_state,
@@ -233,6 +235,52 @@ def _dump(data: Any, output: Path | None = None) -> None:
         output.write_text(text + "\n", encoding="utf-8")
     else:
         console.print_json(text)
+
+
+DEMO_RESOURCE_PACKAGE = "percolation_inversion_compiler.data.demo"
+
+
+def _demo_resource_text(name: str) -> str:
+    return (files(DEMO_RESOURCE_PACKAGE) / name).read_text(encoding="utf-8")
+
+
+def _demo_manifest() -> dict[str, Any]:
+    data = json.loads(_demo_resource_text("manifest.json"))
+    if not isinstance(data, dict):
+        raise RuntimeError("installed demo manifest must be a JSON object")
+    return data
+
+
+def _demo_file_names() -> list[str]:
+    manifest = _demo_manifest()
+    names = ["manifest.json"]
+    for item in manifest.get("files", []):
+        if not isinstance(item, dict):
+            continue
+        path = item.get("path")
+        if not isinstance(path, str):
+            continue
+        parsed = Path(path)
+        if parsed.name != path or parsed.is_absolute():
+            raise RuntimeError(f"unsafe installed demo path {path!r}")
+        names.append(path)
+    return sorted(set(names))
+
+
+def _copy_installed_demo(output_dir: Path, overwrite: bool) -> list[str]:
+    if output_dir.exists() and not output_dir.is_dir():
+        raise typer.BadParameter("--output-dir must be a directory")
+    output_dir.mkdir(parents=True, exist_ok=True)
+    written: list[str] = []
+    for name in _demo_file_names():
+        target = output_dir / name
+        if target.exists() and not overwrite:
+            raise typer.BadParameter(
+                f"{target} already exists; pass --overwrite to replace installed demo files"
+            )
+        target.write_bytes((files(DEMO_RESOURCE_PACKAGE) / name).read_bytes())
+        written.append(name)
+    return written
 
 
 def _load_phase_state(path: Path) -> tuple[PhaseControlState, list[PhaseControlAction]]:
@@ -3382,6 +3430,86 @@ def demo_datacenter(
 
     result = datacenter_demo()
     _dump(result.model_dump(mode="json"), output)
+
+
+@demo_app.command("bootstrap")
+def demo_bootstrap(
+    output_dir: Annotated[
+        Path,
+        typer.Option(
+            "--output-dir",
+            help="Directory where the curated installed-package demo files are copied.",
+        ),
+    ],
+    overwrite: Annotated[
+        bool,
+        typer.Option("--overwrite", help="Replace existing curated demo files in output-dir."),
+    ] = False,
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Export curated install-time demo assets from package data."""
+
+    written = _copy_installed_demo(output_dir, overwrite)
+    _dump(
+        {
+            "accepted": True,
+            "bundle": _demo_manifest(),
+            "files": written,
+            "output_dir": str(output_dir),
+            "recommended_next_commands": [
+                f"pic runtime step --state {output_dir / 'runtime_state.json'} "
+                f"--input {output_dir / 'runtime_step_input.json'} --profile development",
+                f"pic alt admit --packet {output_dir / 'alt_admission_packet.json'}",
+            ],
+            "settled": False,
+        },
+        output,
+    )
+
+
+@demo_app.command("installed-smoke")
+def demo_installed_smoke(
+    profile: Annotated[
+        str,
+        typer.Option("--profile", help="Runtime profile for the installed-package smoke check."),
+    ] = "development",
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Run a no-network smoke check that works from a PyPI-installed wheel."""
+
+    report = run_agent_intake(
+        AgentIntakeRequest(
+            agent_output=_demo_resource_text("agent_output.txt").strip(),
+            profile=profile,
+            allow_live_connectors=False,
+        )
+    )
+    _dump(
+        {
+            "accepted": report.accepted,
+            "demo_id": f"installed-smoke:{__version__}",
+            "operationally_usable": report.operationally_usable,
+            "profile": profile,
+            "recommended_next_commands": [
+                "pic demo bootstrap --output-dir pic-demo",
+                (
+                    f"pic runtime step --state pic-demo/runtime_state.json "
+                    f"--input pic-demo/runtime_step_input.json --profile {profile}"
+                ),
+                "pic alt admit --packet pic-demo/alt_admission_packet.json",
+            ],
+            "residual_summary": report.residual_summary,
+            "runtime_report": report.runtime_report.model_dump(mode="json"),
+            "safety_invariants": agent_safety_invariants(),
+            "settled": report.settled,
+            "version": __version__,
+        },
+        output,
+    )
 
 
 @app.command()

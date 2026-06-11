@@ -51,4 +51,5 @@ Cryptographic identity proves protocol-relative key control only. It does not pr
 4. [Identity and Sybil resistance](identity-and-sybil-resistance.md)
 5. [CLI reference](cli-reference.md)
 6. [ALT abstraction liquidity](alt.md)
-7. [Agent integration](agent-integration.md)
+7. [PyPI distribution](pypi-distribution.md)
+8. [Agent integration](agent-integration.md)

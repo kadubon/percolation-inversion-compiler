@@ -6,6 +6,17 @@ The abbreviations refer to the five source theories used by the repository: **EC
 
 Search terms: ECPT, BIT, TRC, SQOT, ALT, abstraction liquidity, reusable abstraction capital, ASI-proxy collective phase, protocol-relative ASI-proxy phase-control, certificate compiler, proof obligations, residual ledgers, salience queue, packet ecology, semantic edge verification, typed trace normal forms, frontier extraction, AI agent integration, verifier SDK.
 
+Distribution status: v0.4.1 is a stable distribution snapshot with a beta API
+surface. Install the core package from PyPI with `pip install
+percolation-inversion-compiler`; use `pip install
+"percolation-inversion-compiler[identity,connectors,server]"` when you need
+cryptographic identity checks, explicit opt-in live intake, or the optional
+local HTTP service. The PyPI package is intended for curated demo smoke checks,
+bundled snapshots, schema export, library import, and basic CLI/runtime
+verification. Clone the repository for full practical use: commands that
+reference `examples/...`, canonical TeX audits, live development fixtures, and
+release engineering require a source checkout.
+
 ## What It Does Not Do
 
 - It does not prove real ASI, physical, simulator, oracle, or policy outcomes.
@@ -33,7 +44,7 @@ Search terms: ECPT, BIT, TRC, SQOT, ALT, abstraction liquidity, reusable abstrac
 
 The runtime is fail-closed: planning can recommend finite ASI-proxy actions, but `settled` remains false unless scoped verifier rules discharge the required finite obligations. In production, signed identities and Sybil-resistance ledgers can prevent duplicate-key, clone-fanout, revoked, expired, or unsigned agent populations from producing accepted collective certificates. Residual external obligations remain explicit.
 
-v0.4.0 adds ALT abstraction-liquidity foundry support so external knowledge and agent traces can become reusable abstraction-token candidates, then certified abstraction capital only after lower-bound surplus, transport, root-of-trust, telemetry, lifecycle, and hazard checks pass. ALT also adds negative-liquidity, deprecation/resurrection, baseline refresh, reproduction diagnostics, and ALT-CARA acceleration certificates so stale or unsafe abstraction claims remain repairable residual work rather than silent capital. Use `development`, `research`, `controlled`, `federated`, `production`, or `adversarial` profiles to choose how communication policy, cryptographic identities, homogeneous fleets, signed packet issuers, and Sybil-resistance ledgers affect packet promotion and collective certificates.
+v0.4.1 keeps ALT abstraction-liquidity foundry support so external knowledge and agent traces can become reusable abstraction-token candidates, then certified abstraction capital only after lower-bound surplus, transport, root-of-trust, telemetry, lifecycle, and hazard checks pass. ALT also adds negative-liquidity, deprecation/resurrection, baseline refresh, reproduction diagnostics, and ALT-CARA acceleration certificates so stale or unsafe abstraction claims remain repairable residual work rather than silent capital. Use `development`, `research`, `controlled`, `federated`, `production`, or `adversarial` profiles to choose how communication policy, cryptographic identities, homogeneous fleets, signed packet issuers, and Sybil-resistance ledgers affect packet promotion and collective certificates.
 
 Core contract: registry is metadata, not evidence. Use `pic doctor` and structured checker outputs to distinguish declared status, finite certificate results, proof obligations, and residual ledgers.
 
@@ -80,11 +91,50 @@ accept the packet as finite-scope capital.
 
 ## Quickstart
 
-Install the development environment:
+### Path A: Pip Install For Immediate Runtime Smoke
+
+Use this when an agent has no source checkout and needs to verify the installed
+package, inspect schemas/snapshots, or run the bundled curated demo.
 
 ```powershell
+python -m pip install percolation-inversion-compiler
+pic agent explain
+pic demo installed-smoke --profile development
+pic demo bootstrap --output-dir pic-demo
+pic agent intake --text "Candidate packet: route evidence and preserve residuals." --profile development
+pic runtime step --state pic-demo/runtime_state.json --input pic-demo/runtime_step_input.json --profile development
+```
+
+### Path B: Clone For Full Practical Use
+
+Use this when you want fixture-backed commands, `examples/...`, canonical-source
+audits, full research workflows, release checks, or local development.
+
+Install `uv` if it is not already available. Official install commands:
+
+```powershell
+powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
+```
+
+```sh
+curl -LsSf https://astral.sh/uv/install.sh | sh
+```
+
+If the standalone installer is not suitable, use the PyPI fallback:
+
+```powershell
+python -m pip install uv
+```
+
+Then clone and sync the full repository:
+
+```powershell
+git clone https://github.com/kadubon/percolation-inversion-compiler.git
+cd percolation-inversion-compiler
 uv sync --all-extras --dev
 ```
+
+After cloning, use `uv run pic ...` for commands that reference `examples/...`.
 
 ### 1. Inspect Bundled Theory Snapshots
 
@@ -128,7 +178,7 @@ For a complete command inventory, see [CLI reference](docs/cli-reference.md).
 - Runtime: [Runtime](docs/runtime.md), [Closed-loop runtime](docs/runtime-closed-loop.md), [Population runtime](docs/population-runtime.md), [Runtime service](docs/runtime-service.md), [Runtime executor](docs/runtime-executor.md), [Runtime store](docs/runtime-store.md)
 - Collective phase: [Collective phase runtime](docs/collective-phase-runtime.md), [Collective phase certificate](docs/04-collective-phase-certificate.md), [No-self-rewrite ledger](docs/no-self-rewrite-ledger.md), [Safety boundary](docs/11-safety-boundary.md)
 - Packet ecology: [Packet ecology runtime](docs/ecpt-packet-ecology-runtime.md), [Edge relation verifiers](docs/edge-relation-verifiers.md), [Packet promotion](docs/packet-promotion.md), [SQOT salience scheduler](docs/sqot.md), [ALT abstraction liquidity](docs/alt.md)
-- Verification and operations: [Identity and Sybil resistance](docs/identity-and-sybil-resistance.md), [External obligations](docs/external-obligations.md), [Verifier SDK](docs/verifier-sdk.md), [Production readiness](docs/production-readiness.md), [Provenance and SBOM](docs/provenance-and-sbom.md), [CLI reference](docs/cli-reference.md)
+- Verification and operations: [Identity and Sybil resistance](docs/identity-and-sybil-resistance.md), [External obligations](docs/external-obligations.md), [Verifier SDK](docs/verifier-sdk.md), [Production readiness](docs/production-readiness.md), [PyPI distribution](docs/pypi-distribution.md), [Provenance and SBOM](docs/provenance-and-sbom.md), [CLI reference](docs/cli-reference.md)
 - Theory and portability: [Architecture](docs/architecture.md), [Mathematical contracts](docs/mathematical-contracts.md), [Theory coverage](docs/theory-coverage.md), [Porting guide](docs/porting.md), [Benchmarks](docs/benchmarks.md)
 - Walkthrough: [Collective phase walkthrough](examples/walkthrough_collective_phase/README.md)
 

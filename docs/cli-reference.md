@@ -4,9 +4,49 @@ This page holds the full command inventory so the README can stay short. Command
 
 ## Installation
 
+PyPI install:
+
 ```powershell
+python -m pip install percolation-inversion-compiler
+pic agent explain
+pic demo installed-smoke --profile development
+pic demo bootstrap --output-dir pic-demo
+pic runtime step --state pic-demo/runtime_state.json --input pic-demo/runtime_step_input.json --profile development
+pic agent intake --text "Candidate packet: preserve residuals." --profile development
+pic snapshot list
+```
+
+Optional extras:
+
+```powershell
+python -m pip install "percolation-inversion-compiler[identity,connectors,server]"
+```
+
+Source checkout with repository fixtures and full practical workflows:
+
+```powershell
+powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
+git clone https://github.com/kadubon/percolation-inversion-compiler.git
+cd percolation-inversion-compiler
 uv sync --all-extras --dev
 ```
+
+macOS/Linux uv install:
+
+```sh
+curl -LsSf https://astral.sh/uv/install.sh | sh
+```
+
+Fallback uv install:
+
+```powershell
+python -m pip install uv
+```
+
+Commands below use `uv run` and `examples/...` when they are intended for the
+source checkout. In an installed wheel, use inline `--text` inputs, snapshots,
+schema commands, `pic demo bootstrap`, and your own JSON files, or clone the
+repository to run the full bundled fixtures.
 
 ## Agent Shortcuts
 
@@ -198,6 +238,8 @@ uv run pic runtime store export --store runtime.sqlite --output runtime-store.js
 ## TRC Frontier Compilation And Demo
 
 ```powershell
+uv run pic demo installed-smoke --profile development
+uv run pic demo bootstrap --output-dir pic-demo
 uv run pic compile --records examples/frontier_records.json
 uv run pic compile --records examples/minimal_invalid_main_frontier.json
 uv run pic compile --records examples/minimal_invalid_main_frontier.json --fail-on invalid-main-trace

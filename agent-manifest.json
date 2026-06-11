@@ -70,12 +70,15 @@
   ],
   "machine_contract": {
     "arbitrary_shell_execution": false,
+    "examples_path_requires_source_checkout": true,
+    "curated_demo_bundle_in_wheel": true,
     "external_content_is_candidate_only": true,
     "external_candidate_volume_cannot_improve_phase_status": true,
     "candidate_only_closure_execution_and_basin_paths_do_not_improve_phase_status": true,
     "feed_and_inbox_entry_counts_are_bounded": true,
     "general_intake_requires_source_and_policy_opt_in": true,
     "general_intake_reports_sanitized_fetch_provenance": true,
+    "installed_package_smoke_commands_available": true,
     "local_web_discovery_disallows_seed_directory_escape": true,
     "local_staged_intake_uses_byte_limits": true,
     "live_discovery_fetches_each_resource_once": true,
@@ -85,6 +88,58 @@
     "rss_atom_uses_defused_xml": true,
     "residuals_are_not_failures": true,
     "settled_false_is_expected": true
+  },
+  "install_modes": [
+    {
+      "mode": "pip",
+      "command": "python -m pip install percolation-inversion-compiler",
+      "intended_for": [
+        "curated installed demo",
+        "bundled snapshots",
+        "schema export",
+        "library and CLI runtime checks"
+      ],
+      "does_not_include": [
+        "root examples tree",
+        "canonical TeX files",
+        "release engineering fixtures"
+      ]
+    },
+    {
+      "mode": "source-checkout",
+      "command": "git clone https://github.com/kadubon/percolation-inversion-compiler.git",
+      "intended_for": [
+        "full practical workflows",
+        "examples-backed commands",
+        "canonical TeX audits",
+        "development tests",
+        "release engineering"
+      ]
+    }
+  ],
+  "clone_url": "https://github.com/kadubon/percolation-inversion-compiler.git",
+  "clone_recommended_for_full_use": true,
+  "uv_install_commands": {
+    "windows_powershell": "powershell -ExecutionPolicy ByPass -c \"irm https://astral.sh/uv/install.ps1 | iex\"",
+    "macos_linux": "curl -LsSf https://astral.sh/uv/install.sh | sh",
+    "pypi_fallback": "python -m pip install uv"
+  },
+  "pip_boundary": {
+    "pip_supports": [
+      "pic agent explain",
+      "pic demo installed-smoke",
+      "pic demo bootstrap",
+      "pic runtime step with bootstrapped demo files",
+      "pic snapshot list/show",
+      "pic schema export",
+      "Python SDK imports"
+    ],
+    "clone_required_for": [
+      "commands that reference examples/...",
+      "canonical TeX/PDF audits through local source files",
+      "full fixture-backed runtime workflows",
+      "release checks and provenance/SBOM asset generation"
+    ]
   },
   "name": "percolation-inversion-compiler",
   "non_goals": [
@@ -122,11 +177,20 @@
     "docs/for-agents.md",
     "docs/agent-external-communication.md",
     "docs/alt.md",
+    "docs/pypi-distribution.md",
     "docs/01-quickstart.md",
     "docs/identity-and-sybil-resistance.md",
     "docs/04-collective-phase-certificate.md"
   ],
   "safe_cli_entrypoints": [
+    "python -m pip install percolation-inversion-compiler",
+    "pic agent explain",
+    "pic demo installed-smoke --profile development",
+    "pic demo bootstrap --output-dir pic-demo",
+    "pic runtime step --state pic-demo/runtime_state.json --input pic-demo/runtime_step_input.json --profile development",
+    "pic agent intake --text \"Candidate packet: preserve residuals.\" --profile development",
+    "pic snapshot list",
+    "pic schema --type AgentIntakeReport",
     "uv run pic --help",
     "uv run pic agent explain",
     "uv run pic agent guide --profile development",
@@ -149,5 +213,5 @@
     "uv run pic identity explain-profile --profile research",
     "uv run pic identity derive-context --population examples/agent_population_signed.json --profile production --output identity-context.json"
   ],
-  "version": "0.4.0"
+  "version": "0.4.1"
 }

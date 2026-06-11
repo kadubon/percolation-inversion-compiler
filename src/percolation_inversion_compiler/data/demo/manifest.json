@@ -1,0 +1,41 @@
+{
+  "bundle_id": "percolation-inversion-compiler-installed-demo",
+  "candidate_only": true,
+  "description": "Minimal install-time demo assets for PyPI users. These files support residual-preserving runtime smoke checks without cloning the repository.",
+  "files": [
+    {
+      "media_type": "application/json",
+      "path": "runtime_state.json",
+      "purpose": "Minimal RuntimeState for pic runtime step."
+    },
+    {
+      "media_type": "application/json",
+      "path": "runtime_step_input.json",
+      "purpose": "Minimal RuntimeStepInput with no live connectors."
+    },
+    {
+      "media_type": "text/plain",
+      "path": "agent_output.txt",
+      "purpose": "Inline agent-output text for pic agent intake."
+    },
+    {
+      "media_type": "application/json",
+      "path": "general_intake_policy.json",
+      "purpose": "Controlled-web GeneralIntakePolicy with live network disabled."
+    },
+    {
+      "media_type": "application/json",
+      "path": "alt_admission_packet.json",
+      "purpose": "ALT admission packet fixture for abstraction-liquidity CLI smoke."
+    }
+  ],
+  "license": "Apache-2.0 for repository demo JSON and text files",
+  "provenance": "Derived from repository examples for v0.4.1 packaging smoke tests; no canonical TeX or PDF is vendored.",
+  "safety_invariants": [
+    "demo output does not prove real ASI, physical outcomes, oracle truth, legal identity, or global Sybil uniqueness",
+    "external content and ALT tokens remain candidate-only until finite verifier and residual-policy checks pass",
+    "live connectors are disabled by default",
+    "settled=false is expected when residual obligations remain"
+  ],
+  "version": "0.4.1"
+}

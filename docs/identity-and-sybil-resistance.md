@@ -1,6 +1,6 @@
 # Identity and Sybil Resistance
 
-v0.4.0 keeps the practical cryptographic identity layer for adversarial protocol settings and connects it to external packet intake and ALT abstraction-liquidity admission. It is designed for ECPT collective phase runtime users who need stronger evidence than a declared `agent_id` before accepting packet capital, population steps, abstraction capital, or collective phase certificates, while still preserving diagnostic packet candidates in less strict profiles.
+v0.4.1 keeps the practical cryptographic identity layer for adversarial protocol settings and connects it to external packet intake and ALT abstraction-liquidity admission. It is designed for ECPT collective phase runtime users who need stronger evidence than a declared `agent_id` before accepting packet capital, population steps, abstraction capital, or collective phase certificates, while still preserving diagnostic packet candidates in less strict profiles.
 
 ## Boundary
 

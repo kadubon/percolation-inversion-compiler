@@ -1,5 +1,24 @@
 # Changelog
 
+## v0.4.1 - 2026-06-11
+
+- Adds PyPI distribution metadata with project URLs, concept DOI, repository,
+  documentation, issue tracker, changelog, and works-page links.
+- Adds a Trusted Publishing workflow for PyPI using GitHub OIDC and a
+  SHA-pinned `pypa/gh-action-pypi-publish` action, without storing API tokens
+  or passwords in the repository.
+- Adds `twine check` to CI and release artifact workflows so wheel and source
+  distribution metadata are validated before publication.
+- Expands PyPI search keywords around AI agents, runtime verification,
+  evidence routing, verifier routing, residual ledgers, Sybil resistance, and
+  abstraction liquidity.
+- Clarifies installed-package versus source-checkout workflows: `pic agent
+  explain`, `pic agent intake --text`, snapshots, and schemas work after
+  `pip install`; fixture-backed `examples/...` commands require cloning the
+  repository.
+- Adds publish-safety checks for PyPI metadata, Trusted Publishing workflow
+  configuration, missing `llms.txt`, and token-free upload policy.
+
 ## v0.4.0 - 2026-06-11
 
 - Adds Abstraction Liquidity Theory (ALT) as an abstraction-capital foundry

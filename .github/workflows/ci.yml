@@ -48,14 +48,25 @@ jobs:
         run: uv run mypy src scripts
 
       - name: Test
-        run: uv run pytest --cov=percolation_inversion_compiler --cov-report=term-missing --cov-fail-under=89
+        run: uv run pytest --cov=percolation_inversion_compiler --cov-report=term-missing --cov-fail-under=90
 
       - name: Build package
         run: uv build
 
+      - name: Check package metadata
+        run: uv run python -m twine check dist/*.whl dist/*.tar.gz
+
+      - name: Check distribution artifacts
+        run: uv run python scripts/check_distribution_artifacts.py
+
       - name: CLI smoke tests
         run: |
           uv run pic --version
+          uv run pic agent explain
+          uv run pic agent guide --profile development
+          uv run pic agent readiness --profile production
+          uv run pic agent intake --text "Candidate packet: preserve residuals." --profile development
+          uv run pic agent communication-guide --profile development --no-allow-live-connectors
           uv run pic explain status
           uv run pic schema --type Judgment
           uv run pic schema --type TheoryAuditReport
@@ -85,6 +96,9 @@ jobs:
           uv run pic audit theory --source tests/fixtures/minimal_claims.tex --strict-grammar --fail-on projection
           uv run pic compile --records examples/frontier_records.json --archive-cap 8
           uv run pic sqot schedule --packets examples/sqot_queue.json --profile production
+          uv run pic ecology policy explain --profile controlled_web
+          uv run pic ecology ingest-general --source examples/agent_network/feed.xml --kind rss
+          uv run pic ecology bridge-runtime --report examples/agent_network/general_intake_report.example.json
           uv run pic ecology build-edges --packets examples/ecology_packets.json --output "$RUNNER_TEMP/ecology-registry.json"
           uv run pic ecology psi --registry "$RUNNER_TEMP/ecology-registry.json" --threshold examples/ecology_threshold.json --output "$RUNNER_TEMP/ecology-psi.json"
           uv run pic ecology plan --registry "$RUNNER_TEMP/ecology-registry.json" --psi "$RUNNER_TEMP/ecology-psi.json" --profile production
@@ -107,6 +121,8 @@ jobs:
           uv run pic runtime loop --state examples/runtime_state.json --inputs examples/runtime_loop_inputs.jsonl --max-steps 2 --profile production --output "$RUNNER_TEMP/runtime-loop.json"
           uv run pic runtime health --state examples/runtime_state.json --profile production --output "$RUNNER_TEMP/runtime-health.json"
           uv run pic runtime export-openapi --output "$RUNNER_TEMP/runtime-openapi.json"
+          uv run pic alt admit --packet examples/alt/admission_packet.json
+          uv run pic alt foundry-dashboard --state examples/alt/foundry_state.json
           uv run pic demo datacenter
           uv run pic sbom create --format pic --output "$RUNNER_TEMP/pic.sbom.json"
           uv run pic sbom create --format cyclonedx --output "$RUNNER_TEMP/cyclonedx.sbom.json"

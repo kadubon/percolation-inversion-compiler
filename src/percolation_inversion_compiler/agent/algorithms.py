@@ -79,6 +79,15 @@ _CMD_LIVE_WEB_INGEST = (
 _CMD_LIVE_WEB_DISCOVER = (
     "uv run pic ecology discover-web --source https://example.org --allow-live-connectors"
 )
+_CMD_ALT_NEGATIVE = (
+    "uv run pic alt negative-certify --certificate examples/alt/negative_liquidity_certificate.json"
+)
+_CMD_ALT_REFRESH_BASELINE = (
+    "uv run pic alt refresh-baseline --certificate examples/alt/baseline_refresh_certificate.json"
+)
+_CMD_ALT_CHECK_CARA = (
+    "uv run pic alt check-cara --certificate examples/alt/alt_cara_certificate.json"
+)
 
 
 def agent_manifest_payload() -> dict[str, object]:
@@ -110,17 +119,110 @@ def agent_manifest_payload() -> dict[str, object]:
             "GeneralIntakeRuntimeBridgeReport",
             "ExternalCandidateClassification",
             "AgentMessageContractReport",
+            "IntakeProvenanceRecord",
             "WebFetchPolicy",
+            "WebFetchReport",
+            "RobotsDecision",
             "WebDiscoveryReport",
             "AgentMessageEnvelope",
+            "AgentMessageVerificationContext",
+            "AgentMessageNonceLedger",
             "AgentInboxRecord",
             "AgentPacketExchangeReport",
+            "AbstractionToken",
+            "LiquidityCertificate",
+            "NegativeLiquidityCertificate",
+            "ALTDeprecationRecord",
+            "ALTResurrectionRecord",
+            "BaselineRefreshCertificate",
+            "OpportunityMeasureContract",
+            "RootFinalityCertificate",
+            "TelemetryCostCertificate",
+            "HazardEnvelopeCertificate",
+            "ReproductionMatrixCertificate",
+            "ALTAdmissionDecision",
+            "ALTCARACertificate",
+            "ALTKernelTransitionReport",
+            "FoundryControlDashboard",
+            "CertifiedAbstractionCapital",
         ],
         "machine_contract": {
             "arbitrary_shell_execution": False,
+            "candidate_only_closure_execution_and_basin_paths_do_not_improve_phase_status": True,
+            "curated_demo_bundle_in_wheel": True,
+            "examples_path_requires_source_checkout": True,
+            "external_candidate_volume_cannot_improve_phase_status": True,
+            "external_content_is_candidate_only": True,
+            "feed_and_inbox_entry_counts_are_bounded": True,
+            "general_intake_reports_sanitized_fetch_provenance": True,
+            "general_intake_requires_source_and_policy_opt_in": True,
+            "installed_package_smoke_commands_available": True,
+            "live_connectors_default_enabled": False,
+            "live_discovery_fetches_each_resource_once": True,
+            "local_staged_intake_uses_byte_limits": True,
+            "local_web_discovery_disallows_seed_directory_escape": True,
             "production_requires_identity_context": True,
+            "redirect_chain_urls_are_policy_validated": True,
             "residuals_are_not_failures": True,
+            "rss_atom_uses_defused_xml": True,
+            "sanitized_outputs_only": True,
             "settled_false_is_expected": True,
+        },
+        "install_modes": [
+            {
+                "mode": "pip",
+                "command": "python -m pip install percolation-inversion-compiler",
+                "intended_for": [
+                    "curated installed demo",
+                    "bundled snapshots",
+                    "schema export",
+                    "library and CLI runtime checks",
+                ],
+                "does_not_include": [
+                    "root examples tree",
+                    "canonical TeX files",
+                    "release engineering fixtures",
+                ],
+            },
+            {
+                "mode": "source-checkout",
+                "command": (
+                    "git clone https://github.com/kadubon/percolation-inversion-compiler.git"
+                ),
+                "intended_for": [
+                    "full practical workflows",
+                    "examples-backed commands",
+                    "canonical TeX audits",
+                    "development tests",
+                    "release engineering",
+                ],
+            },
+        ],
+        "clone_url": "https://github.com/kadubon/percolation-inversion-compiler.git",
+        "clone_recommended_for_full_use": True,
+        "uv_install_commands": {
+            "windows_powershell": (
+                'powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"'
+            ),
+            "macos_linux": "curl -LsSf https://astral.sh/uv/install.sh | sh",
+            "pypi_fallback": "python -m pip install uv",
+        },
+        "pip_boundary": {
+            "pip_supports": [
+                "pic agent explain",
+                "pic demo installed-smoke",
+                "pic demo bootstrap",
+                "pic runtime step with bootstrapped demo files",
+                "pic snapshot list/show",
+                "pic schema export",
+                "Python SDK imports",
+            ],
+            "clone_required_for": [
+                "commands that reference examples/...",
+                "canonical TeX/PDF audits through local source files",
+                "full fixture-backed runtime workflows",
+                "release checks and provenance/SBOM asset generation",
+            ],
         },
         "name": "percolation-inversion-compiler",
         "non_goals": [
@@ -131,6 +233,8 @@ def agent_manifest_payload() -> dict[str, object]:
             "legal identity proof",
             "global Sybil resistance",
             "oracle or simulator truth settlement",
+            "unbounded web crawling",
+            "arbitrary shell execution",
         ],
         "primary_use_cases": [
             "AI agent workflow verification",
@@ -142,8 +246,12 @@ def agent_manifest_payload() -> dict[str, object]:
             "explicit opt-in live metadata ingestion",
             "bounded general web intake",
             "agent-to-agent packet exchange",
-            "general intake runtime bridge",
+            "general intake SQOT runtime bridging",
             "collective phase certificate generation",
+            "abstraction-token candidate certification",
+            "ALT reusable abstraction capital foundry dashboards",
+            "ALT negative-liquidity deprecation and resurrection",
+            "ALT-CARA protocol-relative acceleration certification",
         ],
         "purpose": (
             "AI agent runtime verification and ECPT ASI-proxy collective phase acceleration"
@@ -153,6 +261,7 @@ def agent_manifest_payload() -> dict[str, object]:
             "AGENTS.md",
             "docs/for-agents.md",
             "docs/agent-external-communication.md",
+            "docs/pypi-distribution.md",
             "docs/01-quickstart.md",
             "docs/identity-and-sybil-resistance.md",
             "docs/04-collective-phase-certificate.md",
@@ -171,10 +280,21 @@ def agent_manifest_payload() -> dict[str, object]:
             "run/store loop",
             "inspect Psi/SQOT",
             "collective certify",
-            "preserve residuals/provenance",
             "ALT abstraction-liquidity foundry admission",
+            "preserve residuals/provenance",
         ],
         "safe_cli_entrypoints": [
+            "python -m pip install percolation-inversion-compiler",
+            "pic agent explain",
+            "pic demo installed-smoke --profile development",
+            "pic demo bootstrap --output-dir pic-demo",
+            (
+                "pic runtime step --state pic-demo/runtime_state.json "
+                "--input pic-demo/runtime_step_input.json --profile development"
+            ),
+            'pic agent intake --text "Candidate packet: preserve residuals." --profile development',
+            "pic snapshot list",
+            "pic schema --type AgentIntakeReport",
             "uv run pic --help",
             "uv run pic agent explain",
             _CMD_AGENT_COMM_GUIDE_DEV,
@@ -184,9 +304,13 @@ def agent_manifest_payload() -> dict[str, object]:
             "uv run pic ecology policy explain --profile controlled_web",
             "uv run pic ecology bridge-runtime --report general-intake-report.json",
             "uv run pic alt admit --packet examples/alt/admission_packet.json",
+            _CMD_ALT_NEGATIVE,
+            _CMD_ALT_REFRESH_BASELINE,
+            _CMD_ALT_CHECK_CARA,
             "uv run pic alt foundry-dashboard --state examples/alt/foundry_state.json",
             "uv run pic agent message contract --message examples/agent_network/agent_message.json",
             _CMD_AGENT_MESSAGE_INGEST,
+            "uv run pic schema --type IntakeProvenanceRecord",
             "uv run pic runtime health --state examples/runtime_state.json --profile development",
             (
                 "uv run pic runtime step --state examples/runtime_state.json "
@@ -199,7 +323,7 @@ def agent_manifest_payload() -> dict[str, object]:
                 "--output identity-context.json"
             ),
         ],
-        "version": "0.4.0",
+        "version": "0.4.1",
     }
 
 

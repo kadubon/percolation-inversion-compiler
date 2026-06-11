@@ -32,7 +32,7 @@ def test_agents_md_exists_and_states_safety_contract() -> None:
 def test_agent_manifest_json_is_machine_readable() -> None:
     data = json.loads((ROOT / "agent-manifest.json").read_text(encoding="utf-8"))
     assert data["name"] == "percolation-inversion-compiler"
-    assert data["version"] == "0.4.0"
+    assert data["version"] == "0.4.1"
     assert "non_goals" in data
     assert "safe_cli_entrypoints" in data
     assert "important_schemas" in data
@@ -43,6 +43,13 @@ def test_agent_manifest_json_is_machine_readable() -> None:
     assert "IntakeProvenanceRecord" in data["important_schemas"]
     assert "AgentMessageEnvelope" in data["important_schemas"]
     assert "AgentMessageVerificationContext" in data["important_schemas"]
+    assert "pic demo installed-smoke --profile development" in data["safe_cli_entrypoints"]
+    assert data["machine_contract"]["curated_demo_bundle_in_wheel"] is True
+    assert data["clone_url"] == "https://github.com/kadubon/percolation-inversion-compiler.git"
+    assert data["clone_recommended_for_full_use"] is True
+    assert "examples/..." in data["pip_boundary"]["clone_required_for"][0]
+    assert "astral.sh/uv/install.ps1" in data["uv_install_commands"]["windows_powershell"]
+    assert "astral.sh/uv/install.sh" in data["uv_install_commands"]["macos_linux"]
     assert "general web/feed intake" in data["full_feature_stages"]
     assert "agent-to-agent packet exchange" in data["full_feature_stages"]
     assert "collective certify" in data["full_feature_stages"]
@@ -58,6 +65,13 @@ def test_schema_index_json_points_to_schema_bundle_command() -> None:
     assert "AgentPacketExchangeReport" in data["important_schema_names"]
     assert "IntakeProvenanceRecord" in data["important_schema_names"]
     assert "AgentMessageVerificationContext" in data["important_schema_names"]
+    assert "pic demo installed-smoke --profile development" in data["network_safe_cli"]
+    assert data["network_contract"]["curated_demo_bundle_in_wheel"] is True
+    assert data["clone_url"] == "https://github.com/kadubon/percolation-inversion-compiler.git"
+    assert data["clone_recommended_for_full_use"] is True
+    assert data["install_modes"][0]["mode"] == "pip"
+    assert data["install_modes"][1]["mode"] == "source-checkout"
+    assert "astral.sh/uv/install.ps1" in data["uv_install_commands"]["windows_powershell"]
 
 
 def test_run_agent_intake_returns_report_and_preserves_unsettled_status() -> None:
@@ -89,6 +103,9 @@ def test_pic_agent_explain_and_manifest_exit_zero() -> None:
     assert manifest.exit_code == 0
     manifest_data = json.loads(manifest.output)
     assert manifest_data["machine_contract"]["settled_false_is_expected"] is True
+    assert manifest_data["clone_recommended_for_full_use"] is True
+    assert manifest_data["install_modes"][0]["mode"] == "pip"
+    assert "pic demo bootstrap" in "\n".join(manifest_data["safe_cli_entrypoints"])
 
 
 def test_pic_agent_guide_contains_full_workflow_and_invariants() -> None:

@@ -1,10 +1,48 @@
 # Quickstart
 
-This page shows the shortest path from a fresh checkout to useful deterministic JSON. It does not require local TeX files.
+This page shows the shortest paths to useful deterministic JSON. Use PyPI for
+installed-package smoke checks and curated demos. Clone the repository for full
+practical use with `examples/...`, canonical-source audits, fixtures, and
+release checks.
 
 ## Agent Quickstart
 
 Use this path when an autonomous agent or coding agent needs to orient itself and run a minimal residual-preserving intake without assembling runtime records manually.
+
+After PyPI installation:
+
+```powershell
+python -m pip install percolation-inversion-compiler
+pic agent explain
+pic demo installed-smoke --profile development
+pic demo bootstrap --output-dir pic-demo
+pic agent guide --profile development
+pic agent intake --text "Candidate packet: route evidence and preserve residuals." --profile development
+pic runtime step --state pic-demo/runtime_state.json --input pic-demo/runtime_step_input.json --profile development
+```
+
+For full practical use, clone the source checkout first:
+
+```powershell
+powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
+git clone https://github.com/kadubon/percolation-inversion-compiler.git
+cd percolation-inversion-compiler
+uv sync --all-extras --dev
+```
+
+On macOS/Linux, install `uv` with:
+
+```sh
+curl -LsSf https://astral.sh/uv/install.sh | sh
+```
+
+If the standalone installer is unsuitable:
+
+```powershell
+python -m pip install uv
+```
+
+Then run source-checkout commands:
 
 ```powershell
 uv run pic agent explain
@@ -49,7 +87,17 @@ and residual policies pass.
 
 ## 1. Install
 
+For PyPI runtime use:
+
 ```powershell
+python -m pip install percolation-inversion-compiler
+```
+
+For the repository fixtures, tests, canonical-source audits, and release checks:
+
+```powershell
+git clone https://github.com/kadubon/percolation-inversion-compiler.git
+cd percolation-inversion-compiler
 uv sync --all-extras --dev
 ```
 

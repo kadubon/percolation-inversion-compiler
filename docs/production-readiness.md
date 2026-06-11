@@ -5,6 +5,31 @@ autonomous agents. It reports whether the installed package or source checkout
 has the schema registry, snapshots, route bindings, optional adapters,
 provenance, security metadata, and status policy needed for fail-closed use.
 
+For a PyPI-installed package, start with commands that do not require repository
+fixtures:
+
+```powershell
+python -m pip install percolation-inversion-compiler
+pic agent explain
+pic demo installed-smoke --profile development
+pic demo bootstrap --output-dir pic-demo
+pic runtime step --state pic-demo/runtime_state.json --input pic-demo/runtime_step_input.json --profile development
+pic agent intake --text "Candidate packet: preserve residuals." --profile development
+pic snapshot list
+pic schema --type AgentIntakeReport
+```
+
+Commands that read `examples/...`, canonical TeX files, or release artifacts
+require a source checkout. For full practical use, install `uv`, clone the
+repository, and sync all extras:
+
+```powershell
+powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
+git clone https://github.com/kadubon/percolation-inversion-compiler.git
+cd percolation-inversion-compiler
+uv sync --all-extras --dev
+```
+
 ## Profiles
 
 ```powershell

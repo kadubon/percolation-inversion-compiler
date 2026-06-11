@@ -1,22 +1,35 @@
 [project]
 name = "percolation-inversion-compiler"
-version = "0.4.0"
+version = "0.4.1"
 description = "ECPT collective phase certificate runtime and finite verifier-routing SDK with ALT abstraction-liquidity foundry, ASI-proxy packet percolation, semantic edge checks, residual ledgers, provenance, and agent integration."
 readme = "README.md"
 requires-python = ">=3.11"
 license = { text = "Apache-2.0" }
 authors = [{ name = "K. Takahashi" }]
 keywords = [
-  "certificate compiler",
-  "formal methods",
+  "ai-agents",
+  "agent-runtime",
+  "workflow-verification",
+  "evidence-routing",
+  "verifier-routing",
+  "residual-ledger",
+  "sybil-resistance",
+  "cryptographic-identity",
+  "json-schema",
+  "runtime-verification",
+  "collective-intelligence",
   "percolation",
-  "typed ledgers",
-  "frontier extraction",
+  "formal-methods",
+  "abstraction-liquidity",
+  "ecpt",
+  "sqot",
+  "alt",
 ]
 classifiers = [
   "Development Status :: 4 - Beta",
   "Intended Audience :: Science/Research",
   "License :: OSI Approved :: Apache Software License",
+  "Operating System :: OS Independent",
   "Programming Language :: Python :: 3",
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
@@ -24,6 +37,7 @@ classifiers = [
   "Programming Language :: Python :: 3.14",
   "Topic :: Scientific/Engineering",
   "Topic :: Software Development :: Libraries :: Python Modules",
+  "Typing :: Typed",
 ]
 dependencies = [
   "defusedxml>=0.7",
@@ -71,10 +85,20 @@ dev = [
   "types-defusedxml>=0.7",
   "types-jsonschema>=4.23",
   "types-PyYAML>=6.0",
+  "twine>=6.1",
 ]
 
 [project.scripts]
 pic = "percolation_inversion_compiler.cli:app"
+
+[project.urls]
+Homepage = "https://github.com/kadubon/percolation-inversion-compiler"
+Repository = "https://github.com/kadubon/percolation-inversion-compiler"
+Documentation = "https://github.com/kadubon/percolation-inversion-compiler#readme"
+Issues = "https://github.com/kadubon/percolation-inversion-compiler/issues"
+Changelog = "https://github.com/kadubon/percolation-inversion-compiler/blob/main/CHANGELOG.md"
+DOI = "https://doi.org/10.5281/zenodo.20569166"
+Works = "https://kadubon.github.io/github.io/works.html"
 
 [build-system]
 requires = ["hatchling>=1.25"]
@@ -82,7 +106,10 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/percolation_inversion_compiler"]
-artifacts = ["src/percolation_inversion_compiler/data/**/*.json"]
+artifacts = [
+  "src/percolation_inversion_compiler/data/**/*.json",
+  "src/percolation_inversion_compiler/data/**/*.txt",
+]
 
 [tool.ruff]
 line-length = 100

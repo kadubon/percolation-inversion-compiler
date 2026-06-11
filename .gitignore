@@ -1,7 +1,13 @@
 # Python environments and caches
 .venv/
+.venv*/
 venv/
+venv*/
 env/
+env*/
+ENV/
+.envrc
+.python-version
 __pycache__/
 *.py[cod]
 *.pyo
@@ -10,16 +16,32 @@ __pycache__/
 .ruff_cache/
 .hypothesis/
 .coverage
+.coverage.*
 coverage.xml
 htmlcov/
+.ipynb_checkpoints/
 
 # Build and packaging artifacts
 build/
 dist/
 *.egg-info/
+*.egg
+*.manifest
+*.spec
 site/
 .tox/
 .nox/
+pip-wheel-metadata/
+wheelhouse/
+*.whl
+*.tar
+*.tar.gz
+*.tgz
+*.zip
+*.7z
+*.rar
+*.xz
+*.bz2
 
 # Local research artifacts and generated TeX/PDF mirrors
 *.aux
@@ -36,20 +58,58 @@ site/
 !docs/**/*.tex
 !tests/fixtures/**/*.tex
 
+# Model/data artifacts that must not be published without explicit review
+*.ckpt
+*.onnx
+*.pt
+*.pth
+*.safetensors
+*.bin
+*.joblib
+*.pkl
+*.pickle
+*.npy
+*.npz
+*.parquet
+*.feather
+*.arrow
+*.sqlite-wal
+*.sqlite-shm
+
 # Local data, secrets, and credentials
 .env
 .env.*
 !.env.example
+.aws/
+.azure/
+.gcloud/
+.gnupg/
+.ssh/
 *.pem
 *.key
+id_rsa*
+id_ed25519*
+*.asc
 *.p12
 *.pfx
 *.crt
 *.cer
+*.kdbx
 secrets/
 private/
 local/
 downloads/
+download/
+tmp/
+temp/
+cache/
+data/raw/
+data/private/
+data/downloads/
+vendor/
+vendors/
+third_party/
+node_modules/
 *.sqlite
 *.sqlite3
 *.db
@@ -61,8 +121,11 @@ Thumbs.db
 desktop.ini
 .idea/
 .vscode/
+*.code-workspace
 *.swp
 *.swo
+*.bak
+*.orig
 
 # Tool output
 .release/
@@ -70,3 +133,4 @@ pip-audit-report.json
 bandit-report.json
 scorecard-results.sarif
 zizmor.sarif
+coverage.json

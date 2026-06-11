@@ -39,6 +39,8 @@ jobs:
           VERSION="${GITHUB_REF_NAME#v}"
           echo "VERSION=${VERSION}" >> "$GITHUB_ENV"
           uv build
+          uv run python -m twine check dist/*.whl dist/*.tar.gz
+          uv run python scripts/check_distribution_artifacts.py --version "${VERSION}"
           uv run pic schema --all --output-dir "dist/schemas-${GITHUB_REF_NAME}"
           (cd dist && zip -qr "percolation-inversion-compiler-${VERSION}.schemas.zip" "schemas-${GITHUB_REF_NAME}")
           uv run pic sbom create --format pic --output "dist/percolation-inversion-compiler-${VERSION}.sbom.json"

@@ -6,7 +6,8 @@
     "docs/agent-external-communication.md",
     "docs/alt.md",
     "docs/01-quickstart.md",
-    "docs/cli-reference.md"
+    "docs/cli-reference.md",
+    "docs/pypi-distribution.md"
   ],
   "full_feature_stages": [
     "orient",
@@ -77,6 +78,14 @@
     "CertifiedAbstractionCapital"
   ],
   "network_safe_cli": [
+    "python -m pip install percolation-inversion-compiler",
+    "pic agent explain",
+    "pic demo installed-smoke --profile development",
+    "pic demo bootstrap --output-dir pic-demo",
+    "pic runtime step --state pic-demo/runtime_state.json --input pic-demo/runtime_step_input.json --profile development",
+    "pic agent intake --text \"Candidate packet: preserve residuals.\" --profile development",
+    "pic snapshot list",
+    "pic schema --type AgentIntakeReport",
     "uv run pic agent communication-guide --profile development --no-allow-live-connectors",
     "uv run pic agent network-readiness --profile development --no-allow-live-connectors",
     "uv run pic ecology policy explain --profile controlled_web",
@@ -92,10 +101,13 @@
     "uv run pic agent message ingest --message examples/agent_network/agent_message.json"
   ],
   "network_contract": {
+    "examples_path_requires_source_checkout": true,
+    "curated_demo_bundle_in_wheel": true,
     "external_content_is_candidate_only": true,
     "external_candidate_volume_cannot_improve_phase_status": true,
     "candidate_only_closure_execution_and_basin_paths_do_not_improve_phase_status": true,
     "feed_and_inbox_entry_counts_are_bounded": true,
+    "installed_package_smoke_commands_available": true,
     "live_connectors_default_enabled": false,
     "local_staged_intake_uses_byte_limits": true,
     "requires_source_request_and_runtime_opt_in": true,
@@ -103,6 +115,58 @@
     "rss_atom_uses_defused_xml": true,
     "live_discovery_fetches_each_resource_once": true,
     "sanitized_outputs_only": true
+  },
+  "install_modes": [
+    {
+      "mode": "pip",
+      "command": "python -m pip install percolation-inversion-compiler",
+      "intended_for": [
+        "curated installed demo",
+        "bundled snapshots",
+        "schema export",
+        "library and CLI runtime checks"
+      ],
+      "does_not_include": [
+        "root examples tree",
+        "canonical TeX files",
+        "release engineering fixtures"
+      ]
+    },
+    {
+      "mode": "source-checkout",
+      "command": "git clone https://github.com/kadubon/percolation-inversion-compiler.git",
+      "intended_for": [
+        "full practical workflows",
+        "examples-backed commands",
+        "canonical TeX audits",
+        "development tests",
+        "release engineering"
+      ]
+    }
+  ],
+  "clone_url": "https://github.com/kadubon/percolation-inversion-compiler.git",
+  "clone_recommended_for_full_use": true,
+  "uv_install_commands": {
+    "windows_powershell": "powershell -ExecutionPolicy ByPass -c \"irm https://astral.sh/uv/install.ps1 | iex\"",
+    "macos_linux": "curl -LsSf https://astral.sh/uv/install.sh | sh",
+    "pypi_fallback": "python -m pip install uv"
+  },
+  "pip_boundary": {
+    "pip_supports": [
+      "pic agent explain",
+      "pic demo installed-smoke",
+      "pic demo bootstrap",
+      "pic runtime step with bootstrapped demo files",
+      "pic snapshot list/show",
+      "pic schema export",
+      "Python SDK imports"
+    ],
+    "clone_required_for": [
+      "commands that reference examples/...",
+      "canonical TeX/PDF audits through local source files",
+      "full fixture-backed runtime workflows",
+      "release checks and provenance/SBOM asset generation"
+    ]
   },
   "runtime_report_fields_to_inspect": [
     "accepted",

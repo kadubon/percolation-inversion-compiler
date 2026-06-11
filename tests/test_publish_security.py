@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import importlib.util
 import re
+import tomllib
 from pathlib import Path
 
 import yaml
@@ -22,7 +23,7 @@ def _publish_safety_main() -> int:
 def test_citation_cff_references_all_papers() -> None:
     data = yaml.safe_load((ROOT / "CITATION.cff").read_text(encoding="utf-8"))
     dois = {reference["doi"] for reference in data["references"]}
-    assert data["version"] == "0.4.0"
+    assert data["version"] == "0.4.1"
     assert data["doi"] == "10.5281/zenodo.20569166"
     assert data["repository-code"] == "https://github.com/kadubon/percolation-inversion-compiler"
     assert "OWNER/" not in data["repository-code"]
@@ -30,11 +31,65 @@ def test_citation_cff_references_all_papers() -> None:
     assert "10.5281/zenodo.20545356" in dois
     assert "10.5281/zenodo.20554083" in dois
     assert "10.5281/zenodo.20526451" in dois
+    assert "10.5281/zenodo.20476200" in dois
+
+
+def test_pyproject_has_pypi_distribution_metadata() -> None:
+    data = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
+    project = data["project"]
+    assert project["version"] == "0.4.1"
+    urls = project["urls"]
+    assert urls["Repository"] == "https://github.com/kadubon/percolation-inversion-compiler"
+    assert urls["DOI"] == "https://doi.org/10.5281/zenodo.20569166"
+    for key in ["Homepage", "Documentation", "Issues", "Changelog", "Works"]:
+        assert urls[key].startswith("https://")
+    keywords = set(project["keywords"])
+    for keyword in [
+        "ai-agents",
+        "agent-runtime",
+        "evidence-routing",
+        "verifier-routing",
+        "residual-ledger",
+        "sybil-resistance",
+        "abstraction-liquidity",
+        "ecpt",
+        "sqot",
+        "alt",
+    ]:
+        assert keyword in keywords
+
+
+def test_pypi_publish_workflow_uses_trusted_publishing() -> None:
+    workflow_path = ROOT / ".github" / "workflows" / "pypi-publish.yml"
+    text = workflow_path.read_text(encoding="utf-8")
+    workflow = yaml.safe_load(text)
+    job = workflow["jobs"]["publish"]
+    assert job["environment"] == "pypi"
+    assert job["permissions"]["id-token"] == "write"
+    assert "PYPI_API_TOKEN" not in text
+    assert "password:" not in text.lower()
+    uses = [step.get("uses", "") for step in job["steps"] if isinstance(step, dict)]
+    assert "pypa/gh-action-pypi-publish@6733eb7d741f0b11ec6a39b58540dab7590f9b7d" in uses
+    runs = [step.get("run", "") for step in job["steps"] if isinstance(step, dict)]
+    assert any("twine check" in run for run in runs)
 
 
 def test_gitignore_blocks_generated_and_secret_paths() -> None:
     gitignore = (ROOT / ".gitignore").read_text(encoding="utf-8")
-    for pattern in [".venv/", "__pycache__/", ".env", "*.pem", "*.tex", "*.pdf"]:
+    for pattern in [
+        ".venv/",
+        "__pycache__/",
+        ".env",
+        "*.pem",
+        "*.tex",
+        "*.pdf",
+        "*.safetensors",
+        "*.onnx",
+        "*.whl",
+        "node_modules/",
+        "vendor/",
+        ".ipynb_checkpoints/",
+    ]:
         assert pattern in gitignore
 
 
@@ -45,6 +100,30 @@ def test_publishable_files_have_no_local_paths_or_secret_assignments() -> None:
 def test_readme_does_not_contain_user_local_path() -> None:
     readme = (ROOT / "README.md").read_text(encoding="utf-8")
     assert not re.search(r"C:\\Users\\", readme, re.IGNORECASE)
+
+
+def test_docs_explain_pip_clone_boundary_and_uv_install() -> None:
+    required = [
+        "python -m pip install percolation-inversion-compiler",
+        "git clone https://github.com/kadubon/percolation-inversion-compiler.git",
+        'powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"',
+        "curl -LsSf https://astral.sh/uv/install.sh | sh",
+        "uv sync --all-extras --dev",
+    ]
+    for relative in [
+        "README.md",
+        "AGENTS.md",
+        "docs/01-quickstart.md",
+        "docs/for-agents.md",
+        "docs/pypi-distribution.md",
+        "docs/cli-reference.md",
+    ]:
+        text = (ROOT / relative).read_text(encoding="utf-8")
+        for phrase in required:
+            assert phrase in text
+    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+    assert "The PyPI package is intended for curated demo smoke checks" in readme
+    assert "Clone the repository for full practical use" in readme
 
 
 def test_readme_frontmatter_explains_scientific_agent_contract() -> None:
@@ -87,6 +166,7 @@ def test_agent_docs_exist_and_avoid_local_paths() -> None:
         "docs/packet-promotion.md",
         "docs/acceleration-certificates.md",
         "docs/release-checklist.md",
+        "docs/pypi-distribution.md",
         "CONTRIBUTING.md",
         "CHANGELOG.md",
     ]:
