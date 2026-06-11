@@ -77,7 +77,8 @@ uv sync --all-extras --dev
 PyPI publication should use the `PyPI Publish` GitHub Actions workflow. It is
 triggered when a GitHub Release is published, verifies that the release tag
 matches the package version, builds the wheel and sdist, runs `twine check`, and
-uses PyPI Trusted Publishing through GitHub OIDC.
+uses `uv publish --trusted-publishing always` with PyPI Trusted Publishing
+through GitHub OIDC.
 
 Required PyPI Trusted Publisher settings:
 
@@ -114,8 +115,9 @@ git diff --check
 The distribution-artifact check verifies the wheel contains `py.typed`, bundled
 snapshots, and the curated installed-demo assets. The publish-safety check
 verifies project URLs, PyPI keywords, `twine` metadata checking, the SHA-pinned
-Trusted Publishing workflow, absence of upload tokens, absence of `llms.txt`,
-and the existing local-path, vendored-artifact, and secret scans.
+checkout/setup actions, the `uv publish` Trusted Publishing command, absence of
+upload tokens, absence of `llms.txt`, and the existing local-path,
+vendored-artifact, and secret scans.
 
 ## Safety Boundary
 

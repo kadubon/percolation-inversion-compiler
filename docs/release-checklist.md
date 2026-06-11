@@ -27,8 +27,8 @@
   vendored archives, model weights, serialized datasets, credential folders, or
   private-key-like files.
 - Confirm `.github/workflows/pypi-publish.yml` uses PyPI Trusted Publishing,
-  the `pypi` environment, `id-token: write`, a SHA-pinned PyPI publish action,
-  and no API token or password fields.
+  the `pypi` environment, `id-token: write`,
+  `uv publish --trusted-publishing always`, and no API token or password fields.
 - Confirm PyPI Trusted Publisher settings match repository
   `kadubon/percolation-inversion-compiler`, workflow `pypi-publish.yml`, and
   environment `pypi`.

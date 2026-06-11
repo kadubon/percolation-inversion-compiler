@@ -69,9 +69,10 @@ def test_pypi_publish_workflow_uses_trusted_publishing() -> None:
     assert "PYPI_API_TOKEN" not in text
     assert "password:" not in text.lower()
     uses = [step.get("uses", "") for step in job["steps"] if isinstance(step, dict)]
-    assert "pypa/gh-action-pypi-publish@6733eb7d741f0b11ec6a39b58540dab7590f9b7d" in uses
+    assert not any("gh-action-pypi-publish" in use for use in uses)
     runs = [step.get("run", "") for step in job["steps"] if isinstance(step, dict)]
     assert any("twine check" in run for run in runs)
+    assert any("uv publish --trusted-publishing always" in run for run in runs)
 
 
 def test_gitignore_blocks_generated_and_secret_paths() -> None:

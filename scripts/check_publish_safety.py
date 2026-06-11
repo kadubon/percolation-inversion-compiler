@@ -64,7 +64,7 @@ REQUIRED_KEYWORDS = {
     "sqot",
     "alt",
 }
-PYPI_PUBLISH_ACTION_SHA = "6733eb7d741f0b11ec6a39b58540dab7590f9b7d"
+PYPI_PUBLISH_COMMAND = "uv publish --trusted-publishing always"
 FORBIDDEN_PATH_PARTS = {
     ".venv",
     "cache",
@@ -220,14 +220,14 @@ def check_pypi_workflow() -> list[str]:
     if permissions.get("id-token") != "write":
         failures.append("PyPI workflow must grant id-token: write for trusted publishing")
     steps = publish.get("steps", [])
-    uses_values = [step.get("uses", "") for step in steps if isinstance(step, dict)]
-    expected_action = f"pypa/gh-action-pypi-publish@{PYPI_PUBLISH_ACTION_SHA}"
-    if expected_action not in uses_values:
-        failures.append("PyPI workflow must use the SHA-pinned PyPI publish action")
-    if not any(
-        "twine check" in str(step.get("run", "")) for step in steps if isinstance(step, dict)
-    ):
+    uses_values = [str(step.get("uses", "")) for step in steps if isinstance(step, dict)]
+    run_values = [str(step.get("run", "")) for step in steps if isinstance(step, dict)]
+    if any("gh-action-pypi-publish" in value for value in uses_values):
+        failures.append("PyPI workflow must not use the PyPA Docker publish action")
+    if not any("twine check" in run for run in run_values):
         failures.append("PyPI workflow must run twine check before publishing")
+    if not any(PYPI_PUBLISH_COMMAND in run for run in run_values):
+        failures.append("PyPI workflow must publish with uv trusted publishing")
     return failures
 
 
