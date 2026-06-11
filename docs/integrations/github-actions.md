@@ -5,6 +5,12 @@ AI agent output checker in GitHub Actions. It records pull request or agent
 text as a packet candidate, runs `pic agent intake`, and uploads a
 residual-preserving JSON audit report as a workflow artifact.
 
+This is one integration pattern. PIC also works through the CLI, Python SDK,
+local runtime service, external intake, agent-to-agent message checks, and ALT
+abstraction-capital workflows. Use this page only when you want a read-only
+GitHub Actions deployment. For the broader map, see
+[Integration Examples](README.md).
+
 Use this integration when an AI coding agent, issue triage bot, research
 assistant, or workflow agent produces text that should not be trusted
 immediately. The workflow records the output as a packet candidate, runs PIC

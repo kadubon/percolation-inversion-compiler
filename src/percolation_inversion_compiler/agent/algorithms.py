@@ -198,6 +198,15 @@ def agent_manifest_payload() -> dict[str, object]:
                 ],
             },
         ],
+        "deployment_surfaces": [
+            "cli",
+            "python-sdk",
+            "github-actions",
+            "runtime-service",
+            "external-intake",
+            "agent-messages",
+            "alt-foundry",
+        ],
         "clone_url": "https://github.com/kadubon/percolation-inversion-compiler.git",
         "clone_recommended_for_full_use": True,
         "uv_install_commands": {
@@ -252,6 +261,9 @@ def agent_manifest_payload() -> dict[str, object]:
             "ALT reusable abstraction capital foundry dashboards",
             "ALT negative-liquidity deprecation and resurrection",
             "ALT-CARA protocol-relative acceleration certification",
+            "CLI AI agent output checking",
+            "Python SDK agent runtime embedding",
+            "read-only GitHub Actions audit artifact generation",
         ],
         "purpose": (
             "AI agent runtime verification and ECPT ASI-proxy collective phase acceleration"
@@ -260,11 +272,16 @@ def agent_manifest_payload() -> dict[str, object]:
             "README.md",
             "AGENTS.md",
             "docs/for-agents.md",
+            "docs/integrations/README.md",
             "docs/agent-external-communication.md",
+            "docs/integrations/github-actions.md",
             "docs/pypi-distribution.md",
             "docs/01-quickstart.md",
             "docs/identity-and-sybil-resistance.md",
             "docs/04-collective-phase-certificate.md",
+            "examples/cli_agent_output_check/README.md",
+            "examples/python_sdk_agent_output_check/README.md",
+            "examples/github_action_agent_output_check/README.md",
         ],
         "full_feature_stages": [
             "orient",
@@ -293,6 +310,12 @@ def agent_manifest_payload() -> dict[str, object]:
                 "--input pic-demo/runtime_step_input.json --profile development"
             ),
             'pic agent intake --text "Candidate packet: preserve residuals." --profile development',
+            (
+                "uv run pic agent intake --text-file "
+                "examples/cli_agent_output_check/agent_output.txt --profile development "
+                "--output cli-agent-output-report.json"
+            ),
+            "uv run python examples/python_sdk_agent_output_check/check_agent_output.py",
             "pic snapshot list",
             "pic schema --type AgentIntakeReport",
             "uv run pic --help",

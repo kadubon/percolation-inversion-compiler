@@ -144,6 +144,15 @@
       ]
     }
   ],
+  "deployment_surfaces": [
+    "cli",
+    "python-sdk",
+    "github-actions",
+    "runtime-service",
+    "external-intake",
+    "agent-messages",
+    "alt-foundry"
+  ],
   "clone_url": "https://github.com/kadubon/percolation-inversion-compiler.git",
   "clone_recommended_for_full_use": true,
   "uv_install_commands": {

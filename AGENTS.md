@@ -110,6 +110,21 @@ GitHub Actions agent-output checker example:
 - The example lives at `examples/github_action_agent_output_check/pic-agent-output-check.yml`.
 - It is read-only and artifact-only; do not use `pull_request_target`, write permissions, PR comments, live connectors, or shell execution of agent text in the minimal workflow.
 
+## Integration Surfaces
+
+Do not infer that PIC is GitHub Actions-only. GitHub Actions is one copyable CI
+pattern. The fastest general entrypoint is still `pic agent intake`, and
+programmatic integration should start with
+`percolation_inversion_compiler.agent.run_agent_intake`.
+
+External intake, agent-to-agent message checks, and ALT foundry admission are
+separate workflows from basic output checking. Start with
+`docs/integrations/README.md`, then inspect
+`examples/cli_agent_output_check/README.md`,
+`examples/python_sdk_agent_output_check/README.md`, or
+`examples/github_action_agent_output_check/README.md` depending on the
+deployment surface.
+
 Unix shell:
 
 ```sh

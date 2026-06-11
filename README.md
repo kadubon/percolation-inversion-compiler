@@ -67,14 +67,25 @@ uv run pic agent intake --text "Signed packet candidate." --profile production -
 
 Residuals are expected and must be preserved. `settled=false` is not command failure; it means unresolved obligations remain explicit.
 
-## GitHub Actions Example
+## Integration Examples
 
-PIC can be used in GitHub Actions as an AI agent output checker. The minimal
-example records pull request or agent text as a packet candidate, runs
-`pic agent intake`, and uploads a residual-preserving JSON report as a workflow
-artifact. It is read-only and does not comment on pull requests or execute
-agent-suggested commands. See [GitHub Actions integration](docs/integrations/github-actions.md)
-and the [copyable example workflow](examples/github_action_agent_output_check/README.md).
+PIC is not limited to GitHub Actions. It is a general AI agent output checker
+that can be used as a local CLI tool, a Python SDK, a read-only CI checker, a
+local runtime service, an external knowledge intake layer, an agent-to-agent
+message checker, or an ALT abstraction-capital foundry.
+
+- CLI: run `pic agent intake` on AI-generated text before reuse.
+- Python SDK: call `run_agent_intake` inside an agent runtime.
+- GitHub Actions: copy a read-only workflow that uploads a residual-preserving JSON artifact.
+- Runtime service: expose local-first runtime checks through the optional service layer.
+- External intake: treat web, feed, repository, and message inputs as candidate packets.
+- Agent-to-agent messages: inspect signatures, nonces, identity context, and residuals.
+- ALT foundry: check whether traces or outputs can become reusable abstraction capital.
+
+Start with [For AI agents](docs/for-agents.md). For the full integration map,
+see [Integration Examples](docs/integrations/README.md). For the CI pattern, see
+[GitHub Actions integration](docs/integrations/github-actions.md) and the
+[copyable example workflow](examples/github_action_agent_output_check/README.md).
 
 For networked collective-phase workflows, inspect the communication guide first. General web,
 feed, and agent-to-agent intake are default-off for live network access; external content becomes
