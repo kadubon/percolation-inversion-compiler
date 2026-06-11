@@ -4,6 +4,7 @@
     "AGENTS.md",
     "docs/for-agents.md",
     "docs/agent-external-communication.md",
+    "docs/alt.md",
     "docs/01-quickstart.md",
     "docs/cli-reference.md"
   ],
@@ -21,6 +22,7 @@
     "run/store loop",
     "inspect Psi/SQOT",
     "collective certify",
+    "ALT abstraction-liquidity foundry admission",
     "preserve residuals/provenance"
   ],
   "important_schema_names": [
@@ -56,7 +58,23 @@
     "VerifiedCapabilityPacket",
     "PacketPromotionReport",
     "SybilResistanceLedger",
-    "CollectivePhaseCertificate"
+    "CollectivePhaseCertificate",
+    "AbstractionToken",
+    "LiquidityCertificate",
+    "NegativeLiquidityCertificate",
+    "ALTDeprecationRecord",
+    "ALTResurrectionRecord",
+    "BaselineRefreshCertificate",
+    "OpportunityMeasureContract",
+    "RootFinalityCertificate",
+    "TelemetryCostCertificate",
+    "HazardEnvelopeCertificate",
+    "ReproductionMatrixCertificate",
+    "ALTAdmissionDecision",
+    "ALTCARACertificate",
+    "ALTKernelTransitionReport",
+    "FoundryControlDashboard",
+    "CertifiedAbstractionCapital"
   ],
   "network_safe_cli": [
     "uv run pic agent communication-guide --profile development --no-allow-live-connectors",
@@ -64,6 +82,11 @@
     "uv run pic ecology policy explain --profile controlled_web",
     "uv run pic ecology ingest-general --source examples/agent_network/feed.xml --kind rss",
     "uv run pic ecology bridge-runtime --report examples/agent_network/general_intake_report.example.json",
+    "uv run pic alt admit --packet examples/alt/admission_packet.json",
+    "uv run pic alt negative-certify --certificate examples/alt/negative_liquidity_certificate.json",
+    "uv run pic alt refresh-baseline --certificate examples/alt/baseline_refresh_certificate.json",
+    "uv run pic alt check-cara --certificate examples/alt/alt_cara_certificate.json",
+    "uv run pic alt foundry-dashboard --state examples/alt/foundry_state.json",
     "uv run pic ecology discover-web --source examples/agent_network/page.html",
     "uv run pic agent message contract --message examples/agent_network/agent_message.json",
     "uv run pic agent message ingest --message examples/agent_network/agent_message.json"

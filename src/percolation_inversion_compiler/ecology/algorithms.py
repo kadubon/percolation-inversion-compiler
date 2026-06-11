@@ -96,9 +96,15 @@ _DEFAULT_EDGE_RELATION_SPECS: dict[str, EdgeRelationVerifierSpec] = {
     ),
     "liquidity-transfer": EdgeRelationVerifierSpec(
         relation_type="liquidity-transfer",
-        required_evidence_markers=["liquidity:"],
-        required_relation_evidence_keys=["source_liquidity", "target_liquidity"],
-        minimum_confidence_lower_bound=0.4,
+        required_evidence_markers=["alt-liquidity:", "transport:", "root:", "finality:"],
+        required_relation_evidence_keys=[
+            "alt_liquidity_certificate_id",
+            "transport_certificate_id",
+            "root_of_trust_ref",
+            "finality_record_ref",
+            "residual_policy",
+        ],
+        minimum_confidence_lower_bound=0.5,
     ),
     "autocatalytic-regeneration": EdgeRelationVerifierSpec(
         relation_type="autocatalytic-regeneration",

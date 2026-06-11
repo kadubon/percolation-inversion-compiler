@@ -1,0 +1,17 @@
+{
+  "accepted": true,
+  "deprecation_reason": "hazard-overflow",
+  "finite_checks_passed": true,
+  "lineage_refs": [
+    "lineage:alt-token:trace:alt-example"
+  ],
+  "negative_certificate_id": "alt-negative:hazard-overflow",
+  "operationally_usable": true,
+  "record_id": "alt-deprecation:alt-token:trace:alt-example:alt-negative:hazard-overflow",
+  "rollback_refs": [
+    "rollback:example"
+  ],
+  "scope_id": "scope:agent-intake:hazard",
+  "settled": false,
+  "token_id": "alt-token:trace:alt-example"
+}

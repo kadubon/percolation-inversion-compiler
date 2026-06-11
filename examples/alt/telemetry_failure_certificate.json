@@ -1,0 +1,13 @@
+{
+  "certificate_id": "telemetry-cost:tamper-positive",
+  "evidence_refs": [
+    "telemetry:evidence:tamper-positive"
+  ],
+  "measured_cost_upper_bound": 0.2,
+  "observer_cost_upper_bound": 0.1,
+  "observer_refs": [
+    "observer:telemetry:tamper-positive"
+  ],
+  "tamper_positive": true,
+  "token_id": "alt-token:trace:alt-example"
+}

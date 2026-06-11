@@ -1,6 +1,6 @@
 # Mathematical Contracts
 
-This project implements finite, checkable fragments of ECPT, BIT, TRC, and SQOT. It
+This project implements finite, checkable fragments of ECPT, BIT, TRC, SQOT, and ALT. It
 does not claim automatic proof of non-finite theorems or unobserved physical
 claims.
 
@@ -65,3 +65,29 @@ obligation without treating the route itself as evidence.
 Snapshot records preserve those contracts as derived finite metadata. They are
 not additional axioms: a snapshot can guide adapter routing, while canonical TeX
 audits and finite checkers remain the source of extracted judgments.
+
+## ALT
+
+ALT records treat reusable abstractions as lower-bound certified capital, not
+as raw external content. `LiquidityCertificate` subtracts formation, deployment,
+validation, certification, settlement, maintenance, depreciation, contamination,
+hidden-resource, telemetry, absorption, misapplication, and hazard costs from
+downstream search-cost reduction. A token can help ECPT phase workflows only
+after trace sufficiency, mission validity, transport, root-of-trust, lifecycle,
+telemetry, and hazard checks preserve residual obligations.
+
+The ALT kernel is dual-ledger and fail-closed. Exploration candidates can remain
+useful diagnostic work, while settlement capital requires a positive signed
+lower-bound surplus plus opportunity, root/finality, telemetry, lifecycle,
+transport, hazard, and residual-policy evidence. Missing coordinates create
+repairable residual obligations; they are not interpreted as zero cost or
+implicit success.
+
+Negative liquidity, deprecation, resurrection, baseline refresh, reproduction,
+and ALT-CARA are scoped finite interfaces. A negative certificate prunes only
+within its declared scope. Resurrection preserves lineage and must override the
+old failure mode with current positive checks. Reproduction matrices are
+diagnostic unless gauge compatibility, transport, capacity, and causal evidence
+are discharged. ALT-CARA is a protocol-relative ASI-proxy acceleration
+certificate over target validity and a resource-matched baseline; it does not
+settle real ASI, physical, simulator, or oracle outcomes.

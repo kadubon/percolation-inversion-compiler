@@ -109,9 +109,9 @@ _FILECONTENTS_RE = re.compile(
     re.DOTALL,
 )
 _SECTION_RE = re.compile(r"\\section\*?\{(.+?)\}")
-_DEFINITION_RE = re.compile(r"\\begin\{definition\}\[(.*?)\](?:\\label\{([^}]+)\})?")
+_DEFINITION_RE = re.compile(r"\\begin\{definition\}(?:\[(.*?)\])?(?:\\label\{([^}]+)\})?")
 _CLAIM_RE = re.compile(
-    r"\\begin\{(theorem|proposition|lemma|corollary)\}\[(.*?)\](?:\\label\{([^}]+)\})?"
+    r"\\begin\{(theorem|proposition|lemma|corollary)\}(?:\[(.*?)\])?(?:\\label\{([^}]+)\})?"
 )
 _ALLOWED_ITEM_ENVIRONMENTS = {"definition", "theorem", "proposition", "lemma", "corollary"}
 _KNOWN_NONEXTRACTED_THEOREM_ENVIRONMENTS = {"axiom", "assumption"}
@@ -307,6 +307,10 @@ def strict_tex_parse_report(source: str | Path) -> StrictTexParseReport:
                     parsed = _DEFINITION_RE.search(stripped)
                 else:
                     parsed = _CLAIM_RE.search(stripped)
+                    if parsed is not None:
+                        kind, title, label = parsed.groups()
+                        if kind != "corollary" and title is None and label is None:
+                            parsed = None
                 if parsed is None:
                     diagnostics.append(
                         TexGrammarDiagnostic(
@@ -424,7 +428,7 @@ def extract_theory_coverage(source: str | Path) -> TheoryCoverageRecord:
             section = section_match.group(1)
         if definition_match := _DEFINITION_RE.search(line):
             definition_count += 1
-            label = definition_match.group(1)
+            label = definition_match.group(1) or f"Definition {definition_count}"
             item_id = definition_match.group(2) or f"definition:{definition_count}"
             coverage_status, refs = classify_theory_item(
                 label,
@@ -448,6 +452,9 @@ def extract_theory_coverage(source: str | Path) -> TheoryCoverageRecord:
         if claim_match := _CLAIM_RE.search(line):
             claim_count += 1
             kind, label, label_id = claim_match.groups()
+            if kind != "corollary" and label is None and label_id is None:
+                continue
+            label = label or f"{kind.title()} {claim_count}"
             item_id = label_id or f"{kind}:{claim_count}"
             coverage_status, refs = classify_theory_item(
                 label,

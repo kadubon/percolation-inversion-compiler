@@ -1,0 +1,24 @@
+{
+  "accepted": true,
+  "action_refs": [
+    "action:extract-general-intake"
+  ],
+  "cost_ledger": {
+    "coordinates": {}
+  },
+  "observation_refs": [
+    "sha256:1111111111111111111111111111111111111111111111111111111111111111"
+  ],
+  "provenance_refs": [
+    "provenance:alt-example"
+  ],
+  "receiver_family": [
+    "agent",
+    "verifier"
+  ],
+  "result_refs": [
+    "result:token-candidate"
+  ],
+  "task_id": "task:general-intake-to-abstraction-token",
+  "trace_id": "trace:alt-example"
+}

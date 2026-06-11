@@ -13,6 +13,7 @@
     "run/store loop",
     "inspect Psi/SQOT",
     "collective certify",
+    "ALT abstraction-liquidity foundry admission",
     "preserve residuals/provenance"
   ],
   "important_schemas": [
@@ -49,7 +50,23 @@
     "AgentMessageVerificationContext",
     "AgentMessageNonceLedger",
     "AgentInboxRecord",
-    "AgentPacketExchangeReport"
+    "AgentPacketExchangeReport",
+    "AbstractionToken",
+    "LiquidityCertificate",
+    "NegativeLiquidityCertificate",
+    "ALTDeprecationRecord",
+    "ALTResurrectionRecord",
+    "BaselineRefreshCertificate",
+    "OpportunityMeasureContract",
+    "RootFinalityCertificate",
+    "TelemetryCostCertificate",
+    "HazardEnvelopeCertificate",
+    "ReproductionMatrixCertificate",
+    "ALTAdmissionDecision",
+    "ALTCARACertificate",
+    "ALTKernelTransitionReport",
+    "FoundryControlDashboard",
+    "CertifiedAbstractionCapital"
   ],
   "machine_contract": {
     "arbitrary_shell_execution": false,
@@ -92,7 +109,11 @@
     "bounded general web intake",
     "agent-to-agent packet exchange",
     "general intake SQOT runtime bridging",
-    "collective phase certificate generation"
+    "collective phase certificate generation",
+    "abstraction-token candidate certification",
+    "ALT reusable abstraction capital foundry dashboards",
+    "ALT negative-liquidity deprecation and resurrection",
+    "ALT-CARA protocol-relative acceleration certification"
   ],
   "purpose": "AI agent runtime verification and ECPT ASI-proxy collective phase acceleration",
   "recommended_docs": [
@@ -100,6 +121,7 @@
     "AGENTS.md",
     "docs/for-agents.md",
     "docs/agent-external-communication.md",
+    "docs/alt.md",
     "docs/01-quickstart.md",
     "docs/identity-and-sybil-resistance.md",
     "docs/04-collective-phase-certificate.md"
@@ -113,6 +135,11 @@
     "uv run pic ecology policy explain --profile controlled_web",
     "uv run pic ecology ingest-general --source examples/agent_network/feed.xml --kind rss",
     "uv run pic ecology bridge-runtime --report examples/agent_network/general_intake_report.example.json",
+    "uv run pic alt admit --packet examples/alt/admission_packet.json",
+    "uv run pic alt negative-certify --certificate examples/alt/negative_liquidity_certificate.json",
+    "uv run pic alt refresh-baseline --certificate examples/alt/baseline_refresh_certificate.json",
+    "uv run pic alt check-cara --certificate examples/alt/alt_cara_certificate.json",
+    "uv run pic alt foundry-dashboard --state examples/alt/foundry_state.json",
     "uv run pic agent message contract --message examples/agent_network/agent_message.json",
     "uv run pic ecology ingest-general --source examples/agent_network/page.html --kind web-page",
     "uv run pic agent message ingest --message examples/agent_network/agent_message.json",
@@ -122,5 +149,5 @@
     "uv run pic identity explain-profile --profile research",
     "uv run pic identity derive-context --population examples/agent_population_signed.json --profile production --output identity-context.json"
   ],
-  "version": "0.3.6"
+  "version": "0.4.0"
 }

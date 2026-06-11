@@ -141,3 +141,29 @@ requires an accepted identity context:
 uv run pic identity derive-context --population examples/agent_population_signed.json --profile production --output identity-context.json
 uv run pic agent message verify --message examples/agent_network/agent_message.json --profile production --identity-context identity-context.json
 ```
+
+## ALT Abstraction-Capital Foundry
+
+Use ALT after intake and SQOT bridge classification when a candidate should
+become reusable abstraction capital rather than a one-off packet:
+
+```powershell
+uv run pic alt certify-liquidity --certificate examples/alt/liquidity_certificate.json
+uv run pic alt admit --packet examples/alt/admission_packet.json
+uv run pic alt foundry-dashboard --state examples/alt/foundry_state.json
+```
+
+If a token is stale, harmful, or no longer portable, preserve lineage instead of
+deleting it:
+
+```powershell
+uv run pic alt negative-certify --certificate examples/alt/negative_liquidity_certificate.json
+uv run pic alt deprecate --token-id alt-token:demo --certificate examples/alt/negative_liquidity_certificate.json
+uv run pic alt resurrect --deprecation examples/alt/deprecation_record.json --packet examples/alt/admission_packet.json --override-failure-mode stale
+```
+
+Accepted ALT capital is still scoped: it can help only liquidity-related ECPT
+components inside its receiver family, validity domain, transport scope, hazard
+envelope, and residual policy. Raw external intake volume, agent-message volume,
+tag-only `liquidity-transfer` edges, reproduction diagnostics, and ALT-CARA
+metadata cannot set `settled=true` or prove real ASI.

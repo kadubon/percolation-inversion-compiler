@@ -1,0 +1,14 @@
+{
+  "certificate_id": "alt-negative:hazard-overflow",
+  "evidence_refs": [
+    "negative:evidence:hazard-overflow"
+  ],
+  "failure_mode": "hazard-overflow",
+  "lower_cost_bound": 0.1,
+  "scope_id": "scope:agent-intake:hazard",
+  "surplus_upper_bound": -0.25,
+  "token_id": "alt-token:trace:alt-example",
+  "transport_scope_refs": [
+    "transport:scope:agent-intake"
+  ]
+}

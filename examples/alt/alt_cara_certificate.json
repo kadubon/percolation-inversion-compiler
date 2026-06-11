@@ -1,0 +1,35 @@
+{
+  "acceleration_certificate": {
+    "baseline_foundry_id": "alt-foundry:baseline",
+    "candidate_foundry_id": "alt-foundry:example",
+    "certificate_id": "alt-acceleration:example",
+    "certified_surplus_gain_lower_bound": 1.0,
+    "resource_matched": true,
+    "settlement_latency_reduction_lower_bound": 0.1
+  },
+  "baseline_upper_envelope_refs": [
+    "baseline-upper-envelope:example"
+  ],
+  "certificate_id": "alt-cara:example",
+  "certified_capital_witness_refs": [
+    "alt-capital:example"
+  ],
+  "hazard_envelope_refs": [
+    "hazard-envelope:example"
+  ],
+  "live_predicate_refs": [
+    "live:target",
+    "live:opportunity",
+    "live:finality"
+  ],
+  "resource_matched_baseline_refs": [
+    "baseline:resource-matched-example"
+  ],
+  "target_id": "asi-proxy-target:example",
+  "target_validity_refs": [
+    "target-validity:example"
+  ],
+  "transport_validity_refs": [
+    "transport:example"
+  ]
+}

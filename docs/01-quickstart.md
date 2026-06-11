@@ -61,8 +61,24 @@ Snapshots are small derived metadata artifacts. They are not the canonical paper
 uv run pic snapshot list
 uv run pic snapshot show --artifact ecpt
 uv run pic snapshot show --artifact sqot
+uv run pic snapshot show --artifact alt
 uv run pic snapshot routes
 ```
+
+ALT can be exercised without canonical TeX:
+
+```powershell
+uv run pic alt certify-liquidity --certificate examples/alt/liquidity_certificate.json
+uv run pic alt admit --packet examples/alt/admission_packet.json
+uv run pic alt foundry-dashboard --state examples/alt/foundry_state.json
+uv run pic alt negative-certify --certificate examples/alt/negative_liquidity_certificate.json
+uv run pic alt check-cara --certificate examples/alt/alt_cara_certificate.json
+```
+
+The positive path tests lower-bound surplus, transport, root/finality,
+telemetry, lifecycle, and hazard evidence. The negative path keeps stale or
+unsafe tokens as scoped deprecation/resurrection work rather than silently
+counting them as reusable capital.
 
 ## 3. Run One Runtime Step
 

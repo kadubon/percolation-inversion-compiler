@@ -1,0 +1,14 @@
+{
+  "accepted": false,
+  "certificate_id": "baseline-refresh:example",
+  "evidence_refs": [
+    "baseline-refresh:evidence:example"
+  ],
+  "new_baseline_ref": "baseline:v2",
+  "old_baseline_ref": "baseline:v1",
+  "opportunity_contract_id": "opportunity:example",
+  "refresh_bridge_refs": [
+    "bridge:baseline-refresh:example"
+  ],
+  "resource_matched": true
+}

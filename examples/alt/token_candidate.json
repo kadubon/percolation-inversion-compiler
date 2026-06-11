@@ -1,0 +1,26 @@
+{
+  "authority_refs": [
+    "authority:example"
+  ],
+  "capability_envelope_refs": [
+    "capability-envelope:example"
+  ],
+  "candidate_only": true,
+  "claim": "Reusable abstraction from bounded external intake into verifier work",
+  "evidence_refs": [
+    "trace:evidence:example"
+  ],
+  "interface_refs": [
+    "schema:GeneralIntakeReport",
+    "schema:GeneralIntakeRuntimeBridgeReport"
+  ],
+  "receiver_family": [
+    "agent",
+    "verifier"
+  ],
+  "token_id": "alt-token:trace:alt-example",
+  "validity_domain": "protocol-relative-finite",
+  "verifier_routes": [
+    "alt.adapters.transport.verify_density_ratio_support"
+  ]
+}

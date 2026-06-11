@@ -14,6 +14,8 @@ interfaces derived from the following CC-BY-4.0 research artifacts:
   https://doi.org/10.5281/zenodo.20554083
 - Takahashi, K. (2026). Salience-Queue Occupation Theory. Zenodo.
   https://doi.org/10.5281/zenodo.20526451
+- Takahashi, K. (2026). Abstraction Liquidity Theory. Zenodo.
+  https://doi.org/10.5281/zenodo.20476200
 
 The cited papers are not vendored in this repository. Extractors operate on
 user-provided TeX sources or externally obtained canonical artifacts.

@@ -1,0 +1,27 @@
+{
+  "certified_capital": [
+    {
+      "capital_id": "alt-capital:example",
+      "evidence_refs": [
+        "packet:evidence:example"
+      ],
+      "liquidity_certificate_id": "alt-liquidity:example",
+      "operationally_usable": true,
+      "receiver_family": [
+        "agent",
+        "verifier"
+      ],
+      "settled": false,
+      "surplus_lower_bound": 2.0,
+      "token_id": "alt-token:trace:alt-example",
+      "validity_domain": "protocol-relative-finite"
+    }
+  ],
+  "evidence_backlog": 0,
+  "foundry_id": "alt-foundry:example",
+  "receiver_absorption_capacity": 1.0,
+  "risk_backlog": 0,
+  "settlement_capacity": 1.0,
+  "token_candidates": [],
+  "transport_backlog": 0
+}

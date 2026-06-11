@@ -1,10 +1,10 @@
 # Percolation Inversion Compiler
 
-`percolation-inversion-compiler` is a production-oriented finite verifier-routing and ECPT collective phase runtime for AI agents. It compiles capability packet candidates, verifier evidence, semantic edge checks, SQOT salience queues, residual ledgers, and runtime events into deterministic JSON so agents can evaluate an **ASI-proxy collective phase** under declared protocols. ECPT phase progress here is collective packet percolation: it does not require self-rewriting, fine-tuning, or model-weight changes.
+`percolation-inversion-compiler` is an AI agent runtime for external knowledge intake, finite certificates, proof obligations, residual ledgers, and reusable abstraction capital. It helps agents turn web, repository, evidence, and agent-output inputs into checked capability packet candidates, verifier routes, SQOT salience queues, ALT abstraction-liquidity certificates, and ECPT collective capability phase reports. The goal is protocol-relative **ASI-proxy collective phase** acceleration through verified packet percolation, not self-rewrite, fine-tuning, or model-weight change.
 
-The abbreviations refer to the four source theories used by the repository: **ECPT** is Executable Capability Percolation Theory, the collective capability-packet phase model; **BIT** is Bottleneck Inversion Theory, the witness calculus for unlockable potential and frontier extraction; **TRC** is Typed Reality Compilation, the typed trace and tolerance-ledger compiler for cyber-physical frontiers; and **SQOT** is Salience-Queue Occupation Theory, the salience scheduling and attention-occupation layer.
+The abbreviations refer to the five source theories used by the repository: **ECPT** is Executable Capability Percolation Theory, the collective capability-packet phase model; **BIT** is Bottleneck Inversion Theory, the witness calculus for unlockable potential and frontier extraction; **TRC** is Typed Reality Compilation, the typed trace and tolerance-ledger compiler for cyber-physical frontiers; **SQOT** is Salience-Queue Occupation Theory, the salience scheduling and attention-occupation layer; and **ALT** is Abstraction Liquidity Theory, the reusable abstraction capital and foundry valuation layer.
 
-Search terms: ECPT, BIT, TRC, SQOT, ASI-proxy collective phase, protocol-relative ASI-proxy phase-control, certificate compiler, proof obligations, residual ledgers, salience queue, packet ecology, semantic edge verification, typed trace normal forms, frontier extraction, AI agent integration, verifier SDK.
+Search terms: ECPT, BIT, TRC, SQOT, ALT, abstraction liquidity, reusable abstraction capital, ASI-proxy collective phase, protocol-relative ASI-proxy phase-control, certificate compiler, proof obligations, residual ledgers, salience queue, packet ecology, semantic edge verification, typed trace normal forms, frontier extraction, AI agent integration, verifier SDK.
 
 ## What It Does Not Do
 
@@ -23,16 +23,17 @@ Search terms: ECPT, BIT, TRC, SQOT, ASI-proxy collective phase, protocol-relativ
 | 2 | **Packet candidates** | Finite capability packets from agent output, local files, fixtures, repositories, or verifier evidence. |
 | 3 | **Evidence + semantic edge checks** | Hash/provenance checks and typed relations such as theorem-to-code, code-to-test, rollback-support, and execution-path. |
 | 4 | **Verified packet capital** | Reusable packets promoted only after route, receiver, rollback, authority, edge, and residual policies pass. |
-| 5 | **SQOT salience queue** | A priority schedule that preserves diagnostic reserve and quarantines stale, unsafe, or hash-invalid packets. |
-| 6 | **Psi dashboard** | Protocol-relative collective phase components for availability, closure, execution paths, queues, hazards, and basin reachability. |
-| 7 | **Bottleneck / phase tasks** | Ranked finite tasks for verifier routing, packet repair, edge construction, and phase-control planning. |
-| 8 | **Action results** | Execution reports and route resolutions that are applied back into the runtime state. |
-| 9 | **Runtime store** | Persistent event logs, verified packets, route batches, packet lineage, and residual ledgers. |
-| 10 | **Collective phase certificate** | A fail-closed certificate over fixed population, no self-rewrite, no hidden injection, closure, execution availability, Psi thresholds, and resource-matched baseline. |
+| 5 | **ALT abstraction liquidity** | Trace and external-intake candidates become reusable abstraction capital only after certified lower-bound surplus, transport, root-of-trust, telemetry, lifecycle, and hazard checks pass. |
+| 6 | **SQOT salience queue** | A priority schedule that preserves diagnostic reserve and quarantines stale, unsafe, uncertified, or hash-invalid packets. |
+| 7 | **Psi dashboard** | Protocol-relative collective phase components for availability, closure, execution paths, queues, hazards, liquidity, and basin reachability. |
+| 8 | **Bottleneck / phase tasks** | Ranked finite tasks for verifier routing, packet repair, edge construction, abstraction certification, and phase-control planning. |
+| 9 | **Action results** | Execution reports, ALT admission decisions, and route resolutions that are applied back into the runtime state. |
+| 10 | **Runtime store** | Persistent event logs, verified packets, route batches, abstraction capital lineage, and residual ledgers. |
+| 11 | **Collective phase certificate** | A fail-closed certificate over fixed population, no self-rewrite, no hidden injection, closure, execution availability, Psi thresholds, certified liquidity, and resource-matched baseline. |
 
 The runtime is fail-closed: planning can recommend finite ASI-proxy actions, but `settled` remains false unless scoped verifier rules discharge the required finite obligations. In production, signed identities and Sybil-resistance ledgers can prevent duplicate-key, clone-fanout, revoked, expired, or unsigned agent populations from producing accepted collective certificates. Residual external obligations remain explicit.
 
-v0.3.6 adds agent-facing external intake hardening so adversarial settings can stay fail-closed without making lab and research workflows fail-dead. Use `development`, `research`, `controlled`, `federated`, `production`, or `adversarial` profiles to choose how communication policy, cryptographic identities, homogeneous fleets, signed packet issuers, and Sybil-resistance ledgers affect packet promotion and collective certificates.
+v0.4.0 adds ALT abstraction-liquidity foundry support so external knowledge and agent traces can become reusable abstraction-token candidates, then certified abstraction capital only after lower-bound surplus, transport, root-of-trust, telemetry, lifecycle, and hazard checks pass. ALT also adds negative-liquidity, deprecation/resurrection, baseline refresh, reproduction diagnostics, and ALT-CARA acceleration certificates so stale or unsafe abstraction claims remain repairable residual work rather than silent capital. Use `development`, `research`, `controlled`, `federated`, `production`, or `adversarial` profiles to choose how communication policy, cryptographic identities, homogeneous fleets, signed packet issuers, and Sybil-resistance ledgers affect packet promotion and collective certificates.
 
 Core contract: registry is metadata, not evidence. Use `pic doctor` and structured checker outputs to distinguish declared status, finite certificate results, proof obligations, and residual ledgers.
 
@@ -67,6 +68,7 @@ uv run pic agent communication-guide --profile development --no-allow-live-conne
 uv run pic ecology policy explain --profile controlled_web
 uv run pic ecology ingest-general --source examples/agent_network/feed.xml --kind rss
 uv run pic ecology bridge-runtime --report examples/agent_network/general_intake_report.example.json
+uv run pic alt admit --packet examples/alt/admission_packet.json
 uv run pic agent message contract --message examples/agent_network/agent_message.json
 ```
 
@@ -92,6 +94,7 @@ Use this path when you do not have the canonical TeX sources locally.
 uv run pic snapshot list
 uv run pic snapshot show --artifact ecpt
 uv run pic snapshot show --artifact sqot
+uv run pic snapshot show --artifact alt
 uv run pic snapshot routes
 ```
 
@@ -116,7 +119,7 @@ For a complete command inventory, see [CLI reference](docs/cli-reference.md).
 ## Who Should Use This?
 
 - AI agent integrators who need deterministic JSON for verifier routing, packet promotion, residual-ledger preservation, and fail-closed runtime loops.
-- Researchers studying ECPT, BIT, TRC, SQOT, finite certificate compilers, collective capability percolation, frontier extraction, and protocol-relative phase-control.
+- Researchers studying ECPT, BIT, TRC, SQOT, ALT, finite certificate compilers, abstraction liquidity, collective capability percolation, frontier extraction, and protocol-relative phase-control.
 - Tool and runtime maintainers building portable Python, Rust, TypeScript, Go, Julia, or service-based implementations around stable JSON Schemas.
 
 ## Documentation Map
@@ -124,7 +127,7 @@ For a complete command inventory, see [CLI reference](docs/cli-reference.md).
 - Start here: [Overview](docs/00-overview.md), [Quickstart](docs/01-quickstart.md), [For AI agents](docs/for-agents.md), [Agent external communication](docs/agent-external-communication.md), [Tutorial](docs/tutorial.md)
 - Runtime: [Runtime](docs/runtime.md), [Closed-loop runtime](docs/runtime-closed-loop.md), [Population runtime](docs/population-runtime.md), [Runtime service](docs/runtime-service.md), [Runtime executor](docs/runtime-executor.md), [Runtime store](docs/runtime-store.md)
 - Collective phase: [Collective phase runtime](docs/collective-phase-runtime.md), [Collective phase certificate](docs/04-collective-phase-certificate.md), [No-self-rewrite ledger](docs/no-self-rewrite-ledger.md), [Safety boundary](docs/11-safety-boundary.md)
-- Packet ecology: [Packet ecology runtime](docs/ecpt-packet-ecology-runtime.md), [Edge relation verifiers](docs/edge-relation-verifiers.md), [Packet promotion](docs/packet-promotion.md), [SQOT salience scheduler](docs/sqot.md)
+- Packet ecology: [Packet ecology runtime](docs/ecpt-packet-ecology-runtime.md), [Edge relation verifiers](docs/edge-relation-verifiers.md), [Packet promotion](docs/packet-promotion.md), [SQOT salience scheduler](docs/sqot.md), [ALT abstraction liquidity](docs/alt.md)
 - Verification and operations: [Identity and Sybil resistance](docs/identity-and-sybil-resistance.md), [External obligations](docs/external-obligations.md), [Verifier SDK](docs/verifier-sdk.md), [Production readiness](docs/production-readiness.md), [Provenance and SBOM](docs/provenance-and-sbom.md), [CLI reference](docs/cli-reference.md)
 - Theory and portability: [Architecture](docs/architecture.md), [Mathematical contracts](docs/mathematical-contracts.md), [Theory coverage](docs/theory-coverage.md), [Porting guide](docs/porting.md), [Benchmarks](docs/benchmarks.md)
 - Walkthrough: [Collective phase walkthrough](examples/walkthrough_collective_phase/README.md)
@@ -137,6 +140,7 @@ Repository/software concept DOI: <https://doi.org/10.5281/zenodo.20569166>
 - Takahashi, K. (2026). *Bottleneck Inversion Theory: Machine-Readable Witness Calculus for Unlockable Potential*. Zenodo. <https://doi.org/10.5281/zenodo.20545356>
 - Takahashi, K. (2026). *Typed Reality Compilation: Operational Tolerance Allocation for Resource-Efficient Cyber-Physical Frontier Compilation*. Zenodo. <https://doi.org/10.5281/zenodo.20554083>
 - Takahashi, K. (2026). *Salience-Queue Occupation Theory*. Zenodo. <https://doi.org/10.5281/zenodo.20526451>
+- Takahashi, K. (2026). *Abstraction Liquidity Theory*. Zenodo. <https://doi.org/10.5281/zenodo.20476200>
 
 ## Development Checks
 

@@ -146,6 +146,8 @@ def default_provenance_paths(*, schema_dir: Path | None = None) -> list[Path]:
         Path("src/percolation_inversion_compiler/data/snapshots/ecpt.json"),
         Path("src/percolation_inversion_compiler/data/snapshots/bit.json"),
         Path("src/percolation_inversion_compiler/data/snapshots/trc.json"),
+        Path("src/percolation_inversion_compiler/data/snapshots/sqot.json"),
+        Path("src/percolation_inversion_compiler/data/snapshots/alt.json"),
     ]
     if schema_dir is not None:
         paths.extend(sorted(schema_dir.glob("*.json")))

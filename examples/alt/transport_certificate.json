@@ -1,0 +1,18 @@
+{
+  "accepted": true,
+  "certificate_id": "transport:example",
+  "density_ratio_upper_bound": 1.5,
+  "evidence_refs": [
+    "transport:evidence:example"
+  ],
+  "max_density_ratio": 4.0,
+  "source_receiver_family": [
+    "agent"
+  ],
+  "support_coverage_lower_bound": 0.8,
+  "target_receiver_family": [
+    "agent",
+    "verifier"
+  ],
+  "token_id": "alt-token:trace:alt-example"
+}

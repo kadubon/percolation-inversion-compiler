@@ -1,0 +1,22 @@
+{
+  "authority_envelope_refs": [
+    "authority:example"
+  ],
+  "capability_envelope_refs": [
+    "capability-envelope:example"
+  ],
+  "certificate_id": "hazard-envelope:overflow",
+  "evidence_refs": [
+    "hazard:evidence:overflow"
+  ],
+  "hazard_refs": [
+    "hazard:overflow"
+  ],
+  "irreversible_risk_upper_bound": 2.0,
+  "noncompensable_hazard_detected": true,
+  "risk_budget_upper_bound": 0.5,
+  "rollback_refs": [
+    "rollback:example"
+  ],
+  "token_id": "alt-token:trace:alt-example"
+}

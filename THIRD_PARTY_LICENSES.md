@@ -39,6 +39,6 @@ current, and release preparation should re-check upstream licenses for
 `github/codeql-action`, `actions/dependency-review-action`, `gitleaks`, and
 `zizmor`.
 
-The ECPT, BIT, TRC, and SQOT Zenodo papers are CC-BY-4.0 according to Zenodo
-metadata. They are cited in `NOTICE` and are not included as vendored source
-files.
+The ECPT, BIT, TRC, SQOT, and ALT Zenodo papers are CC-BY-4.0 according to
+Zenodo metadata. They are cited in `NOTICE` and are not included as vendored
+source files.

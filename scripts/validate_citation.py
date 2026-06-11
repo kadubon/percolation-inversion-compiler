@@ -12,9 +12,10 @@ REQUIRED_DOIS = {
     "10.5281/zenodo.20545356",
     "10.5281/zenodo.20554083",
     "10.5281/zenodo.20526451",
+    "10.5281/zenodo.20476200",
 }
 EXPECTED_REPOSITORY = "https://github.com/kadubon/percolation-inversion-compiler"
-EXPECTED_VERSION = "0.3.6"
+EXPECTED_VERSION = "0.4.0"
 EXPECTED_DATE_RELEASED = "2026-06-11"
 EXPECTED_CONCEPT_DOI = "10.5281/zenodo.20569166"
 

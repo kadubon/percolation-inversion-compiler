@@ -67,6 +67,14 @@ CANONICAL_RECORDS: dict[str, CanonicalRecord] = {
         tex_md5="c626c1b78301e33c7805e6020cf5bda2",
         tex_sha256="73d3448d09b6e72ce7600c136b86b8064d8f71010f4cc8e9a2383d4c6e714958",
     ),
+    "alt": CanonicalRecord(
+        doi="10.5281/zenodo.20476200",
+        record_id=20476200,
+        title="Abstraction Liquidity Theory",
+        tex_filename="Abstraction Liquidity Theory.tex",
+        tex_md5="45c7125bf0ac728a6149b92ccd373448",
+        tex_sha256="768d3737b5c466315da2491a96013f9fc01a474b76524c692437ff5615b14116",
+    ),
 }
 
 

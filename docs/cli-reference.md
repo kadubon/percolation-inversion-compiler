@@ -46,11 +46,13 @@ uv run pic snapshot show --artifact ecpt
 uv run pic snapshot show --artifact bit
 uv run pic snapshot show --artifact trc
 uv run pic snapshot show --artifact sqot
+uv run pic snapshot show --artifact alt
 uv run pic snapshot routes
 uv run pic snapshot verify --artifact ecpt
 uv run pic snapshot verify --artifact bit
 uv run pic snapshot verify --artifact trc
 uv run pic snapshot verify --artifact sqot
+uv run pic snapshot verify --artifact alt
 ```
 
 ## Canonical TeX Audit
@@ -63,6 +65,25 @@ uv run pic audit theory --source "$env:PIC_CANONICAL_TEX_DIR\Executable Capabili
 uv run pic coverage --source "$env:PIC_CANONICAL_TEX_DIR\Typed Reality Compilation.tex"
 uv run pic parse audit --source "$env:PIC_CANONICAL_TEX_DIR\Typed Reality Compilation.tex" --strict-grammar
 uv run pic sqot audit --source "$env:PIC_CANONICAL_TEX_DIR\Salience-Queue Occupation Theory.tex" --strict-grammar
+uv run pic alt audit --source "$env:PIC_CANONICAL_TEX_DIR\Abstraction Liquidity Theory.tex" --strict-grammar
+```
+
+## ALT Abstraction Liquidity
+
+```powershell
+uv run pic alt tokenize --trace examples/alt/trace.json
+uv run pic alt check-token --token examples/alt/token_candidate.json
+uv run pic alt check-transport --certificate examples/alt/transport_certificate.json
+uv run pic alt certify-liquidity --certificate examples/alt/liquidity_certificate.json
+uv run pic alt admit --packet examples/alt/admission_packet.json
+uv run pic alt negative-certify --certificate examples/alt/negative_liquidity_certificate.json
+uv run pic alt deprecate --token-id alt-token:demo --certificate examples/alt/negative_liquidity_certificate.json
+uv run pic alt resurrect --deprecation examples/alt/deprecation_record.json --packet examples/alt/admission_packet.json --override-failure-mode stale
+uv run pic alt refresh-baseline --certificate examples/alt/baseline_refresh_certificate.json
+uv run pic alt reproduction-report --certificate examples/alt/reproduction_certificate.json
+uv run pic alt check-cara --certificate examples/alt/alt_cara_certificate.json
+uv run pic alt foundry-dashboard --state examples/alt/foundry_state.json
+uv run pic alt bridge-runtime --report examples/alt/runtime_bridge_report.json --state examples/runtime_state.json
 ```
 
 ## Schemas, Provenance, SBOM, Doctor

@@ -1,4 +1,4 @@
-"""Finite order-theoretic kernels used by ECPT, BIT, TRC, and SQOT."""
+"""Finite order-theoretic kernels used by ECPT, BIT, TRC, SQOT, and ALT."""
 
 from __future__ import annotations
 

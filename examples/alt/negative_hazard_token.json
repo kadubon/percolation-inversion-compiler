@@ -1,0 +1,12 @@
+{
+  "certificate_id": "alt-liquidity:negative-hazard",
+  "cost_ledger": {
+    "formation_cost": 0.5,
+    "hazard_cost": 3.0,
+    "ledger_id": "formation-cost:negative-hazard",
+    "misapplication_cost": 1.0,
+    "telemetry_cost": 0.5
+  },
+  "downstream_search_cost_reduction_lower_bound": 1.0,
+  "token_id": "alt-token:negative-hazard"
+}

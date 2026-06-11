@@ -1,0 +1,52 @@
+{
+  "accepted": true,
+  "candidate_only": true,
+  "classifications": {
+    "packet:alt-bridge-candidate": "verifier_work"
+  },
+  "diagnostic_work_packet_ids": [],
+  "ecpt_phase_contribution_allowed": false,
+  "packet_ingestion": {
+    "accepted": true,
+    "packets": [
+      {
+        "claim": "External intake may contain a reusable abstraction candidate",
+        "content_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+        "evidence_refs": [
+          "sha256:4444444444444444444444444444444444444444444444444444444444444444"
+        ],
+        "expected_downstream_gain": 0.0,
+        "packet_id": "packet:alt-bridge-candidate",
+        "receiver_family": [
+          "agent"
+        ],
+        "residual_charge": 1.0,
+        "source_kind": "agent-output",
+        "source_ref": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+        "tags": [
+          "external-candidate",
+          "alt"
+        ],
+        "verification_cost": 1.0,
+        "verifier_routes": [
+          "alt.adapters.transport.verify_density_ratio_support"
+        ]
+      }
+    ],
+    "report_id": "packet-ingestion:alt-bridge-example",
+    "source_kind": "agent-output"
+  },
+  "quarantine_packet_ids": [],
+  "reasons": [
+    "ALT bridge report is candidate-only and cannot promote phase status"
+  ],
+  "report_id": "general-intake-runtime-bridge:alt-example",
+  "settled": false,
+  "source_report_id": "general-intake:alt-example",
+  "sqot_queue_records": [
+    "sqot:verifier-work:packet:alt-bridge-candidate"
+  ],
+  "verifier_work_packet_ids": [
+    "packet:alt-bridge-candidate"
+  ]
+}

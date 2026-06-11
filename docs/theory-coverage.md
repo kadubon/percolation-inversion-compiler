@@ -1,6 +1,6 @@
 # Theory Coverage
 
-The package indexes ECPT, BIT, TRC, and SQOT TeX sources and emits a coverage matrix
+The package indexes ECPT, BIT, TRC, SQOT, and ALT TeX sources and emits a coverage matrix
 with one row per definition, theorem, proposition, lemma, corollary, and
 machine-readable record.
 
@@ -22,6 +22,7 @@ Expected canonical counts from the current Zenodo TeX sources:
 | BIT | 22 | 20 | 92 MR records |
 | TRC | 70 | 46 | filecontents registry |
 | SQOT | 59 | 74 | none |
+| ALT | 159 | 197 | none |
 
 The BIT MRRecord total is category-sensitive: the current canonical TeX yields
 18 claim records, 9 witness records, 8 dependency records, 53 citation records,
@@ -35,6 +36,7 @@ Latest local audit snapshot:
 | BIT | 15 | 24 | 3 | 0 | 0 | 0 |
 | TRC | 20 | 52 | 12 | 0 | 32 | 0 |
 | SQOT | 22 | 78 | 18 | 0 | 15 | 0 |
+| ALT | 47 | 202 | 53 | 0 | 54 | 0 |
 
 Audit output also reports:
 
@@ -50,9 +52,19 @@ The current canonical audit has no `unsupported` or `partial` rows. Remaining
 external areas are thermodynamic and activation-limit clauses, trace and
 lifecycle soundness clauses, domain-specific physical envelopes, hybrid residual
 propagation, certified submodular redesign, SQOT protocol-integrity/privacy or
-adversarial-transfer witnesses, and external simulator or oracle claims. These
+adversarial-transfer witnesses, ALT transport/causal/root/telemetry/hazard/
+reproduction/target witnesses, and external simulator or oracle claims. These
 must remain explicit obligations until a finite checker or verified adapter is
 supplied.
+
+For ALT, checker coverage means the repository exposes finite interfaces for
+abstraction-token admission, signed lower-bound surplus, negative liquidity,
+deprecation/resurrection, baseline refresh, root/finality, telemetry, hazard,
+reproduction diagnostics, and ALT-CARA certificates. It does not mean that raw
+external intake, agent text, or problem-solving traces are capital. A token
+contributes to ECPT collective phase metrics only after the finite ALT checks
+and the existing semantic-edge, verifier-route, identity/Sybil, rollback, and
+residual-policy gates accept the scoped claim.
 
 Bundled snapshots expose the same coverage shape without TeX:
 
@@ -60,6 +72,7 @@ Bundled snapshots expose the same coverage shape without TeX:
 uv run pic snapshot list
 uv run pic snapshot show --artifact ecpt
 uv run pic snapshot show --artifact sqot
+uv run pic snapshot show --artifact alt
 ```
 
 When canonical TeX is available, `pic audit theory` also emits `snapshot_delta`
@@ -83,5 +96,6 @@ $env:PIC_CANONICAL_TEX_DIR = "path\\to\\canonical\\tex\\directory"
 uv run pic coverage --source "$env:PIC_CANONICAL_TEX_DIR\\Typed Reality Compilation.tex"
 uv run pic audit theory --source "$env:PIC_CANONICAL_TEX_DIR\\Typed Reality Compilation.tex" --canonical-key trc
 uv run pic sqot audit --source "$env:PIC_CANONICAL_TEX_DIR\\Salience-Queue Occupation Theory.tex" --strict-grammar
+uv run pic alt audit --source "$env:PIC_CANONICAL_TEX_DIR\\Abstraction Liquidity Theory.tex" --strict-grammar
 uv run pic audit theory --source "$env:PIC_CANONICAL_TEX_DIR\\Typed Reality Compilation.tex" --fail-on projection
 ```

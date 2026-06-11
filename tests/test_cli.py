@@ -23,7 +23,7 @@ def test_cli_doctor_reports_operational_status() -> None:
     data = json.loads(result.output)
     assert data["report_id"] == "pic-operational-readiness"
     assert data["overall_status"] in {"pass", "warn", "fail"}
-    assert data["summary"]["snapshot_count"] == 4
+    assert data["summary"]["snapshot_count"] == 5
     assert data["summary"]["adapter_route_count"] >= 1
     assert (
         "unresolved external obligations do not promote to settled" in (data["safety_invariants"])
@@ -264,6 +264,7 @@ def test_cli_snapshot_list_show_and_routes() -> None:
         "bit",
         "trc",
         "sqot",
+        "alt",
     ]
 
     shown = runner.invoke(app, ["snapshot", "show", "--artifact", "trc"])
@@ -310,6 +311,12 @@ def test_cli_snapshot_list_show_and_routes() -> None:
     sqot_data = json.loads(verified_sqot.output)
     assert sqot_data["valid"]
     assert sqot_data["canonical_sha256"]
+
+    verified_alt = runner.invoke(app, ["snapshot", "verify", "--artifact", "alt"])
+    assert verified_alt.exit_code == 0
+    alt_data = json.loads(verified_alt.output)
+    assert alt_data["valid"]
+    assert alt_data["canonical_sha256"]
 
 
 def test_cli_evidence_verify_accepts_example() -> None:

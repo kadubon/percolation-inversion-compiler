@@ -172,6 +172,7 @@ def agent_manifest_payload() -> dict[str, object]:
             "inspect Psi/SQOT",
             "collective certify",
             "preserve residuals/provenance",
+            "ALT abstraction-liquidity foundry admission",
         ],
         "safe_cli_entrypoints": [
             "uv run pic --help",
@@ -182,6 +183,8 @@ def agent_manifest_payload() -> dict[str, object]:
             _CMD_INGEST_PAGE,
             "uv run pic ecology policy explain --profile controlled_web",
             "uv run pic ecology bridge-runtime --report general-intake-report.json",
+            "uv run pic alt admit --packet examples/alt/admission_packet.json",
+            "uv run pic alt foundry-dashboard --state examples/alt/foundry_state.json",
             "uv run pic agent message contract --message examples/agent_network/agent_message.json",
             _CMD_AGENT_MESSAGE_INGEST,
             "uv run pic runtime health --state examples/runtime_state.json --profile development",
@@ -196,7 +199,7 @@ def agent_manifest_payload() -> dict[str, object]:
                 "--output identity-context.json"
             ),
         ],
-        "version": "0.3.6",
+        "version": "0.4.0",
     }
 
 

@@ -4,6 +4,20 @@ This guide shows how an AI agent can use external communication without leaving 
 fail-closed ECPT runtime boundary. External content improves packet availability and verifier
 routing, but it remains candidate evidence until downstream checks accept it.
 
+ALT adds the reusable-abstraction foundry step. After `pic ecology
+bridge-runtime`, an agent can run `pic alt admit` to test whether a candidate
+has trace support, mission validity, transport scope, root-of-trust, telemetry
+accounting, lifecycle bounds, hazard controls, and positive certified
+lower-bound surplus. Without that certificate, the candidate remains SQOT
+diagnostic/verifier/quarantine work.
+
+ALT also gives the repair path for external knowledge that is stale, risky, or
+not yet transportable. Use `negative-certify`, `deprecate`, `resurrect`,
+`refresh-baseline`, `reproduction-report`, and `check-cara` to preserve lineage,
+refresh comparisons, and keep residual obligations visible. These commands do
+not prove real ASI or external-world truth; they make abstraction-capital claims
+portable and auditable for ECPT/SQOT scheduling.
+
 ## Communication Surfaces
 
 - Local files and fixtures: safe default, no network.
@@ -20,6 +34,9 @@ uv run pic agent network-readiness --profile development --no-allow-live-connect
 uv run pic ecology policy explain --profile controlled_web
 uv run pic ecology ingest-general --source examples/agent_network/feed.xml --kind rss
 uv run pic ecology bridge-runtime --report examples/agent_network/general_intake_report.example.json
+uv run pic alt admit --packet examples/alt/admission_packet.json
+uv run pic alt negative-certify --certificate examples/alt/negative_liquidity_certificate.json
+uv run pic alt refresh-baseline --certificate examples/alt/baseline_refresh_certificate.json
 uv run pic agent message contract --message examples/agent_network/agent_message.json
 uv run pic ecology ingest-general --source examples/agent_network/page.html --kind web-page
 uv run pic agent message ingest --message examples/agent_network/agent_message.json
@@ -100,6 +117,12 @@ and residual checks promote a packet. Low-level Psi calculation also excludes ra
 candidate packets, candidate-only closure witnesses, candidate-only execution paths, and
 candidate-only basin paths from positive phase components. This preserves ECPT's distinction
 between packet availability and accepted collective phase progress.
+
+ALT admission is a later promotion gate, not an intake shortcut. Uncertified
+abstraction-token candidates can enter `diagnostic_work`, `verifier_work`, or
+`quarantine_work`; accepted ALT capital can contribute only to liquidity-related
+ECPT components inside its receiver family, validity domain, transport scope,
+and hazard envelope.
 
 ## Failure Repair Table
 

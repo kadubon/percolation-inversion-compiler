@@ -23,6 +23,33 @@ from percolation_inversion_compiler.agent import (
     recommend_agent_next_actions,
     run_agent_intake,
 )
+from percolation_inversion_compiler.alt import (
+    ALTCARACertificate,
+    ALTDeprecationRecord,
+    BaselineRefreshCertificate,
+    ExecutableALTCertificatePacket,
+    FoundryState,
+    LiquidityCertificate,
+    NegativeLiquidityCertificate,
+    ProblemSolvingTrace,
+    ReproductionMatrixCertificate,
+    TransportCertificate,
+    admit_alt_packet,
+    bridge_alt_to_runtime,
+    build_abstraction_token_from_trace,
+    check_alt_cara_certificate,
+    check_baseline_refresh_certificate,
+    check_liquidity_certificate,
+    check_negative_liquidity_certificate,
+    check_token_admissibility,
+    check_transport_certificate,
+    compute_alt_reproduction_report,
+    compute_foundry_dashboard,
+    deprecate_alt_packet,
+    predict_foundry_phase_control,
+    recommend_foundry_actions,
+    resurrect_alt_candidate,
+)
 from percolation_inversion_compiler.core import (
     ExternalProofObligation,
     VerifierEvidenceEnvelope,
@@ -42,6 +69,7 @@ from percolation_inversion_compiler.ecology import (
     EdgeWitnessCertificate,
     GeneralIntakePolicy,
     GeneralIntakeReport,
+    GeneralIntakeRuntimeBridgeReport,
     GeneralIntakeSource,
     PacketPromotionPolicy,
     PacketSourceKind,
@@ -154,7 +182,7 @@ from percolation_inversion_compiler.sqot import (
 from percolation_inversion_compiler.trc import compile_frontier, datacenter_demo
 
 app = typer.Typer(
-    help="Finite certificate compiler toolkit for ECPT, BIT, TRC, and SQOT.",
+    help="Finite certificate compiler toolkit for ECPT, BIT, TRC, SQOT, and ALT.",
     invoke_without_command=True,
 )
 demo_app = typer.Typer(help="Run bundled finite examples.")
@@ -165,6 +193,7 @@ routes_app = typer.Typer(help="Inspect verifier route bindings.")
 provenance_app = typer.Typer(help="Create and verify release provenance manifests.")
 sbom_app = typer.Typer(help="Create deterministic release SBOM documents.")
 parse_app = typer.Typer(help="Run strict TeX parser diagnostics.")
+alt_app = typer.Typer(help="Run ALT abstraction-liquidity foundry tools.")
 ecpt_app = typer.Typer(help="Run ECPT active phase-control planning tools.")
 sqot_app = typer.Typer(help="Run SQOT salience-queue scheduling tools.")
 ecology_app = typer.Typer(help="Run ECPT capability packet ecology tools.")
@@ -183,6 +212,7 @@ app.add_typer(routes_app, name="routes")
 app.add_typer(provenance_app, name="provenance")
 app.add_typer(sbom_app, name="sbom")
 app.add_typer(parse_app, name="parse")
+app.add_typer(alt_app, name="alt")
 app.add_typer(ecpt_app, name="ecpt")
 app.add_typer(sqot_app, name="sqot")
 app.add_typer(ecology_app, name="ecology")
@@ -891,7 +921,11 @@ def snapshot_list(
 def snapshot_show(
     artifact: Annotated[
         str,
-        typer.Option("--artifact", "-a", help="Snapshot artifact key: ecpt, bit, trc, or sqot."),
+        typer.Option(
+            "--artifact",
+            "-a",
+            help="Snapshot artifact key: ecpt, bit, trc, sqot, or alt.",
+        ),
     ],
     output: Annotated[
         Path | None, typer.Option("--output", "-o", help="Write JSON output.")
@@ -1117,6 +1151,290 @@ def parse_audit(
     _dump(report.model_dump(mode="json"), output)
     if strict_grammar and not report.accepted:
         raise typer.Exit(1)
+
+
+@alt_app.command("audit")
+def alt_audit(
+    source: Annotated[Path, typer.Option("--source", "-s", help="ALT TeX source artifact.")],
+    strict_grammar: Annotated[
+        bool,
+        typer.Option(
+            "--strict-grammar/--no-strict-grammar",
+            help="Exit nonzero on strict grammar diagnostics.",
+        ),
+    ] = True,
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Audit ALT source coverage and strict parser compatibility."""
+
+    grammar = strict_tex_parse_report(source)
+    coverage_record = extract_theory_coverage(source)
+    canonical_key = "alt" if source.name == "Abstraction Liquidity Theory.tex" else None
+    audit = audit_theory_source(source, canonical_key=canonical_key, strict_projection=True)
+    data = {
+        "source": str(source),
+        "strict_grammar": grammar.model_dump(mode="json"),
+        "coverage": coverage_record.model_dump(mode="json"),
+        "coverage_counts": coverage_record.counts_by_status(),
+        "audit": audit.model_dump(mode="json"),
+        "safety_invariants": [
+            "ALT audit classifies finite checker coverage and external obligations",
+            "ALT audit output does not prove real ASI or external-world outcomes",
+            "TeX/PDF sources are not vendored by this command",
+        ],
+    }
+    _dump(data, output)
+    if strict_grammar and not grammar.accepted:
+        raise typer.Exit(1)
+
+
+@alt_app.command("tokenize")
+def alt_tokenize(
+    trace: Annotated[Path, typer.Option("--trace", help="ProblemSolvingTrace JSON/YAML.")],
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Build an ALT abstraction token candidate from a finite trace."""
+
+    token = build_abstraction_token_from_trace(ProblemSolvingTrace.model_validate(load_data(trace)))
+    _dump(token.model_dump(mode="json"), output)
+
+
+@alt_app.command("check-token")
+def alt_check_token(
+    token: Annotated[Path, typer.Option("--token", help="AbstractionToken JSON/YAML.")],
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Check ALT token admissibility without promoting status."""
+
+    from percolation_inversion_compiler.alt import AbstractionToken
+
+    result = check_token_admissibility(AbstractionToken.model_validate(load_data(token)))
+    _dump(result.model_dump(mode="json"), output)
+
+
+@alt_app.command("check-transport")
+def alt_check_transport(
+    certificate: Annotated[
+        Path, typer.Option("--certificate", help="TransportCertificate JSON/YAML.")
+    ],
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Check an ALT finite transport certificate."""
+
+    result = check_transport_certificate(
+        TransportCertificate.model_validate(load_data(certificate))
+    )
+    _dump(result.model_dump(mode="json"), output)
+
+
+@alt_app.command("certify-liquidity")
+def alt_certify_liquidity(
+    certificate: Annotated[
+        Path, typer.Option("--certificate", help="LiquidityCertificate JSON/YAML.")
+    ],
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Check an ALT liquidity certificate and signed surplus lower bound."""
+
+    result = check_liquidity_certificate(
+        LiquidityCertificate.model_validate(load_data(certificate))
+    )
+    _dump(result.model_dump(mode="json"), output)
+
+
+@alt_app.command("negative-certify")
+def alt_negative_certify(
+    certificate: Annotated[
+        Path, typer.Option("--certificate", help="NegativeLiquidityCertificate JSON/YAML.")
+    ],
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Check an ALT negative-liquidity certificate for scoped pruning."""
+
+    result = check_negative_liquidity_certificate(
+        NegativeLiquidityCertificate.model_validate(load_data(certificate))
+    )
+    _dump(result.model_dump(mode="json"), output)
+
+
+@alt_app.command("deprecate")
+def alt_deprecate(
+    token_id: Annotated[str, typer.Option("--token-id", help="Token id to deprecate.")],
+    certificate: Annotated[
+        Path, typer.Option("--certificate", help="NegativeLiquidityCertificate JSON/YAML.")
+    ],
+    rollback_ref: Annotated[
+        list[str] | None,
+        typer.Option("--rollback-ref", help="Rollback/deactivation evidence ref."),
+    ] = None,
+    lineage_ref: Annotated[
+        list[str] | None,
+        typer.Option("--lineage-ref", help="Lineage ref to preserve."),
+    ] = None,
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Create a scoped ALT deprecation record."""
+
+    result = deprecate_alt_packet(
+        token_id,
+        NegativeLiquidityCertificate.model_validate(load_data(certificate)),
+        rollback_refs=rollback_ref,
+        lineage_refs=lineage_ref,
+    )
+    _dump(result.model_dump(mode="json"), output)
+
+
+@alt_app.command("resurrect")
+def alt_resurrect(
+    deprecation: Annotated[
+        Path, typer.Option("--deprecation", help="ALTDeprecationRecord JSON/YAML.")
+    ],
+    packet: Annotated[
+        Path, typer.Option("--packet", help="ExecutableALTCertificatePacket JSON/YAML.")
+    ],
+    override_failure_mode: Annotated[
+        str, typer.Option("--override-failure-mode", help="Prior failure mode to override.")
+    ],
+    evidence_ref: Annotated[
+        list[str] | None,
+        typer.Option("--evidence-ref", help="Evidence ref supporting resurrection."),
+    ] = None,
+    profile: Annotated[str, typer.Option("--profile", help="Admission profile.")] = "development",
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Resurrect a deprecated token as a candidate after current positive checks."""
+
+    result = resurrect_alt_candidate(
+        ALTDeprecationRecord.model_validate(load_data(deprecation)),
+        ExecutableALTCertificatePacket.model_validate(load_data(packet)),
+        override_failure_mode=override_failure_mode,
+        evidence_refs=evidence_ref,
+        profile=profile,
+    )
+    _dump(result.model_dump(mode="json"), output)
+
+
+@alt_app.command("refresh-baseline")
+def alt_refresh_baseline(
+    certificate: Annotated[
+        Path, typer.Option("--certificate", help="BaselineRefreshCertificate JSON/YAML.")
+    ],
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Check an ALT baseline/opportunity-law refresh certificate."""
+
+    result = check_baseline_refresh_certificate(
+        BaselineRefreshCertificate.model_validate(load_data(certificate))
+    )
+    _dump(result.model_dump(mode="json"), output)
+
+
+@alt_app.command("reproduction-report")
+def alt_reproduction_report(
+    certificate: Annotated[
+        Path, typer.Option("--certificate", help="ReproductionMatrixCertificate JSON/YAML.")
+    ],
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Check finite ALT reproduction matrix diagnostics."""
+
+    result = compute_alt_reproduction_report(
+        ReproductionMatrixCertificate.model_validate(load_data(certificate))
+    )
+    _dump(result.model_dump(mode="json"), output)
+
+
+@alt_app.command("check-cara")
+def alt_check_cara(
+    certificate: Annotated[
+        Path, typer.Option("--certificate", help="ALTCARACertificate JSON/YAML.")
+    ],
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Check target-valid ALT-CARA finite acceleration evidence."""
+
+    result = check_alt_cara_certificate(ALTCARACertificate.model_validate(load_data(certificate)))
+    _dump(result.model_dump(mode="json"), output)
+
+
+@alt_app.command("admit")
+def alt_admit(
+    packet: Annotated[
+        Path, typer.Option("--packet", help="ExecutableALTCertificatePacket JSON/YAML.")
+    ],
+    profile: Annotated[
+        str,
+        typer.Option("--profile", help="Admission profile: development, research, production."),
+    ] = "development",
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Run fail-closed ALT packet admission."""
+
+    result = admit_alt_packet(
+        ExecutableALTCertificatePacket.model_validate(load_data(packet)),
+        profile=profile,
+    )
+    _dump(result.model_dump(mode="json"), output)
+
+
+@alt_app.command("foundry-dashboard")
+def alt_foundry_dashboard(
+    state: Annotated[Path, typer.Option("--state", help="FoundryState JSON/YAML.")],
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Compute an ALT foundry bottleneck dashboard."""
+
+    dashboard = compute_foundry_dashboard(FoundryState.model_validate(load_data(state)))
+    data = dashboard.model_dump(mode="json")
+    data["predicted_phase_control_rule"] = predict_foundry_phase_control(dashboard).value
+    data["recommended_foundry_actions"] = recommend_foundry_actions(dashboard)
+    _dump(data, output)
+
+
+@alt_app.command("bridge-runtime")
+def alt_bridge_runtime(
+    report: Annotated[
+        Path,
+        typer.Option("--report", help="GeneralIntakeRuntimeBridgeReport JSON/YAML."),
+    ],
+    state: Annotated[Path, typer.Option("--state", help="RuntimeState JSON/YAML.")],
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Build an ALT foundry sidecar from candidate-only runtime intake."""
+
+    foundry = bridge_alt_to_runtime(
+        GeneralIntakeRuntimeBridgeReport.model_validate(load_data(report)),
+        RuntimeState.model_validate(load_data(state)),
+    )
+    _dump(foundry.model_dump(mode="json"), output)
 
 
 @sqot_app.command("audit")

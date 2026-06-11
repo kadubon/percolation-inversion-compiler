@@ -1,0 +1,17 @@
+{
+  "capacity_feasible": true,
+  "causal_identification_refs": [
+    "causal:reproduction:example"
+  ],
+  "certificate_id": "reproduction:example",
+  "foundry_id": "alt-foundry:example",
+  "gauge_compatible": true,
+  "matrix_refs": [
+    "matrix:reproduction:example"
+  ],
+  "spectral_radius_lower_bound": 1.1,
+  "spectral_radius_upper_bound": 1.4,
+  "transport_validity_refs": [
+    "transport:example"
+  ]
+}

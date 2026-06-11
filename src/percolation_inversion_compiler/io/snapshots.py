@@ -82,7 +82,7 @@ def load_theory_snapshot(artifact_key: str) -> TheorySnapshot:
 
 def list_theory_snapshots() -> list[TheorySnapshot]:
     snapshots: list[TheorySnapshot] = []
-    for key in ("ecpt", "bit", "trc", "sqot"):
+    for key in ("ecpt", "bit", "trc", "sqot", "alt"):
         snapshots.append(load_theory_snapshot(key))
     return snapshots
 
@@ -125,6 +125,7 @@ def snapshot_item_override(
         "Bottleneck Inversion Theory.tex": "bit",
         "Typed Reality Compilation.tex": "trc",
         "Salience-Queue Occupation Theory.tex": "sqot",
+        "Abstraction Liquidity Theory.tex": "alt",
     }
     key = artifact_to_key.get(Path(artifact).name)
     if key is None:

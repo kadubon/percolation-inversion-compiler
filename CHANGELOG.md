@@ -1,5 +1,21 @@
 # Changelog
 
+## v0.4.0 - 2026-06-11
+
+- Adds Abstraction Liquidity Theory (ALT) as an abstraction-capital foundry
+  layer for turning traces, external-intake packets, and agent-message outputs
+  into candidate abstraction tokens and finite liquidity certificates.
+- Adds `pic alt` CLI commands for canonical ALT audit, token extraction,
+  token admissibility checks, transport checks, liquidity certification,
+  admission decisions, foundry dashboards, and runtime bridge sidecars.
+- Registers the ALT canonical source DOI, SHA-256 snapshot manifest, coverage
+  snapshot, schema exports, examples, and docs without vendoring TeX or PDF.
+- Keeps ALT candidates candidate-only until trace, mission, transport, root,
+  telemetry, lifecycle, hazard, and signed-surplus checks pass.
+- Preserves ECPT collective phase safety: raw external information and
+  abstraction-token candidates cannot promote verified packet capital,
+  positive Psi components, collective certificates, or `settled=true`.
+
 ## v0.3.6 - 2026-06-11
 
 - Adds clone-time AI agent entry surfaces: `AGENTS.md`, `agent-manifest.json`,
