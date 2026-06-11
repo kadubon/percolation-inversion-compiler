@@ -13,6 +13,8 @@ jobs:
     name: Build and publish to PyPI
     runs-on: ubuntu-latest
     environment: pypi
+    env:
+      UV_PYTHON: "3.11"
     permissions:
       contents: read
       id-token: write
@@ -39,6 +41,7 @@ jobs:
         env:
           RELEASE_TAG: ${{ github.event.release.tag_name }}
         run: |
+          RELEASE_TAG="${RELEASE_TAG:-${GITHUB_REF_NAME}}"
           VERSION="$(uv run python -c 'import percolation_inversion_compiler as p; print(p.__version__)')"
           test "${RELEASE_TAG}" = "v${VERSION}"
 
