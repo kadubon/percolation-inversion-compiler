@@ -18,6 +18,9 @@ Production policy:
 - Does not store bearer tokens, private keys, or local absolute paths.
 - Does not call live connectors unless request JSON explicitly opts in and the
   service was started with `--allow-live-connectors`.
+- `/ecology/ingest` accepts agent output, general web/feed/message intake, and
+  specialized metadata sources; live network access still requires request and
+  service opt-in.
 - Returns deterministic diagnostic JSON for failures rather than stack traces.
 
 Endpoints:

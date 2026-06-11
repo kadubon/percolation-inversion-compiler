@@ -11,6 +11,18 @@ import typer
 from rich.console import Console
 
 from percolation_inversion_compiler import __version__
+from percolation_inversion_compiler.agent import (
+    AgentIntakeReport,
+    AgentIntakeRequest,
+    agent_feature_readiness,
+    agent_manifest_payload,
+    agent_network_readiness,
+    build_agent_communication_guide,
+    build_agent_workflow_guide,
+    minimal_runtime_state,
+    recommend_agent_next_actions,
+    run_agent_intake,
+)
 from percolation_inversion_compiler.core import (
     ExternalProofObligation,
     VerifierEvidenceEnvelope,
@@ -22,28 +34,46 @@ from percolation_inversion_compiler.core import (
 )
 from percolation_inversion_compiler.core.frontier import FrontierRecord
 from percolation_inversion_compiler.ecology import (
+    AgentInboxRecord,
+    AgentMessageEnvelope,
+    AgentMessageVerificationContext,
     CapabilityBasinContract,
     EdgeRelationVerifierSpec,
     EdgeWitnessCertificate,
+    GeneralIntakePolicy,
+    GeneralIntakeReport,
+    GeneralIntakeSource,
     PacketPromotionPolicy,
     PacketSourceKind,
     ProtocolFrameDigest,
     PsiDashboard,
+    WebFetchPolicy,
+    append_agent_message,
+    audit_general_intake_report,
+    bridge_general_intake_to_runtime,
     build_bottleneck_plan,
     build_edge_witnesses,
     build_packet_registry,
     build_psi_dashboard,
+    check_agent_message_contract,
     check_no_hidden_capability_injection,
     closed_loop_iteration,
+    create_agent_message,
+    discover_web_packets,
     find_accepted_paths_to_basin,
     find_autocatalytic_closures,
     find_execution_available_paths,
+    general_intake_policy_for_profile,
     infer_live_kind,
     ingest_agent_output,
+    ingest_general_source,
     ingest_live_source,
     ingest_local_file,
+    read_agent_inbox,
     registry_from_json,
+    verify_agent_message,
     verify_edge_relation,
+    write_agent_inbox,
 )
 from percolation_inversion_compiler.ecpt import (
     ASIProxyTargetContract,
@@ -138,9 +168,13 @@ parse_app = typer.Typer(help="Run strict TeX parser diagnostics.")
 ecpt_app = typer.Typer(help="Run ECPT active phase-control planning tools.")
 sqot_app = typer.Typer(help="Run SQOT salience-queue scheduling tools.")
 ecology_app = typer.Typer(help="Run ECPT capability packet ecology tools.")
+ecology_policy_app = typer.Typer(help="Explain bounded general-intake policy presets.")
 runtime_app = typer.Typer(help="Run ECPT active agent runtime loops and local service.")
 runtime_store_app = typer.Typer(help="Manage persistent runtime stores.")
 identity_app = typer.Typer(help="Verify cryptographic agent identities and Sybil ledgers.")
+agent_app = typer.Typer(help="Agent-facing shortcuts for PIC runtime integration.")
+agent_inbox_app = typer.Typer(help="Manage local agent inbox/outbox records.")
+agent_message_app = typer.Typer(help="Create, verify, and ingest agent message envelopes.")
 app.add_typer(demo_app, name="demo")
 app.add_typer(audit_app, name="audit")
 app.add_typer(snapshot_app, name="snapshot")
@@ -152,9 +186,13 @@ app.add_typer(parse_app, name="parse")
 app.add_typer(ecpt_app, name="ecpt")
 app.add_typer(sqot_app, name="sqot")
 app.add_typer(ecology_app, name="ecology")
+ecology_app.add_typer(ecology_policy_app, name="policy")
 app.add_typer(runtime_app, name="runtime")
 runtime_app.add_typer(runtime_store_app, name="store")
 app.add_typer(identity_app, name="identity")
+app.add_typer(agent_app, name="agent")
+agent_app.add_typer(agent_inbox_app, name="inbox")
+agent_app.add_typer(agent_message_app, name="message")
 console = Console()
 
 
@@ -246,6 +284,62 @@ def _threshold_from_file(path: Path) -> dict[str, float]:
     return {str(key): float(value) for key, value in raw_threshold.items()}
 
 
+def _packet_source_kind(value: str) -> PacketSourceKind:
+    try:
+        return PacketSourceKind(value)
+    except ValueError as exc:
+        available = ", ".join(item.value for item in PacketSourceKind)
+        raise typer.BadParameter(f"source kind must be one of: {available}") from exc
+
+
+def _load_general_intake_policy(
+    path: Path | None,
+    *,
+    profile: str = "development",
+    allow_live_connectors: bool = False,
+) -> GeneralIntakePolicy:
+    if path is None:
+        preset = general_intake_policy_for_profile(profile)
+        return preset.model_copy(
+            update={
+                "allow_live_connectors": allow_live_connectors,
+                "web_policy": preset.web_policy.model_copy(
+                    update={"allow_live_connectors": allow_live_connectors}
+                ),
+            }
+        )
+    data = load_data(path)
+    raw = data.get("general_intake_policy", data.get("policy", data))
+    if not isinstance(raw, dict):
+        raise typer.BadParameter("general intake policy file must contain an object")
+    parsed = GeneralIntakePolicy.model_validate(raw)
+    return parsed.model_copy(
+        update={
+            "profile": profile or parsed.profile,
+            "allow_live_connectors": allow_live_connectors,
+            "web_policy": parsed.web_policy.model_copy(
+                update={"allow_live_connectors": allow_live_connectors}
+            ),
+        }
+    )
+
+
+def _load_agent_message(path: Path) -> AgentMessageEnvelope:
+    data = load_data(path)
+    raw = data.get("agent_message", data.get("message", data))
+    if not isinstance(raw, dict):
+        raise typer.BadParameter("agent message file must contain an object")
+    return AgentMessageEnvelope.model_validate(raw)
+
+
+def _load_general_intake_report(path: Path) -> GeneralIntakeReport:
+    data = load_data(path)
+    raw = data.get("general_intake_report", data.get("report", data))
+    if not isinstance(raw, dict):
+        raise typer.BadParameter("general intake report file must contain an object")
+    return GeneralIntakeReport.model_validate(raw)
+
+
 def _read_text_or_literal(source: str) -> str:
     path = Path(source)
     if path.exists() and path.is_file():
@@ -295,6 +389,21 @@ def _load_runtime_identity_context(path: Path) -> RuntimeIdentityContext:
     return RuntimeIdentityContext.model_validate(raw)
 
 
+def _load_agent_message_verification_context(
+    path: Path | None,
+) -> AgentMessageVerificationContext | None:
+    if path is None:
+        return None
+    context = _load_runtime_identity_context(path)
+    return AgentMessageVerificationContext(
+        profile=str(context.identity_profile),
+        accepted=context.accepted,
+        accepted_agent_ids=context.accepted_agent_ids,
+        accepted_public_key_ids=context.accepted_public_key_ids,
+        reasons=context.reasons,
+    )
+
+
 def _state_with_identity_context(
     state: RuntimeState,
     context: RuntimeIdentityContext | None,
@@ -316,6 +425,15 @@ def _load_runtime_step_input(path: Path) -> RuntimeStepInput:
     if not isinstance(raw, dict):
         raise typer.BadParameter("runtime input file must contain an object")
     return RuntimeStepInput.model_validate(raw)
+
+
+def _load_agent_default_state(state: Path | None) -> RuntimeState:
+    if state is not None:
+        return _load_runtime_state(state)
+    default_state = Path("examples") / "runtime_state.json"
+    if default_state.exists():
+        return _load_runtime_state(default_state)
+    return minimal_runtime_state()
 
 
 def _load_runtime_step_report(path: Path) -> RuntimeStepReport:
@@ -1126,6 +1244,200 @@ def ecology_ingest(
         raise typer.Exit(1)
 
 
+@ecology_app.command("ingest-general")
+def ecology_ingest_general_command(
+    source: Annotated[
+        str,
+        typer.Option("--source", help="URI, local path, feed, JSONL, or agent message source."),
+    ],
+    kind: Annotated[
+        str,
+        typer.Option(
+            "--kind",
+            help=(
+                "auto, local, http, web-page, rss, atom, json-feed, ndjson, "
+                "agent-message, agent-inbox, web-crawl, github, zenodo, or arxiv."
+            ),
+        ),
+    ] = "auto",
+    policy: Annotated[
+        Path | None,
+        typer.Option("--policy", help="Optional GeneralIntakePolicy JSON/YAML."),
+    ] = None,
+    profile: Annotated[
+        str,
+        typer.Option("--profile", help="Intake profile."),
+    ] = "development",
+    allow_live_connectors: Annotated[
+        bool,
+        typer.Option(
+            "--allow-live-connectors/--no-allow-live-connectors",
+            help="Explicitly enable live web/connector fetches.",
+        ),
+    ] = False,
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Ingest broad local/web/feed/message sources as packet candidates."""
+
+    active_policy = _load_general_intake_policy(
+        policy,
+        profile=profile,
+        allow_live_connectors=allow_live_connectors,
+    )
+    report = ingest_general_source(
+        GeneralIntakeSource(
+            source=source,
+            kind=_packet_source_kind(kind),
+            allow_live_connectors=allow_live_connectors,
+        ),
+        active_policy,
+    )
+    _dump(report.model_dump(mode="json"), output)
+    if not report.accepted:
+        raise typer.Exit(1)
+
+
+@ecology_app.command("discover-web")
+def ecology_discover_web_command(
+    source: Annotated[
+        str,
+        typer.Option("--source", help="Seed URL or local HTML file."),
+    ],
+    policy: Annotated[
+        Path | None,
+        typer.Option("--policy", help="Optional WebFetchPolicy JSON/YAML."),
+    ] = None,
+    allow_live_connectors: Annotated[
+        bool,
+        typer.Option(
+            "--allow-live-connectors/--no-allow-live-connectors",
+            help="Explicitly enable live web fetches.",
+        ),
+    ] = False,
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Run bounded web discovery without executing scripts or forms."""
+
+    if policy is None:
+        active_policy = WebFetchPolicy(allow_live_connectors=allow_live_connectors)
+    else:
+        data = load_data(policy)
+        raw = data.get("web_fetch_policy", data.get("policy", data))
+        if not isinstance(raw, dict):
+            raise typer.BadParameter("web fetch policy file must contain an object")
+        active_policy = WebFetchPolicy.model_validate(raw).model_copy(
+            update={"allow_live_connectors": allow_live_connectors}
+        )
+    report = discover_web_packets(source, active_policy)
+    _dump(report.model_dump(mode="json"), output)
+    if not report.accepted:
+        raise typer.Exit(1)
+
+
+@ecology_policy_app.command("explain")
+def ecology_policy_explain_command(
+    profile: Annotated[
+        str,
+        typer.Option(
+            "--profile",
+            help=(
+                "Policy preset: local_only, controlled_web, federated_agents, "
+                "production_network, adversarial_network, or development."
+            ),
+        ),
+    ] = "development",
+    allow_live_connectors: Annotated[
+        bool,
+        typer.Option(
+            "--allow-live-connectors/--no-allow-live-connectors",
+            help="Show the policy with live fetch permission enabled or disabled.",
+        ),
+    ] = False,
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Explain one deterministic general-intake policy preset."""
+
+    policy = general_intake_policy_for_profile(profile).model_copy(
+        update={
+            "allow_live_connectors": allow_live_connectors,
+            "web_policy": general_intake_policy_for_profile(profile).web_policy.model_copy(
+                update={"allow_live_connectors": allow_live_connectors}
+            ),
+        }
+    )
+    _dump(policy.model_dump(mode="json"), output)
+
+
+@ecology_app.command("intake-audit")
+def ecology_intake_audit_command(
+    report: Annotated[
+        Path,
+        typer.Option("--report", help="GeneralIntakeReport JSON/YAML to audit."),
+    ],
+    policy: Annotated[
+        Path | None,
+        typer.Option("--policy", help="Optional GeneralIntakePolicy JSON/YAML."),
+    ] = None,
+    profile: Annotated[
+        str,
+        typer.Option("--profile", help="Fallback policy profile when --policy is omitted."),
+    ] = "development",
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Audit a general intake report against candidate-only runtime rules."""
+
+    parsed_report = _load_general_intake_report(report)
+    active_policy = (
+        _load_general_intake_policy(policy, profile=profile, allow_live_connectors=False)
+        if policy is not None
+        else general_intake_policy_for_profile(parsed_report.intake_profile or profile)
+    )
+    audit = audit_general_intake_report(parsed_report, active_policy)
+    _dump(audit.model_dump(mode="json"), output)
+    if not audit.accepted:
+        raise typer.Exit(1)
+
+
+@ecology_app.command("bridge-runtime")
+def ecology_bridge_runtime_command(
+    report: Annotated[
+        Path,
+        typer.Option("--report", help="GeneralIntakeReport JSON/YAML to bridge."),
+    ],
+    policy: Annotated[
+        Path | None,
+        typer.Option("--policy", help="Optional GeneralIntakePolicy JSON/YAML."),
+    ] = None,
+    profile: Annotated[
+        str,
+        typer.Option("--profile", help="Fallback policy profile when --policy is omitted."),
+    ] = "development",
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Classify general intake candidates for SQOT/runtime work queues."""
+
+    parsed_report = _load_general_intake_report(report)
+    active_policy = (
+        _load_general_intake_policy(policy, profile=profile, allow_live_connectors=False)
+        if policy is not None
+        else general_intake_policy_for_profile(parsed_report.intake_profile or profile)
+    )
+    bridge = bridge_general_intake_to_runtime(parsed_report, active_policy)
+    _dump(bridge.model_dump(mode="json"), output)
+    if not bridge.accepted:
+        raise typer.Exit(1)
+
+
 @ecology_app.command("build-edges")
 def ecology_build_edges(
     packets: Annotated[
@@ -1856,6 +2168,455 @@ def runtime_service_command(
         run_runtime_service(settings)
     except RuntimeError as exc:
         raise typer.BadParameter(str(exc)) from exc
+
+
+@agent_app.command("explain")
+def agent_explain_command(
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Explain the repository to autonomous agents."""
+
+    manifest = agent_manifest_payload()
+    _dump(
+        {
+            "name": manifest["name"],
+            "version": __version__,
+            "what_this_repo_is": (
+                "AI agent runtime verification and ECPT ASI-proxy collective phase "
+                "acceleration module"
+            ),
+            "what_it_does_not_do": manifest["non_goals"],
+            "recommended_docs": manifest["recommended_docs"],
+            "safe_first_commands": manifest["safe_cli_entrypoints"],
+            "python_entrypoints": [
+                "percolation_inversion_compiler.agent.run_agent_intake",
+                "percolation_inversion_compiler.agent.minimal_runtime_state",
+                "percolation_inversion_compiler.runtime.build_runtime_step",
+                "percolation_inversion_compiler.runtime.derive_runtime_identity_context",
+                "percolation_inversion_compiler.runtime.runtime_health",
+                "percolation_inversion_compiler.identity.sybil_policy_for_profile",
+            ],
+            "machine_contract": manifest["machine_contract"],
+        },
+        output,
+    )
+
+
+@agent_app.command("doctor")
+def agent_doctor_command(
+    state: Annotated[
+        Path | None,
+        typer.Option(
+            "--state",
+            help="RuntimeState JSON/YAML. Defaults to examples/runtime_state.json when present.",
+        ),
+    ] = None,
+    profile: Annotated[
+        str,
+        typer.Option("--profile", help="Runtime profile."),
+    ] = "development",
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Run a safe agent-facing runtime health check."""
+
+    parsed_state = _load_agent_default_state(state)
+    report = runtime_health(parsed_state, AgentRuntimeConfig(profile=profile))
+    recommendations = [
+        'Run `uv run pic agent intake --text "..." --profile development` for a minimal step.',
+        "Inspect residual_ledger, missing_obligations, and settled before acting.",
+    ]
+    if profile.lower() in {"production", "adversarial"} and not report.production_identity_ready:
+        recommendations.append(
+            "Derive identity context with `uv run pic identity derive-context "
+            "--population examples/agent_population_signed.json --profile production "
+            "--output identity-context.json`."
+        )
+    _dump(
+        {
+            "runtime_health": report.model_dump(mode="json"),
+            "recommended_next_commands": recommendations,
+            "accepted": report.accepted,
+            "operationally_usable": report.operationally_usable,
+            "settled": report.settled,
+        },
+        output,
+    )
+
+
+@agent_app.command("guide")
+def agent_guide_command(
+    profile: Annotated[
+        str,
+        typer.Option("--profile", help="Agent workflow profile."),
+    ] = "development",
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Emit the full-feature AI-agent workflow guide."""
+
+    guide = build_agent_workflow_guide(profile)
+    _dump(guide.model_dump(mode="json"), output)
+
+
+@agent_app.command("communication-guide")
+def agent_communication_guide_command(
+    profile: Annotated[
+        str,
+        typer.Option("--profile", help="Agent communication profile."),
+    ] = "development",
+    allow_live_connectors: Annotated[
+        bool,
+        typer.Option(
+            "--allow-live-connectors/--no-allow-live-connectors",
+            help="Describe the workflow with live connectors explicitly enabled.",
+        ),
+    ] = False,
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Emit the external-communication guide for agents."""
+
+    guide = build_agent_communication_guide(profile, allow_live_connectors)
+    _dump(guide.model_dump(mode="json"), output)
+
+
+@agent_app.command("network-readiness")
+def agent_network_readiness_command(
+    state: Annotated[
+        Path | None,
+        typer.Option(
+            "--state",
+            help="RuntimeState JSON/YAML. Defaults to examples/runtime_state.json when present.",
+        ),
+    ] = None,
+    profile: Annotated[
+        str,
+        typer.Option("--profile", help="Agent communication profile."),
+    ] = "development",
+    allow_live_connectors: Annotated[
+        bool,
+        typer.Option(
+            "--allow-live-connectors/--no-allow-live-connectors",
+            help="Check readiness for explicit live connector opt-in.",
+        ),
+    ] = False,
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Report network readiness without making network calls."""
+
+    report = agent_network_readiness(
+        _load_agent_default_state(state),
+        profile,
+        allow_live_connectors,
+    )
+    _dump(report.model_dump(mode="json"), output)
+
+
+@agent_app.command("readiness")
+def agent_readiness_command(
+    state: Annotated[
+        Path | None,
+        typer.Option(
+            "--state",
+            help="RuntimeState JSON/YAML. Defaults to examples/runtime_state.json when present.",
+        ),
+    ] = None,
+    profile: Annotated[
+        str,
+        typer.Option("--profile", help="Agent workflow profile."),
+    ] = "development",
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Report whether the full agent workflow is ready or diagnostic."""
+
+    report = agent_feature_readiness(_load_agent_default_state(state), profile)
+    _dump(report.model_dump(mode="json"), output)
+
+
+@agent_app.command("intake")
+def agent_intake_command(
+    text: Annotated[
+        str | None,
+        typer.Option("--text", help="Literal agent output to ingest."),
+    ] = None,
+    text_file: Annotated[
+        Path | None,
+        typer.Option("--text-file", help="File containing agent output text."),
+    ] = None,
+    profile: Annotated[
+        str,
+        typer.Option("--profile", help="Runtime profile."),
+    ] = "development",
+    identity_context: Annotated[
+        Path | None,
+        typer.Option("--identity-context", help="Optional RuntimeIdentityContext JSON/YAML."),
+    ] = None,
+    allow_live_connectors: Annotated[
+        bool,
+        typer.Option(
+            "--allow-live-connectors/--no-allow-live-connectors",
+            help="Explicitly allow runtime live connector ingestion when the input also opts in.",
+        ),
+    ] = False,
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Run a minimal agent-output intake through the runtime."""
+
+    if text is not None and text_file is not None:
+        raise typer.BadParameter("Use either --text or --text-file, not both")
+    agent_output = text
+    if text_file is not None:
+        agent_output = text_file.read_text(encoding="utf-8")
+    report = run_agent_intake(
+        AgentIntakeRequest(
+            agent_output=agent_output,
+            profile=profile,
+            identity_context=(
+                None
+                if identity_context is None
+                else _load_runtime_identity_context(identity_context)
+            ),
+            allow_live_connectors=allow_live_connectors,
+        )
+    )
+    _dump(report.model_dump(mode="json"), output)
+
+
+@agent_app.command("next")
+def agent_next_command(
+    intake_report: Annotated[
+        Path,
+        typer.Option("--intake-report", help="AgentIntakeReport JSON/YAML."),
+    ],
+    profile: Annotated[
+        str,
+        typer.Option("--profile", help="Agent workflow profile."),
+    ] = "development",
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Recommend next safe actions from an agent intake report."""
+
+    data = load_data(intake_report)
+    raw = data.get("agent_intake_report", data.get("report", data))
+    if not isinstance(raw, dict):
+        raise typer.BadParameter("agent intake report file must contain an object")
+    report = AgentIntakeReport.model_validate(raw)
+    _dump(recommend_agent_next_actions(report, profile).model_dump(mode="json"), output)
+
+
+@agent_app.command("manifest")
+def agent_manifest_command(
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Print the machine-readable agent manifest."""
+
+    manifest_path = Path("agent-manifest.json")
+    if manifest_path.exists():
+        _dump(json.loads(manifest_path.read_text(encoding="utf-8")), output)
+        return
+    _dump(agent_manifest_payload(), output)
+
+
+@agent_inbox_app.command("init")
+def agent_inbox_init_command(
+    inbox: Annotated[
+        Path,
+        typer.Option("--inbox", help="Agent inbox JSON path to create or overwrite."),
+    ],
+    inbox_id: Annotated[
+        str,
+        typer.Option("--inbox-id", help="Portable inbox identifier."),
+    ] = "agent-inbox",
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Initialize a local agent inbox/outbox JSON file."""
+
+    record = AgentInboxRecord(inbox_id=inbox_id)
+    write_agent_inbox(inbox, record)
+    _dump(record.model_dump(mode="json"), output)
+
+
+@agent_inbox_app.command("append")
+def agent_inbox_append_command(
+    inbox: Annotated[
+        Path,
+        typer.Option("--inbox", help="Agent inbox JSON path."),
+    ],
+    message: Annotated[
+        Path,
+        typer.Option("--message", help="AgentMessageEnvelope JSON/YAML."),
+    ],
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Append one message envelope to a local inbox."""
+
+    record = append_agent_message(inbox, _load_agent_message(message))
+    _dump(record.model_dump(mode="json"), output)
+
+
+@agent_inbox_app.command("export")
+def agent_inbox_export_command(
+    inbox: Annotated[
+        Path,
+        typer.Option("--inbox", help="Agent inbox JSON path."),
+    ],
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Export one local agent inbox."""
+
+    _dump(read_agent_inbox(inbox).model_dump(mode="json"), output)
+
+
+@agent_message_app.command("create")
+def agent_message_create_command(
+    sender: Annotated[
+        str,
+        typer.Option("--sender", help="Sender agent id."),
+    ],
+    text: Annotated[
+        str | None,
+        typer.Option("--text", help="Literal message content."),
+    ] = None,
+    text_file: Annotated[
+        Path | None,
+        typer.Option("--text-file", help="Message content file."),
+    ] = None,
+    receiver: Annotated[
+        str | None,
+        typer.Option("--receiver", help="Optional receiver agent id."),
+    ] = None,
+    nonce: Annotated[
+        str | None,
+        typer.Option("--nonce", help="Optional replay nonce."),
+    ] = None,
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Create an unsigned local agent-message envelope."""
+
+    if text is not None and text_file is not None:
+        raise typer.BadParameter("Use either --text or --text-file, not both")
+    content = text_file.read_text(encoding="utf-8") if text_file is not None else text
+    if content is None:
+        raise typer.BadParameter("message content requires --text or --text-file")
+    message = create_agent_message(
+        content,
+        sender_agent_id=sender,
+        receiver_agent_id=receiver,
+        nonce=nonce,
+    )
+    _dump(message.model_dump(mode="json"), output)
+
+
+@agent_message_app.command("verify")
+def agent_message_verify_command(
+    message: Annotated[
+        Path,
+        typer.Option("--message", help="AgentMessageEnvelope JSON/YAML."),
+    ],
+    policy: Annotated[
+        Path | None,
+        typer.Option("--policy", help="Optional GeneralIntakePolicy JSON/YAML."),
+    ] = None,
+    profile: Annotated[
+        str,
+        typer.Option("--profile", help="Message verification profile."),
+    ] = "development",
+    identity_context: Annotated[
+        Path | None,
+        typer.Option(
+            "--identity-context",
+            help="Optional RuntimeIdentityContext JSON/YAML accepted by population Sybil checks.",
+        ),
+    ] = None,
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Verify agent-message envelope shape and replay policy."""
+
+    report = verify_agent_message(
+        _load_agent_message(message),
+        _load_general_intake_policy(policy, profile=profile),
+        _load_agent_message_verification_context(identity_context),
+    )
+    _dump(report.model_dump(mode="json"), output)
+    if not report.accepted:
+        raise typer.Exit(1)
+
+
+@agent_message_app.command("contract")
+def agent_message_contract_command(
+    message: Annotated[
+        Path,
+        typer.Option("--message", help="AgentMessageEnvelope JSON/YAML."),
+    ],
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Check portable agent-message envelope contract without trusting content."""
+
+    report = check_agent_message_contract(_load_agent_message(message))
+    _dump(report.model_dump(mode="json"), output)
+    if not report.accepted:
+        raise typer.Exit(1)
+
+
+@agent_message_app.command("ingest")
+def agent_message_ingest_command(
+    message: Annotated[
+        Path,
+        typer.Option("--message", help="AgentMessageEnvelope JSON/YAML."),
+    ],
+    profile: Annotated[
+        str,
+        typer.Option("--profile", help="Message intake profile."),
+    ] = "development",
+    identity_context: Annotated[
+        Path | None,
+        typer.Option(
+            "--identity-context",
+            help="Optional RuntimeIdentityContext JSON/YAML accepted by population Sybil checks.",
+        ),
+    ] = None,
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Ingest one agent message as packet candidate."""
+
+    report = ingest_general_source(
+        GeneralIntakeSource(source=str(message), kind=PacketSourceKind.AGENT_MESSAGE),
+        GeneralIntakePolicy(profile=profile),
+        _load_agent_message_verification_context(identity_context),
+    )
+    _dump(report.model_dump(mode="json"), output)
+    if not report.accepted:
+        raise typer.Exit(1)
 
 
 @identity_app.command("verify")

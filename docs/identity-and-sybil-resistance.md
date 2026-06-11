@@ -1,6 +1,6 @@
 # Identity and Sybil Resistance
 
-v0.3.5 provides a practical cryptographic identity layer for adversarial protocol settings. It is designed for ECPT collective phase runtime users who need stronger evidence than a declared `agent_id` before accepting packet capital, population steps, or collective phase certificates, while still preserving diagnostic packet candidates in less strict profiles.
+v0.3.6 keeps the practical cryptographic identity layer for adversarial protocol settings and connects it to external packet intake. It is designed for ECPT collective phase runtime users who need stronger evidence than a declared `agent_id` before accepting packet capital, population steps, or collective phase certificates, while still preserving diagnostic packet candidates in less strict profiles.
 
 ## Boundary
 

@@ -8,6 +8,36 @@ This page holds the full command inventory so the README can stay short. Command
 uv sync --all-extras --dev
 ```
 
+## Agent Shortcuts
+
+```powershell
+uv run pic agent explain
+uv run pic agent manifest
+uv run pic agent guide --profile development
+uv run pic agent communication-guide --profile development --no-allow-live-connectors
+uv run pic agent network-readiness --profile development --no-allow-live-connectors
+uv run pic agent readiness --profile production
+uv run pic agent doctor --profile development
+uv run pic agent doctor --profile production
+uv run pic agent intake --text "Candidate packet: route evidence and preserve residuals." --profile development
+uv run pic agent intake --text-file examples/agent_minimal/agent_output.txt --profile development
+uv run pic agent intake --text-file examples/agent_minimal/agent_output.txt --profile development --output intake-report.json
+uv run pic agent next --intake-report intake-report.json --profile development
+uv run pic agent inbox init --inbox inbox.json
+uv run pic agent message create --sender agent:alice --text "Candidate packet: preserve residuals." --output message.json
+uv run pic agent message contract --message message.json
+uv run pic agent message verify --message message.json --profile development
+uv run pic agent message verify --message message.json --profile production --identity-context identity-context.json
+uv run pic agent inbox append --inbox inbox.json --message message.json
+uv run pic agent inbox export --inbox inbox.json
+uv run pic agent message ingest --message examples/agent_network/agent_message.json
+uv run pic agent message ingest --message examples/agent_network/agent_message.json --profile production --identity-context identity-context.json
+uv run pic identity derive-context --population examples/agent_population_signed.json --profile production --output identity-context.json
+uv run pic agent intake --text-file examples/agent_minimal/agent_output.txt --profile production --identity-context identity-context.json
+```
+
+These commands do not perform network access or arbitrary shell execution. They orient agents, run a minimal runtime step, and preserve residual ledgers.
+
 ## Snapshot And Theory Inspection
 
 ```powershell
@@ -91,6 +121,17 @@ uv run pic sqot schedule --packets examples/sqot_queue.json --profile production
 
 ```powershell
 uv run pic ecology ingest --source examples/ecology_packets.json --kind local
+uv run pic ecology policy explain --profile local_only
+uv run pic ecology policy explain --profile controlled_web
+uv run pic ecology policy explain --profile production_network
+uv run pic ecology ingest-general --source examples/agent_network/feed.xml --kind rss
+uv run pic ecology ingest-general --source examples/agent_network/page.html --kind web-page
+uv run pic ecology ingest-general --source examples/agent_network/packets.ndjson --kind ndjson
+uv run pic ecology ingest-general --source examples/agent_network/inbox.json --kind agent-inbox
+uv run pic ecology discover-web --source examples/agent_network/page.html
+uv run pic ecology ingest-general --source https://example.org --kind web-page --allow-live-connectors
+uv run pic ecology intake-audit --report examples/agent_network/general_intake_report.example.json
+uv run pic ecology bridge-runtime --report examples/agent_network/general_intake_report.example.json
 uv run pic ecology build-edges --packets examples/ecology_packets.json --output ecology-registry.json
 uv run pic ecology psi --registry ecology-registry.json --threshold examples/ecology_threshold.json --output ecology-psi.json
 uv run pic ecology plan --registry ecology-registry.json --psi ecology-psi.json --profile production

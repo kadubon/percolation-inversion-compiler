@@ -1,0 +1,58 @@
+{
+  "allow_live_connectors": false,
+  "allowed_source_kinds": [
+    "web-page",
+    "rss",
+    "atom",
+    "json-feed",
+    "ndjson",
+    "agent-message",
+    "agent-inbox",
+    "web-crawl"
+  ],
+  "max_agent_messages_per_inbox": 64,
+  "max_feed_entries": 64,
+  "policy_id": "general-intake-policy:adversarial-network",
+  "profile": "adversarial_network",
+  "reject_replay_nonce": true,
+  "require_message_identity_context": true,
+  "require_signed_agent_messages": true,
+  "residual_behavior": "external intake failures become diagnostic residual ledger entries",
+  "seen_message_nonces": [],
+  "web_policy": {
+    "allow_http": false,
+    "allow_live_connectors": false,
+    "allowed_content_types": [
+      "application/atom+xml",
+      "application/feed+json",
+      "application/json",
+      "application/rss+xml",
+      "application/x-ndjson",
+      "application/xml",
+      "text/html",
+      "text/plain",
+      "text/xml"
+    ],
+    "allowed_hosts": [],
+    "allowed_path_prefixes": [],
+    "allowed_schemes": [
+      "https"
+    ],
+    "blocked_hosts": [],
+    "diagnose_rate_limits": true,
+    "max_bytes_per_resource": 500000,
+    "max_depth": 0,
+    "max_pages": 4,
+    "max_redirects": 1,
+    "max_total_bytes_per_run": 1000000,
+    "max_total_packets_per_run": 32,
+    "prefer_https": true,
+    "reject_private_networks": true,
+    "require_https_for_live": true,
+    "require_robots_decision": true,
+    "respect_robots": true,
+    "robots_uncertainty_is_diagnostic": true,
+    "timeout_seconds": 20.0,
+    "user_agent": "percolation-inversion-compiler-agent-intake/0.3.6"
+  }
+}

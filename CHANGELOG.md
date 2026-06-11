@@ -1,5 +1,25 @@
 # Changelog
 
+## v0.3.6 - 2026-06-11
+
+- Adds clone-time AI agent entry surfaces: `AGENTS.md`, `agent-manifest.json`,
+  agent quickstart docs, minimal agent intake helpers, and `pic agent` guide,
+  readiness, next-action, communication-guide, and network-readiness commands.
+- Adds bounded general intake for local HTML, HTTP(S), RSS/Atom, JSON feed,
+  NDJSON, and agent-message inboxes, with default-off live connectors,
+  sanitized provenance, policy decisions, byte/packet budgets, and residual
+  ledgers.
+- Hardens ECPT phase semantics so raw external packet volume, candidate-only
+  closure witnesses, candidate-only execution paths, and candidate-only basin
+  paths cannot improve positive Psi components or collective certificates.
+- Adds agent-to-agent message contracts, nonce/expiry/digest diagnostics, and
+  identity-context-aware packet exchange reports for production and adversarial
+  workflows.
+- Updates docs, examples, schema discovery, and CLI references so agents can
+  move from orientation to external communication, SQOT queue routing, packet
+  promotion, and collective certification without treating external content as
+  proof or settled capital.
+
 ## v0.3.5 - 2026-06-09
 
 - Adds practical identity trust profiles for development, research,

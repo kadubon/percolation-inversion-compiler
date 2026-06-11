@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+  <channel>
+    <title>ECPT Agent Feed Fixture</title>
+    <item>
+      <title>Route evidence packet</title>
+      <description>Candidate packet: route verifier evidence and preserve residual ledgers.</description>
+      <link>https://example.org/ecpt/route-evidence</link>
+    </item>
+    <item>
+      <title>SQOT reserve packet</title>
+      <description>Candidate packet: inspect queue obstruction before promotion.</description>
+      <link>https://example.org/ecpt/sqot-reserve</link>
+    </item>
+  </channel>
+</rss>

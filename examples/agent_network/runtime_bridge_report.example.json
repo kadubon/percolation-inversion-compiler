@@ -1,0 +1,80 @@
+{
+  "accepted": true,
+  "candidate_only": true,
+  "classifications": {
+    "packet:rss:fixture1:0": "verifier_work"
+  },
+  "diagnostic_work_packet_ids": [],
+  "ecpt_phase_contribution_allowed": false,
+  "packet_ingestion": {
+    "accepted": true,
+    "packets": [
+      {
+        "authority_granted": true,
+        "authority_required": false,
+        "claim": "Route evidence packet for verifier residual preservation.",
+        "content_sha256": "4a7c5e5be16f44b10d40f91e85ad0f6f6c74a18c8c6aab4d0e0dd5f31c4c5167",
+        "evidence_hash_valid": true,
+        "evidence_refs": [
+          "sha256:fixture-feed",
+          "general-intake:rss:fixture1:external-candidate"
+        ],
+        "expected_downstream_gain": 0.02,
+        "freshness": 1.0,
+        "hazard_charge": 0.0,
+        "identity_contribution_status": "provisional",
+        "packet_id": "packet:rss:fixture1:0",
+        "receiver_family": [
+          "agent",
+          "verifier"
+        ],
+        "residual_charge": 0.0,
+        "reuse_context": "general",
+        "rollback_available": true,
+        "route_safe": true,
+        "salience_class": "packet",
+        "source_kind": "rss",
+        "source_ref": "feed.xml",
+        "status": "provisional",
+        "tags": [
+          "external-candidate",
+          "feed",
+          "rss",
+          "verifier"
+        ],
+        "verification_cost": 0.01,
+        "verifier_routes": [
+          "adapters.domain.verify_ecpt_proxy_target_contract"
+        ]
+      }
+    ],
+    "provenance": [],
+    "reasons": [],
+    "rejected_sources": [],
+    "report_id": "packet-ingestion:general:fixture1",
+    "residual_ledger": {
+      "coordinates": {}
+    },
+    "source_kind": "rss",
+    "web_fetch_reports": []
+  },
+  "quarantine_packet_ids": [],
+  "reasons": [],
+  "report_id": "general-intake-bridge:fixture1",
+  "residual_ledger": {
+    "coordinates": {}
+  },
+  "safety_invariants": [
+    "external intake remains candidate-only until downstream checks promote it",
+    "external candidate volume alone cannot improve Psi, BR, AC, or collective certificates",
+    "settled remains false unless scoped finite verifier rules discharge obligations"
+  ],
+  "settled": false,
+  "source_report_id": "general-intake:rss:fixture1",
+  "sqot_queue_records": [
+    "queue:verifier_work:packet:rss:fixture1:0"
+  ],
+  "verifier_work_packet_ids": [
+    "packet:rss:fixture1:0"
+  ]
+}

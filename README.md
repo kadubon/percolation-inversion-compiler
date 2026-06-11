@@ -32,9 +32,49 @@ Search terms: ECPT, BIT, TRC, SQOT, ASI-proxy collective phase, protocol-relativ
 
 The runtime is fail-closed: planning can recommend finite ASI-proxy actions, but `settled` remains false unless scoped verifier rules discharge the required finite obligations. In production, signed identities and Sybil-resistance ledgers can prevent duplicate-key, clone-fanout, revoked, expired, or unsigned agent populations from producing accepted collective certificates. Residual external obligations remain explicit.
 
-v0.3.5 adds practical identity trust profiles so adversarial settings can stay fail-closed without making lab and research workflows fail-dead. Use `development`, `research`, `controlled`, `federated`, `production`, or `adversarial` profiles to choose how cryptographic agent identities, homogeneous fleets, signed packet issuers, and Sybil-resistance ledgers affect packet promotion and collective certificates.
+v0.3.6 adds agent-facing external intake hardening so adversarial settings can stay fail-closed without making lab and research workflows fail-dead. Use `development`, `research`, `controlled`, `federated`, `production`, or `adversarial` profiles to choose how communication policy, cryptographic identities, homogeneous fleets, signed packet issuers, and Sybil-resistance ledgers affect packet promotion and collective certificates.
 
 Core contract: registry is metadata, not evidence. Use `pic doctor` and structured checker outputs to distinguish declared status, finite certificate results, proof obligations, and residual ledgers.
+
+## For AI Agents
+
+Start with [AGENTS.md](AGENTS.md) and [For AI agents](docs/for-agents.md). The fastest safe route is:
+
+```powershell
+uv run pic agent explain
+uv run pic agent guide --profile development
+uv run pic agent intake --text "Candidate packet: route evidence and preserve residuals." --profile development
+```
+
+Production packet promotion requires identity context:
+
+```powershell
+uv run pic identity derive-context --population examples/agent_population_signed.json --profile production --output identity-context.json
+uv run pic agent intake --text "Signed packet candidate." --profile production --identity-context identity-context.json
+```
+
+Residuals are expected and must be preserved. `settled=false` is not command failure; it means unresolved obligations remain explicit.
+
+For networked collective-phase workflows, inspect the communication guide first. General web,
+feed, and agent-to-agent intake are default-off for live network access; external content becomes
+packet candidates only. Live intake requires three aligned opt-ins: the source/request flag,
+the intake policy, and the runtime or service config. Reports preserve sanitized provenance
+(`provenance`, `web_fetch_reports`, content SHA-256, redirect and robots/rate diagnostics)
+without exposing local absolute paths, cookies, tokens, or query secrets.
+
+```powershell
+uv run pic agent communication-guide --profile development --no-allow-live-connectors
+uv run pic ecology policy explain --profile controlled_web
+uv run pic ecology ingest-general --source examples/agent_network/feed.xml --kind rss
+uv run pic ecology bridge-runtime --report examples/agent_network/general_intake_report.example.json
+uv run pic agent message contract --message examples/agent_network/agent_message.json
+```
+
+For production agent-to-agent messages, derive an accepted identity context first and pass it
+to message verification. Without that context, signed messages remain diagnostic candidates.
+Raw external packet volume, including candidate-only closure or execution-path records, does
+not improve positive Psi components or collective certificates until downstream promotion checks
+accept the packet as finite-scope capital.
 
 ## Quickstart
 
@@ -81,7 +121,7 @@ For a complete command inventory, see [CLI reference](docs/cli-reference.md).
 
 ## Documentation Map
 
-- Start here: [Overview](docs/00-overview.md), [Quickstart](docs/01-quickstart.md), [Tutorial](docs/tutorial.md)
+- Start here: [Overview](docs/00-overview.md), [Quickstart](docs/01-quickstart.md), [For AI agents](docs/for-agents.md), [Agent external communication](docs/agent-external-communication.md), [Tutorial](docs/tutorial.md)
 - Runtime: [Runtime](docs/runtime.md), [Closed-loop runtime](docs/runtime-closed-loop.md), [Population runtime](docs/population-runtime.md), [Runtime service](docs/runtime-service.md), [Runtime executor](docs/runtime-executor.md), [Runtime store](docs/runtime-store.md)
 - Collective phase: [Collective phase runtime](docs/collective-phase-runtime.md), [Collective phase certificate](docs/04-collective-phase-certificate.md), [No-self-rewrite ledger](docs/no-self-rewrite-ledger.md), [Safety boundary](docs/11-safety-boundary.md)
 - Packet ecology: [Packet ecology runtime](docs/ecpt-packet-ecology-runtime.md), [Edge relation verifiers](docs/edge-relation-verifiers.md), [Packet promotion](docs/packet-promotion.md), [SQOT salience scheduler](docs/sqot.md)

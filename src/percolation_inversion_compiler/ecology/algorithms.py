@@ -537,16 +537,53 @@ def build_psi_dashboard(
     if threshold is not None:
         active_threshold.update({key: float(value) for key, value in threshold.items()})
     throughput = verification_throughput(registry)
-    packet_ids = {packet.packet_id for packet in registry.packets}
-    accepted_edges = [edge for edge in registry.edges if edge.accepted]
-    reachable = _reachable_packets(packet_ids, accepted_edges)
-    total = max(1, len(packet_ids))
-    route_count = len({route for packet in registry.packets for route in packet.verifier_routes})
+    phase_packets = _phase_contributing_packets(registry.packets)
+    phase_packet_ids = {packet.packet_id for packet in phase_packets}
+    excluded_candidate_ids = sorted(
+        packet.packet_id for packet in registry.packets if packet.packet_id not in phase_packet_ids
+    )
+    accepted_edges = _phase_contributing_edges(registry.edges, phase_packet_ids)
+    reachable = _reachable_packets(phase_packet_ids, accepted_edges)
+    total = max(1, len(phase_packet_ids))
+    route_count = len({route for packet in phase_packets for route in packet.verifier_routes})
     tag_targets = set(target_tags or [])
-    target_hits = sum(1 for packet in registry.packets if tag_targets & set(packet.tags))
-    accepted_closures = [witness for witness in closure_witnesses or [] if witness.accepted]
-    accepted_execution_paths = [path for path in execution_paths or [] if path.accepted]
+    target_hits = sum(1 for packet in phase_packets if tag_targets & set(packet.tags))
+    accepted_closures, rejected_closure_count = _phase_contributing_closures(
+        closure_witnesses or [], phase_packet_ids
+    )
+    accepted_execution_paths, rejected_execution_count = _phase_contributing_execution_paths(
+        execution_paths or [], phase_packet_ids
+    )
     residual = registry.residual_ledger
+    if excluded_candidate_ids:
+        residual = residual.add_coordinate(
+            f"psi:{registry.registry_id}:external-candidate-volume-excluded",
+            float(len(excluded_candidate_ids)),
+            kind=CoordinateKind.RESIDUAL,
+            description=(
+                "external candidate volume is routed to SQOT/verifier work and does not "
+                "contribute to positive ECPT phase components before promotion"
+            ),
+        )
+    if rejected_closure_count:
+        residual = residual.add_coordinate(
+            f"psi:{registry.registry_id}:external-candidate-closure-witness-excluded",
+            float(rejected_closure_count),
+            kind=CoordinateKind.RESIDUAL,
+            description=(
+                "accepted closure witnesses that depend on raw external candidates "
+                "are residual-only"
+            ),
+        )
+    if rejected_execution_count:
+        residual = residual.add_coordinate(
+            f"psi:{registry.registry_id}:external-candidate-execution-path-excluded",
+            float(rejected_execution_count),
+            kind=CoordinateKind.RESIDUAL,
+            description=(
+                "accepted execution paths that depend on raw external candidates are residual-only"
+            ),
+        )
     if accepted_closures:
         ac_score = min(
             1.0,
@@ -572,7 +609,18 @@ def build_psi_dashboard(
                 kind=CoordinateKind.RESIDUAL,
             )
     if basin is not None:
-        basin_paths = find_accepted_paths_to_basin(registry, basin)
+        raw_basin_paths = find_accepted_paths_to_basin(registry, basin)
+        basin_paths = [path for path in raw_basin_paths if set(path.packet_ids) <= phase_packet_ids]
+        rejected_basin_path_count = len(raw_basin_paths) - len(basin_paths)
+        if rejected_basin_path_count:
+            residual = residual.add_coordinate(
+                f"psi:{registry.registry_id}:external-candidate-basin-path-excluded",
+                float(rejected_basin_path_count),
+                kind=CoordinateKind.RESIDUAL,
+                description=(
+                    "accepted basin paths that depend on raw external candidates are residual-only"
+                ),
+            )
         br_score = min(1.0, len(basin_paths) / max(1, len(basin.target_basis) or 1))
     else:
         br_score = 0.0 if not tag_targets else target_hits / total
@@ -586,10 +634,10 @@ def build_psi_dashboard(
         ),
         "LX": min(1.0, route_count / max(1, total)),
         "SD": _bounded_ratio(
-            sum(packet.expected_downstream_gain for packet in registry.packets),
-            sum(packet.verification_cost for packet in registry.packets) + 1.0,
+            sum(packet.expected_downstream_gain for packet in phase_packets),
+            sum(packet.verification_cost for packet in phase_packets) + 1.0,
         ),
-        "CV": max(0.0, 1.0 - registry.residual_ledger.burden_sum()),
+        "CV": max(0.0, 1.0 - residual.burden_sum()),
         "FR": max(0.0, 1.0 - throughput.false_liquidity_rate),
         "BR": br_score,
         "QS": _queue_salience_score(throughput),
@@ -1317,6 +1365,75 @@ def _infer_dependencies(text: str) -> list[str]:
         if stripped.lower().startswith("depends:"):
             dependencies.extend(item.strip() for item in stripped[8:].split(",") if item.strip())
     return sorted(set(dependencies))
+
+
+def _phase_contributing_packets(
+    packets: Sequence[CapabilityPacketCandidate],
+) -> list[CapabilityPacketCandidate]:
+    """Return packets allowed to contribute to positive ECPT phase components."""
+
+    return sorted(
+        [packet for packet in packets if "external-candidate" not in set(packet.tags)],
+        key=lambda packet: packet.packet_id,
+    )
+
+
+def _phase_contributing_edges(
+    edges: Sequence[EdgeWitness],
+    phase_packet_ids: set[str],
+) -> list[EdgeWitness]:
+    """Return accepted edges whose endpoints are phase-contributing packets."""
+
+    return sorted(
+        [
+            edge
+            for edge in edges
+            if edge.accepted
+            and edge.target_packet_id in phase_packet_ids
+            and set(edge.source_packet_ids) <= phase_packet_ids
+        ],
+        key=lambda edge: edge.edge_id,
+    )
+
+
+def _phase_contributing_closures(
+    witnesses: Sequence[AutocatalyticClosureWitness],
+    phase_packet_ids: set[str],
+) -> tuple[list[AutocatalyticClosureWitness], int]:
+    accepted = [
+        witness
+        for witness in witnesses
+        if witness.accepted
+        and bool(witness.closure_packet_ids)
+        and set(witness.closure_packet_ids) <= phase_packet_ids
+    ]
+    rejected = [
+        witness
+        for witness in witnesses
+        if witness.accepted
+        and (
+            not witness.closure_packet_ids
+            or not set(witness.closure_packet_ids) <= phase_packet_ids
+        )
+    ]
+    return sorted(accepted, key=lambda item: item.witness_id), len(rejected)
+
+
+def _phase_contributing_execution_paths(
+    paths: Sequence[ExecutionAvailablePathCertificate],
+    phase_packet_ids: set[str],
+) -> tuple[list[ExecutionAvailablePathCertificate], int]:
+    accepted = [
+        path
+        for path in paths
+        if path.accepted and bool(path.packet_ids) and set(path.packet_ids) <= phase_packet_ids
+    ]
+    rejected = [
+        path
+        for path in paths
+        if path.accepted and (not path.packet_ids or not set(path.packet_ids) <= phase_packet_ids)
+    ]
+    return sorted(accepted, key=lambda item: item.certificate_id), len(rejected)
 
 
 def _reachable_packets(packet_ids: set[str], edges: Sequence[EdgeWitness]) -> set[str]:

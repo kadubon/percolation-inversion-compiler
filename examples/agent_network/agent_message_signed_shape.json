@@ -1,0 +1,36 @@
+{
+  "audience": [
+    "agent",
+    "verifier"
+  ],
+  "content": "Peer agent observation: signed shape for route evidence and residual preservation.",
+  "content_sha256": "b0d3881eb93accfb371f638842b16b48df6cd49caa3e0b16e4a6ff9628bdb2b4",
+  "declared_packet_kind": "capability-packet-candidate",
+  "declared_receiver_family": [
+    "agent",
+    "verifier"
+  ],
+  "declared_routes": [
+    "adapters.domain.verify_ecpt_proxy_target_contract"
+  ],
+  "declared_validity_domain": "protocol-relative-finite",
+  "evidence_refs": [
+    "sha256:b0d3881eb93accfb371f638842b16b48df6cd49caa3e0b16e4a6ff9628bdb2b4"
+  ],
+  "issuer_attestation_id": "attestation:alice",
+  "issuer_public_key_id": "key:alice",
+  "message_id": "agent-message:signed-shape",
+  "nonce": "nonce:signed-shape",
+  "protocol_version": "pic-agent-message-v1",
+  "route_request_refs": [
+    "route-request:ecpt-proxy-target"
+  ],
+  "sender_agent_id": "agent:alice",
+  "signature_ref": "signature:alice:agent-message:signed-shape",
+  "tags": [
+    "agent-message",
+    "external-candidate",
+    "signed-shape"
+  ],
+  "thread_id": "thread:agent-network-fixture"
+}

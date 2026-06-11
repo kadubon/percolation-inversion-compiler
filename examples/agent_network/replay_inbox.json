@@ -1,0 +1,23 @@
+{
+  "inbox_id": "agent-network-replay-fixture",
+  "messages": [
+    {
+      "content": "Replay candidate: this nonce is already consumed.",
+      "content_sha256": "2820bd0a0866553ca70ca0f1443e49505ec121d53395567c222732bbe1beab0b",
+      "issuer_attestation_id": "attestation:alice",
+      "issuer_public_key_id": "key:alice",
+      "message_id": "agent-message:replay-fixture",
+      "nonce": "nonce-replay-fixture",
+      "sender_agent_id": "agent:alice",
+      "signature_ref": "signature:alice:replay-fixture",
+      "tags": [
+        "agent-message",
+        "fixture",
+        "replay"
+      ]
+    }
+  ],
+  "seen_nonces": [
+    "nonce-replay-fixture"
+  ]
+}

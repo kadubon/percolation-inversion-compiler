@@ -1,6 +1,6 @@
 [project]
 name = "percolation-inversion-compiler"
-version = "0.3.5"
+version = "0.3.6"
 description = "ECPT collective phase certificate runtime and finite verifier-routing SDK for ASI-proxy packet percolation, fixed-population ledgers, execution-available paths, semantic edge checks, residual ledgers, provenance, and agent integration."
 readme = "README.md"
 requires-python = ">=3.11"
@@ -26,6 +26,7 @@ classifiers = [
   "Topic :: Software Development :: Libraries :: Python Modules",
 ]
 dependencies = [
+  "defusedxml>=0.7",
   "jsonschema>=4.23",
   "pydantic>=2.8",
   "PyYAML>=6.0",
@@ -67,6 +68,7 @@ dev = [
   "pytest>=8.2",
   "pytest-cov>=5.0",
   "ruff>=0.5",
+  "types-defusedxml>=0.7",
   "types-jsonschema>=4.23",
   "types-PyYAML>=6.0",
 ]

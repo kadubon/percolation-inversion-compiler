@@ -14,15 +14,20 @@ from percolation_inversion_compiler.core import (
 )
 from percolation_inversion_compiler.ecology import (
     CapabilityBasinContract,
+    GeneralIntakePolicy,
+    GeneralIntakeSource,
+    PacketSourceKind,
     ProtocolFrameDigest,
+    WebFetchPolicy,
     check_no_hidden_capability_injection,
     find_autocatalytic_closures,
     find_execution_available_paths,
+    infer_live_kind,
     ingest_agent_output,
+    ingest_general_source,
     ingest_live_source,
     registry_from_json,
 )
-from percolation_inversion_compiler.ecology.connectors import infer_live_kind
 from percolation_inversion_compiler.runtime.algorithms import (
     apply_action_results,
     build_population_runtime_step,
@@ -63,7 +68,7 @@ def create_runtime_app(settings: RuntimeServiceSettings | None = None) -> Any:
 
     fastapi_app = fastapi.FastAPI(
         title="Percolation Inversion Compiler Runtime",
-        version="0.3.5",
+        version="0.3.6",
         description="Local-first ECPT active ASI-proxy phase-control runtime service.",
     )
     http_exception = fastapi.HTTPException
@@ -333,15 +338,41 @@ def create_runtime_app(settings: RuntimeServiceSettings | None = None) -> Any:
         allow_live = bool(payload.get("allow_live_connectors", False))
         if kind == "agent-output":
             report = ingest_agent_output(source, output_id=str(payload.get("output_id", "service")))
-        elif allow_live and active_settings.allow_live_connectors:
+        elif (
+            allow_live
+            and active_settings.allow_live_connectors
+            and kind
+            in {
+                "github",
+                "zenodo",
+                "arxiv",
+            }
+        ):
             report = ingest_live_source(source, kind=infer_live_kind(source))
         else:
-            report = ingest_agent_output(
-                f"diagnostic: live connector disabled for source kind {kind}",
-                output_id="diagnostic-live-disabled",
+            general_report = ingest_general_source(
+                GeneralIntakeSource(
+                    source=source,
+                    kind=PacketSourceKind(kind)
+                    if kind in {item.value for item in PacketSourceKind}
+                    else PacketSourceKind.AUTO,
+                    allow_live_connectors=allow_live,
+                ),
+                GeneralIntakePolicy(
+                    profile=active_settings.profile,
+                    allow_live_connectors=allow_live and active_settings.allow_live_connectors,
+                    web_policy=WebFetchPolicy(
+                        allow_live_connectors=allow_live and active_settings.allow_live_connectors
+                    ),
+                ),
             )
+            return general_report.model_dump(mode="json")
+        if kind != "agent-output" and allow_live and not active_settings.allow_live_connectors:
             report = report.model_copy(
-                update={"accepted": False, "reasons": ["live connector disabled"]}
+                update={
+                    "accepted": False,
+                    "reasons": ["service live connector disabled"],
+                }
             )
         return report.model_dump(mode="json")
 

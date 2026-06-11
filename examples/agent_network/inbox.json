@@ -1,0 +1,25 @@
+{
+  "inbox_id": "agent-network-fixture-inbox",
+  "messages": [
+    {
+      "content": "Peer agent observation: ECPT packet queue needs route evidence and residual preservation.",
+      "content_sha256": "a20e57ea19e715727cf8adc6691fab8f274a0d4739c3ac5ec4dcef56aa96e75a",
+      "declared_routes": [
+        "adapters.domain.verify_ecpt_proxy_target_contract"
+      ],
+      "evidence_refs": [
+        "sha256:a20e57ea19e715727cf8adc6691fab8f274a0d4739c3ac5ec4dcef56aa96e75a"
+      ],
+      "message_id": "agent-message:fixture-route-evidence",
+      "nonce": "agent-network-fixture-001",
+      "receiver_agent_id": "agent:bob",
+      "sender_agent_id": "agent:alice",
+      "tags": [
+        "ecpt",
+        "agent-message"
+      ]
+    }
+  ],
+  "peers": [],
+  "seen_nonces": []
+}

@@ -28,7 +28,7 @@ verification fails and production doctor treats the provenance as invalid.
 Release builds can add distributable artifacts explicitly:
 
 ```powershell
-uv run pic provenance create --schema-dir schemas --sbom-ref dist\percolation-inversion-compiler-0.3.5.sbom.json --artifact-ref dist\percolation_inversion_compiler-0.3.5-py3-none-any.whl --artifact-ref dist\percolation_inversion_compiler-0.3.5.tar.gz --output provenance.json
+uv run pic provenance create --schema-dir schemas --sbom-ref dist\percolation-inversion-compiler-0.3.6.sbom.json --artifact-ref dist\percolation_inversion_compiler-0.3.6-py3-none-any.whl --artifact-ref dist\percolation_inversion_compiler-0.3.6.tar.gz --output provenance.json
 ```
 
 For GitHub-attested release assets:
@@ -47,8 +47,8 @@ workflow; the package core remains deterministic and keyless.
 Generate a deterministic dependency inventory:
 
 ```powershell
-uv run pic sbom create --format pic --output dist\percolation-inversion-compiler-0.3.5.sbom.json
-uv run pic sbom create --format cyclonedx --output dist\percolation-inversion-compiler-0.3.5.cyclonedx.json
+uv run pic sbom create --format pic --output dist\percolation-inversion-compiler-0.3.6.sbom.json
+uv run pic sbom create --format cyclonedx --output dist\percolation-inversion-compiler-0.3.6.cyclonedx.json
 ```
 
 The PIC-SBOM format is retained for backward compatibility. CycloneDX JSON is

@@ -2,6 +2,51 @@
 
 This page shows the shortest path from a fresh checkout to useful deterministic JSON. It does not require local TeX files.
 
+## Agent Quickstart
+
+Use this path when an autonomous agent or coding agent needs to orient itself and run a minimal residual-preserving intake without assembling runtime records manually.
+
+```powershell
+uv run pic agent explain
+uv run pic agent guide --profile development
+uv run pic agent readiness --profile development
+uv run pic agent doctor --profile development
+uv run pic agent intake --text "Candidate packet: route evidence and preserve residuals." --profile development
+```
+
+For production packet promotion, derive identity context first:
+
+```powershell
+uv run pic identity derive-context --population examples/agent_population_signed.json --profile production --output identity-context.json
+uv run pic agent intake --text "Signed packet candidate." --profile production --identity-context identity-context.json
+```
+
+The intake output preserves `residual_ledger`, `missing_obligations`, and `settled=false` unless scoped finite verifier rules actually settle the relevant obligations.
+
+To move from minimal intake to the full feature path, save the report and ask for next actions:
+
+```powershell
+uv run pic agent intake --text-file examples/agent_minimal/agent_output.txt --profile development --output intake-report.json
+uv run pic agent next --intake-report intake-report.json --profile development
+```
+
+## Networked Intake Quickstart
+
+Use this path before enabling live connectors. It exercises broad intake and agent-to-agent
+exchange with offline fixtures:
+
+```powershell
+uv run pic agent communication-guide --profile development --no-allow-live-connectors
+uv run pic agent network-readiness --profile development --no-allow-live-connectors
+uv run pic ecology ingest-general --source examples/agent_network/feed.xml --kind rss
+uv run pic ecology ingest-general --source examples/agent_network/page.html --kind web-page
+uv run pic agent message ingest --message examples/agent_network/agent_message.json
+```
+
+Live HTTP(S), GitHub, Zenodo, and arXiv intake require `--allow-live-connectors`.
+External content remains packet candidates until verifier, semantic edge, identity, rollback,
+and residual policies pass.
+
 ## 1. Install
 
 ```powershell

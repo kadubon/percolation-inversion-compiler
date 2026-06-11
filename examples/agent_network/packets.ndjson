@@ -1,0 +1,2 @@
+{"claim":"Candidate packet: verify semantic edge before packet promotion.","route":"adapters.domain.verify_ecpt_proxy_target_contract"}
+{"claim":"Candidate packet: carry residual obligations into the next runtime step.","route":"adapters.domain.verify_ecpt_proxy_target_contract"}

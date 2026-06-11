@@ -24,6 +24,10 @@ uv run pic ecpt plan --state examples\ecpt_phase_control_state.json --target exa
 uv run pic ecpt simulate --state examples\ecpt_phase_control_state.json --actions examples\ecpt_phase_control_actions.json
 uv run pic sqot schedule --packets examples\sqot_queue.json --profile production
 uv run pic ecology build-edges --packets examples\ecology_packets.json --output ecology-registry.json
+uv run pic ecology ingest-general --source examples\agent_network\feed.xml --kind rss
+uv run pic ecology ingest-general --source examples\agent_network\page.html --kind web-page
+uv run pic ecology discover-web --source examples\agent_network\page.html
+uv run pic agent message ingest --message examples\agent_network\agent_message.json
 uv run pic ecology psi --registry ecology-registry.json --threshold examples\ecology_threshold.json --output ecology-psi.json
 uv run pic ecology plan --registry ecology-registry.json --psi ecology-psi.json --profile production
 uv run pic ecology loop --state examples\ecology_loop_state.json --agent-output "SQOT reserve packet for ECPT active phase-control."
@@ -83,6 +87,10 @@ An agent connector should implement this policy:
     `pic runtime collective-certify`; require fixed population, no self-rewrite,
     no hidden packet injection, accepted closure witnesses, execution-available
     paths, and a resource-matched baseline.
+13. For external communication, run `pic agent communication-guide` and prefer
+    offline fixtures before enabling live connectors. Treat general web, feed,
+    and peer-agent messages as packet candidates until downstream checks accept
+    finite scope.
 
 ## Routing Recipe
 

@@ -24,6 +24,8 @@ from percolation_inversion_compiler.ecology import (
     CapabilityPacketRegistry,
     EdgeWitness,
     EdgeWitnessCertificate,
+    GeneralIntakePolicy,
+    GeneralIntakeSource,
     PacketIngestionReport,
     PacketPromotionPolicy,
     PacketPromotionReport,
@@ -36,12 +38,15 @@ from percolation_inversion_compiler.ecology import (
     build_packet_registry,
     build_psi_dashboard,
     check_no_hidden_capability_injection,
+    classify_external_candidate_for_sqot,
     edge_certificate_from_witness,
     edge_relation_verifier_spec,
     find_autocatalytic_closures,
     find_execution_available_paths,
+    general_intake_to_packet_ingestion,
     infer_live_kind,
     ingest_agent_output,
+    ingest_general_source,
     ingest_live_source,
     ingest_local_file,
     verify_edge_relation,
@@ -883,7 +888,21 @@ def _ingest_step_sources(
                 )
             )
             continue
-        reports.append(ingest_live_source(source, kind=infer_live_kind(source)))
+        live_kind = infer_live_kind(source)
+        if live_kind in {PacketSourceKind.GITHUB, PacketSourceKind.ZENODO, PacketSourceKind.ARXIV}:
+            reports.append(ingest_live_source(source, kind=live_kind))
+            continue
+        general_report = ingest_general_source(
+            GeneralIntakeSource(
+                source=source,
+                allow_live_connectors=step_input.allow_live_connectors,
+            ),
+            GeneralIntakePolicy(
+                profile=config.profile,
+                allow_live_connectors=config.allow_live_connectors,
+            ),
+        )
+        reports.append(general_intake_to_packet_ingestion(general_report))
     return reports
 
 
@@ -1132,16 +1151,23 @@ def _salience_records(
             )
         )
     for packet in registry.packets:
+        external_class = classify_external_candidate_for_sqot(packet)
+        salience_class = (
+            f"external-{external_class.value}"
+            if "external-candidate" in set(packet.tags)
+            else packet.salience_class
+        )
+        external_hazard = 0.1 if external_class.value == "quarantine_work" else 0.0
         records.append(
             SalienceQueueRecord(
                 record_id=f"queue:{packet.packet_id}",
                 item_type="packet",
-                salience_class=packet.salience_class,
+                salience_class=salience_class,
                 expected_downstream_gain=packet.expected_downstream_gain,
                 residual_reduction=max(0.0, 1.0 - packet.residual_charge),
                 verification_cost=packet.verification_cost,
                 freshness=packet.freshness,
-                hazard_charge=packet.hazard_charge,
+                hazard_charge=packet.hazard_charge + external_hazard,
                 authority_required=packet.authority_required,
                 authority_granted=packet.authority_granted,
                 stale=packet.expires_at == "expired",

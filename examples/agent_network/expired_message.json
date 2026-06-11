@@ -1,0 +1,18 @@
+{
+  "content": "Expired peer packet: retain as diagnostic candidate only.",
+  "content_sha256": "8c0d918e8dd79721e7c494af2f4e6d361f5e56689d633259d74fd4f084afb6d6",
+  "expires_at": "2026-01-02T00:00:00Z",
+  "issued_at": "2026-01-01T00:00:00Z",
+  "issuer_attestation_id": "attestation:alice",
+  "issuer_public_key_id": "key:alice",
+  "message_id": "agent-message:expired-fixture",
+  "nonce": "nonce-expired-fixture",
+  "receiver_agent_id": "agent:bob",
+  "sender_agent_id": "agent:alice",
+  "signature_ref": "signature:alice:expired-fixture",
+  "tags": [
+    "agent-message",
+    "fixture",
+    "expired"
+  ]
+}

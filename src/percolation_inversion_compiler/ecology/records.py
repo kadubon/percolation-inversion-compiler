@@ -16,8 +16,262 @@ class PacketSourceKind(StrEnum):
     GITHUB = "github"
     ZENODO = "zenodo"
     ARXIV = "arxiv"
+    HTTP = "http"
+    WEB_PAGE = "web-page"
+    RSS = "rss"
+    ATOM = "atom"
+    JSON_FEED = "json-feed"
+    NDJSON = "ndjson"
+    AGENT_MESSAGE = "agent-message"
+    AGENT_INBOX = "agent-inbox"
+    WEB_CRAWL = "web-crawl"
     AGENT_OUTPUT = "agent-output"
     AUTO = "auto"
+
+
+class GeneralIntakeProfile(StrEnum):
+    """Operational presets for bounded external intake."""
+
+    LOCAL_ONLY = "local_only"
+    CONTROLLED_WEB = "controlled_web"
+    FEDERATED_AGENTS = "federated_agents"
+    PRODUCTION_NETWORK = "production_network"
+    ADVERSARIAL_NETWORK = "adversarial_network"
+
+
+class ExternalCandidateClassification(StrEnum):
+    """SQOT/runtime queue class for external packet candidates."""
+
+    DIAGNOSTIC_WORK = "diagnostic_work"
+    VERIFIER_WORK = "verifier_work"
+    QUARANTINE_WORK = "quarantine_work"
+    CANDIDATE_ONLY = "candidate_only"
+
+
+class WebFetchPolicy(BaseModel):
+    """Bounded policy for explicit opt-in web intake."""
+
+    allow_live_connectors: bool = False
+    prefer_https: bool = True
+    allow_http: bool = False
+    max_redirects: int = 3
+    max_depth: int = 1
+    max_pages: int = 8
+    max_bytes_per_resource: int = 1_000_000
+    timeout_seconds: float = 20.0
+    respect_robots: bool = True
+    allowed_content_types: list[str] = Field(
+        default_factory=lambda: [
+            "application/atom+xml",
+            "application/feed+json",
+            "application/json",
+            "application/rss+xml",
+            "application/x-ndjson",
+            "application/xml",
+            "text/html",
+            "text/plain",
+            "text/xml",
+        ]
+    )
+    allowed_schemes: list[str] = Field(default_factory=lambda: ["https"])
+    allowed_hosts: list[str] = Field(default_factory=list)
+    blocked_hosts: list[str] = Field(default_factory=list)
+    allowed_path_prefixes: list[str] = Field(default_factory=list)
+    max_total_bytes_per_run: int = 8_000_000
+    max_total_packets_per_run: int = 256
+    require_https_for_live: bool = True
+    require_robots_decision: bool = False
+    reject_private_networks: bool = True
+    user_agent: str = "percolation-inversion-compiler-agent-intake/0.3.6"
+    robots_uncertainty_is_diagnostic: bool = False
+    diagnose_rate_limits: bool = True
+
+
+class RobotsDecision(BaseModel):
+    """Recorded robots/rate decision for bounded web intake.
+
+    This is an audit record, not a guarantee that the remote site authorizes
+    every downstream use.  Unknown or unavailable policy can remain diagnostic
+    under stricter profiles.
+    """
+
+    decision_id: str = "robots:not-checked"
+    source_ref: str = ""
+    allowed: bool = True
+    mode: str = "not-checked"
+    reason: str = "robots policy was recorded but not enforced"
+    residual_coordinate: str | None = None
+
+
+class WebFetchReport(BaseModel):
+    """Portable audit record for one bounded HTTP(S) resource fetch."""
+
+    report_id: str
+    requested_url: str
+    final_url: str = ""
+    redirect_chain: list[str] = Field(default_factory=list)
+    status_code: int | None = None
+    content_type: str | None = None
+    content_sha256: str | None = None
+    byte_count: int = 0
+    robots_decision: RobotsDecision = Field(default_factory=RobotsDecision)
+    accepted: bool = False
+    reasons: list[str] = Field(default_factory=list)
+
+
+class IntakeProvenanceRecord(BaseModel):
+    """Sanitized provenance for external packet candidates."""
+
+    provenance_id: str
+    source_kind: PacketSourceKind
+    source_ref: str
+    public_source_ref: str
+    content_sha256: str | None = None
+    media_type: str | None = None
+    byte_count: int = 0
+    final_url: str | None = None
+    redirect_chain: list[str] = Field(default_factory=list)
+    status_code: int | None = None
+    robots_decision: RobotsDecision | None = None
+    evidence_refs: list[str] = Field(default_factory=list)
+    residual_coordinates: list[str] = Field(default_factory=list)
+    accepted: bool = False
+    reasons: list[str] = Field(default_factory=list)
+
+
+class GeneralIntakePolicy(BaseModel):
+    """Policy for local, web, feed, and agent-message packet intake."""
+
+    policy_id: str = "general-intake-policy"
+    profile: str = "development"
+    allow_live_connectors: bool = False
+    allowed_source_kinds: list[PacketSourceKind] = Field(
+        default_factory=lambda: [
+            PacketSourceKind.LOCAL,
+            PacketSourceKind.AGENT_OUTPUT,
+            PacketSourceKind.AGENT_MESSAGE,
+            PacketSourceKind.AGENT_INBOX,
+            PacketSourceKind.HTTP,
+            PacketSourceKind.WEB_PAGE,
+            PacketSourceKind.RSS,
+            PacketSourceKind.ATOM,
+            PacketSourceKind.JSON_FEED,
+            PacketSourceKind.NDJSON,
+            PacketSourceKind.WEB_CRAWL,
+            PacketSourceKind.GITHUB,
+            PacketSourceKind.ZENODO,
+            PacketSourceKind.ARXIV,
+        ]
+    )
+    web_policy: WebFetchPolicy = Field(default_factory=WebFetchPolicy)
+    require_signed_agent_messages: bool = False
+    reject_replay_nonce: bool = True
+    seen_message_nonces: list[str] = Field(default_factory=list)
+    max_message_clock_skew_seconds: int = 300
+    max_feed_entries: int = 256
+    max_agent_messages_per_inbox: int = 256
+    require_message_identity_context: bool = False
+    residual_behavior: str = "external intake failures become diagnostic residual ledger entries"
+
+
+class GeneralIntakePolicyDecision(BaseModel):
+    """One deterministic policy decision for a general-intake source."""
+
+    decision_id: str
+    profile: str = "development"
+    source_ref: str
+    source_kind: PacketSourceKind = PacketSourceKind.AUTO
+    accepted: bool = False
+    allow_live_connectors: bool = False
+    candidate_only: bool = True
+    ecpt_phase_contribution_allowed: bool = False
+    reasons: list[str] = Field(default_factory=list)
+    residual_coordinates: list[str] = Field(default_factory=list)
+
+
+class GeneralIntakeSource(BaseModel):
+    """One source descriptor for bounded general packet intake."""
+
+    source: str
+    kind: PacketSourceKind = PacketSourceKind.AUTO
+    label: str | None = None
+    allow_live_connectors: bool = False
+
+
+class AgentMessageEnvelope(BaseModel):
+    """Protocol-relative agent-to-agent message envelope."""
+
+    protocol_version: str = "pic-agent-message-v1"
+    message_id: str
+    sender_agent_id: str
+    receiver_agent_id: str | None = None
+    thread_id: str | None = None
+    reply_to: str | None = None
+    audience: list[str] = Field(default_factory=list)
+    content: str
+    content_sha256: str
+    nonce: str | None = None
+    issued_at: str | None = None
+    expires_at: str | None = None
+    declared_packet_kind: str = "capability-packet-candidate"
+    declared_receiver_family: list[str] = Field(default_factory=lambda: ["agent", "verifier"])
+    declared_validity_domain: str = "protocol-relative-finite"
+    issuer_public_key_id: str | None = None
+    issuer_attestation_id: str | None = None
+    signature_ref: str | None = None
+    declared_routes: list[str] = Field(default_factory=list)
+    route_request_refs: list[str] = Field(default_factory=list)
+    evidence_refs: list[str] = Field(default_factory=list)
+    tags: list[str] = Field(default_factory=list)
+    metadata: dict[str, str] = Field(default_factory=dict)
+
+
+class AgentPeerRecord(BaseModel):
+    """Declared peer identity and communication capability."""
+
+    peer_id: str
+    agent_id: str
+    public_key_id: str | None = None
+    endpoint_ref: str | None = None
+    accepted_source_kinds: list[PacketSourceKind] = Field(
+        default_factory=lambda: [PacketSourceKind.AGENT_MESSAGE]
+    )
+    trust_profile: str = "development"
+    metadata: dict[str, str] = Field(default_factory=dict)
+
+
+class AgentInboxRecord(BaseModel):
+    """Portable local inbox/outbox record for agent packet exchange."""
+
+    inbox_id: str = "agent-inbox"
+    messages: list[AgentMessageEnvelope] = Field(default_factory=list)
+    peers: list[AgentPeerRecord] = Field(default_factory=list)
+    seen_nonces: list[str] = Field(default_factory=list)
+
+
+class AgentMessageNonceLedger(BaseModel):
+    """Deterministic nonce ledger used to reject replayed agent messages."""
+
+    ledger_id: str = "agent-message-nonce-ledger"
+    consumed_nonces: list[str] = Field(default_factory=list)
+    replayed_nonces: list[str] = Field(default_factory=list)
+    rejected_message_ids: list[str] = Field(default_factory=list)
+    accepted: bool = True
+    reasons: list[str] = Field(default_factory=list)
+
+
+class AgentMessageVerificationContext(BaseModel):
+    """Accepted population identity context for agent-to-agent messages."""
+
+    context_id: str = "agent-message-verification-context"
+    profile: str = "development"
+    accepted: bool = False
+    accepted_agent_ids: list[str] = Field(default_factory=list)
+    accepted_public_key_ids: list[str] = Field(default_factory=list)
+    accepted_attestation_ids: list[str] = Field(default_factory=list)
+    require_agent_membership: bool = True
+    require_public_key_membership: bool = True
+    reasons: list[str] = Field(default_factory=list)
 
 
 class CapabilityPacketCandidate(BaseModel):
@@ -395,6 +649,128 @@ class PacketIngestionReport(BaseModel):
     rejected_sources: list[str] = Field(default_factory=list)
     reasons: list[str] = Field(default_factory=list)
     residual_ledger: Ledger = Field(default_factory=Ledger)
+    provenance: list[IntakeProvenanceRecord] = Field(default_factory=list)
+    web_fetch_reports: list[WebFetchReport] = Field(default_factory=list)
+
+
+class GeneralIntakeReport(BaseModel):
+    """General intake report that preserves diagnostic residuals."""
+
+    report_id: str
+    source: str
+    source_kind: PacketSourceKind
+    accepted: bool = False
+    packets: list[CapabilityPacketCandidate] = Field(default_factory=list)
+    ingestion_reports: list[PacketIngestionReport] = Field(default_factory=list)
+    discovered_links: list[str] = Field(default_factory=list)
+    rejected_sources: list[str] = Field(default_factory=list)
+    residual_ledger: Ledger = Field(default_factory=Ledger)
+    provenance: list[IntakeProvenanceRecord] = Field(default_factory=list)
+    web_fetch_reports: list[WebFetchReport] = Field(default_factory=list)
+    reasons: list[str] = Field(default_factory=list)
+    settled: bool = False
+    candidate_only: bool = True
+    intake_profile: str = "development"
+    policy_digest: str = ""
+    source_policy_decisions: list[GeneralIntakePolicyDecision] = Field(default_factory=list)
+    total_bytes_read: int = 0
+    total_candidate_packets: int = 0
+    sqot_queue_class: ExternalCandidateClassification = (
+        ExternalCandidateClassification.CANDIDATE_ONLY
+    )
+    ecpt_phase_contribution_allowed: bool = False
+    candidate_residual_coordinates: list[str] = Field(default_factory=list)
+
+
+class WebDiscoveryReport(BaseModel):
+    """Bounded web discovery report for link-tracked packet candidates."""
+
+    report_id: str
+    seed: str
+    accepted: bool = False
+    visited: list[str] = Field(default_factory=list)
+    discovered_links: list[str] = Field(default_factory=list)
+    packets: list[CapabilityPacketCandidate] = Field(default_factory=list)
+    rejected_sources: list[str] = Field(default_factory=list)
+    residual_ledger: Ledger = Field(default_factory=Ledger)
+    provenance: list[IntakeProvenanceRecord] = Field(default_factory=list)
+    web_fetch_reports: list[WebFetchReport] = Field(default_factory=list)
+    reasons: list[str] = Field(default_factory=list)
+    settled: bool = False
+
+
+class AgentPacketExchangeReport(BaseModel):
+    """Report for agent-message verification and packet candidate exchange."""
+
+    report_id: str
+    accepted: bool = False
+    message_id: str | None = None
+    sender_agent_id: str | None = None
+    packets: list[CapabilityPacketCandidate] = Field(default_factory=list)
+    replay_detected: bool = False
+    signature_required: bool = False
+    signature_present: bool = False
+    consumed_nonces: list[str] = Field(default_factory=list)
+    nonce_ledger: AgentMessageNonceLedger = Field(default_factory=AgentMessageNonceLedger)
+    identity_verified: bool = False
+    identity_reasons: list[str] = Field(default_factory=list)
+    message_contract_valid: bool = False
+    nonce_status: str = "not-provided"
+    identity_status: str = "not-required"
+    candidate_packet_ids: list[str] = Field(default_factory=list)
+    quarantine_recommended: bool = False
+    next_safe_commands: list[str] = Field(default_factory=list)
+    residual_ledger: Ledger = Field(default_factory=Ledger)
+    reasons: list[str] = Field(default_factory=list)
+    settled: bool = False
+
+
+class GeneralIntakeRuntimeBridgeReport(BaseModel):
+    """SQOT/runtime bridge report for external packet candidates."""
+
+    report_id: str
+    source_report_id: str
+    accepted: bool = False
+    candidate_only: bool = True
+    settled: bool = False
+    packet_ingestion: PacketIngestionReport
+    classifications: dict[str, ExternalCandidateClassification] = Field(default_factory=dict)
+    sqot_queue_records: list[str] = Field(default_factory=list)
+    verifier_work_packet_ids: list[str] = Field(default_factory=list)
+    diagnostic_work_packet_ids: list[str] = Field(default_factory=list)
+    quarantine_packet_ids: list[str] = Field(default_factory=list)
+    ecpt_phase_contribution_allowed: bool = False
+    residual_ledger: Ledger = Field(default_factory=Ledger)
+    reasons: list[str] = Field(default_factory=list)
+    safety_invariants: list[str] = Field(
+        default_factory=lambda: [
+            "external intake remains candidate-only until downstream checks promote it",
+            "external candidate volume alone cannot improve Psi, BR, AC, "
+            "or collective certificates",
+            "settled remains false unless scoped finite verifier rules discharge obligations",
+        ]
+    )
+
+
+class AgentMessageContractReport(BaseModel):
+    """Portable contract check for one agent-to-agent message envelope."""
+
+    report_id: str
+    message_id: str
+    accepted: bool = False
+    protocol_version: str = "pic-agent-message-v1"
+    message_contract_valid: bool = False
+    sender_agent_id: str
+    receiver_agent_id: str | None = None
+    declared_packet_kind: str = "capability-packet-candidate"
+    declared_validity_domain: str = "protocol-relative-finite"
+    declared_receiver_family: list[str] = Field(default_factory=list)
+    route_request_refs: list[str] = Field(default_factory=list)
+    evidence_refs: list[str] = Field(default_factory=list)
+    reasons: list[str] = Field(default_factory=list)
+    residual_ledger: Ledger = Field(default_factory=Ledger)
+    candidate_only: bool = True
+    settled: bool = False
 
 
 class VerificationThroughputReport(BaseModel):
