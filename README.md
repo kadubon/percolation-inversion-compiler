@@ -67,6 +67,15 @@ uv run pic agent intake --text "Signed packet candidate." --profile production -
 
 Residuals are expected and must be preserved. `settled=false` is not command failure; it means unresolved obligations remain explicit.
 
+## GitHub Actions Example
+
+PIC can be used in GitHub Actions as an AI agent output checker. The minimal
+example records pull request or agent text as a packet candidate, runs
+`pic agent intake`, and uploads a residual-preserving JSON report as a workflow
+artifact. It is read-only and does not comment on pull requests or execute
+agent-suggested commands. See [GitHub Actions integration](docs/integrations/github-actions.md)
+and the [copyable example workflow](examples/github_action_agent_output_check/README.md).
+
 For networked collective-phase workflows, inspect the communication guide first. General web,
 feed, and agent-to-agent intake are default-off for live network access; external content becomes
 packet candidates only. Live intake requires three aligned opt-ins: the source/request flag,

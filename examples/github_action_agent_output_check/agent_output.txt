@@ -1,0 +1,1 @@
+Candidate packet: An AI coding agent proposed a patch. Preserve residuals, check missing obligations, and do not treat the output as verified evidence until route checks pass.

@@ -104,6 +104,12 @@ pic snapshot list
 pic schema --type AgentIntakeReport
 ```
 
+GitHub Actions agent-output checker example:
+
+- Inspect `docs/integrations/github-actions.md` before copying the workflow.
+- The example lives at `examples/github_action_agent_output_check/pic-agent-output-check.yml`.
+- It is read-only and artifact-only; do not use `pull_request_target`, write permissions, PR comments, live connectors, or shell execution of agent text in the minimal workflow.
+
 Unix shell:
 
 ```sh

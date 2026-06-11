@@ -78,6 +78,10 @@ uv run pic agent intake --text-file examples/agent_minimal/agent_output.txt --pr
 
 These commands do not perform network access or arbitrary shell execution. They orient agents, run a minimal runtime step, and preserve residual ledgers.
 
+For GitHub Actions, see `docs/integrations/github-actions.md` and
+`examples/github_action_agent_output_check/README.md` for a read-only,
+artifact-only AI agent output checker workflow built around `pic agent intake`.
+
 ## Snapshot And Theory Inspection
 
 ```powershell
