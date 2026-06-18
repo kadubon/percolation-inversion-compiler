@@ -6,6 +6,8 @@ The abbreviations refer to the five source theories used by the repository: **EC
 
 Search terms: ECPT, BIT, TRC, SQOT, ALT, abstraction liquidity, reusable abstraction capital, ASI-proxy collective phase, protocol-relative ASI-proxy phase-control, certificate compiler, proof obligations, residual ledgers, salience queue, packet ecology, semantic edge verification, typed trace normal forms, frontier extraction, AI agent integration, verifier SDK.
 
+New to PIC? Start with the [GitHub Wiki](https://github.com/kadubon/percolation-inversion-compiler/wiki) for a plain-language guide to what PIC does, why AI agent output is treated as candidate work, getting started, use cases, core concepts, and agent-safe interpretation of `accepted=true` and `settled=false`.
+
 Distribution status: v0.4.1 is a stable distribution snapshot with a beta API
 surface. Install the core package from PyPI with `pip install
 percolation-inversion-compiler`; use `pip install
