@@ -97,7 +97,11 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
       - name: Gitleaks
-        uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e # v3.0.0
+        run: |
+          docker run --rm \
+            -v "${PWD}:/repo" \
+            ghcr.io/gitleaks/gitleaks:v8.23.0@sha256:b4b81841085b4060054a71155500a340e3d2e2a5995c186546649e3efd80b84e \
+            detect --source /repo --redact --verbose
 
   workflow-lint:
     runs-on: ubuntu-latest
