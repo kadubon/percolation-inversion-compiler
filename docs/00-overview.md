@@ -24,6 +24,8 @@ The central ECPT interpretation used by this repository is collective phase prog
 - SQOT salience schedules and quarantine decisions.
 - Psi dashboards for finite collective-phase proxies.
 - Bottleneck tasks and phase-control recommendations.
+- Phase acceleration plans that rank finite gaps, bottlenecks, safe next
+  commands, candidate-only reasons, and settlement blockers.
 - Typed theory-fidelity runtime summaries:
   `PhaseControlAuditSummary`, `FrontierDebtReport`, and
   `BottleneckWitnessReport`.
@@ -38,7 +40,8 @@ The package does not prove real ASI or unobserved physical/oracle outcomes. It p
 Cryptographic identity proves protocol-relative key control only. It does not prove legal identity, real-world personhood, or world-global uniqueness. Sybil-resistance ledgers prove compliance with the declared population policy.
 
 First command rule: use `pic agent check --compact` for a short practical JSON
-contract, `pic agent runbook` for command/schema/field guidance, and
+contract, `pic agent runbook` for command/schema/field guidance,
+`pic phase plan --compact` for ranked bottlenecks and safe next actions, and
 `pic audit fidelity` only from a source checkout with the canonical TeX suite.
 
 ## Primary Concepts
@@ -51,6 +54,9 @@ contract, `pic agent runbook` for command/schema/field guidance, and
 - **ALT abstraction liquidity**: a reusable abstraction value checker that turns traces and packet candidates into reusable abstraction capital only after certified lower-bound surplus, calibrated proxy or causal value evidence, transport, root-of-trust, telemetry, lifecycle, and hazard checks pass; negative-liquidity, deprecation, resurrection, baseline-refresh, reproduction, and ALT-CARA records keep stale or risky claims scoped and repairable.
 - **Psi dashboard**: a vector of finite proxy components including graph availability, dependency/execution availability, autocatalytic closure, verification throughput, queue state, hazard load, and basin reachability.
 - **Collective phase certificate**: a protocol-relative certificate that checks fixed population, no self-rewrite, no hidden injection, closure, execution availability, Psi thresholds, SQOT reserve, hazard/authority checks, and resource-matched baseline.
+- **Phase acceleration planner**: a recommendation-only planner that turns
+  runtime, SQOT, ALT, external-intake, and identity diagnostics into ranked
+  finite repair work without executing commands or promoting `settled`.
 - **Sybil-resistance ledger**: a protocol-relative population check over signed identities, duplicate keys, revoked/expired credentials, overrepresentation, and clone fanout.
 
 ## Reading Order
@@ -61,6 +67,7 @@ contract, `pic agent runbook` for command/schema/field guidance, and
 4. [Identity and Sybil resistance](identity-and-sybil-resistance.md)
 5. [CLI reference](cli-reference.md)
 6. [ALT abstraction liquidity](alt.md)
-7. [PyPI distribution](pypi-distribution.md)
-8. [Agent integration](agent-integration.md)
-9. [Glossary](glossary.md)
+7. [Phase acceleration planner](phase-acceleration.md)
+8. [PyPI distribution](pypi-distribution.md)
+9. [Agent integration](agent-integration.md)
+10. [Glossary](glossary.md)

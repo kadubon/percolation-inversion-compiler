@@ -57,6 +57,16 @@
       "sha256": "cc15fcbdd9c13461f73a8c9fa84a34912aceefebd4113865e58c14e25b471b2c"
     },
     {
+      "file": "phase_acceleration_plan.json",
+      "schema": "PhaseAccelerationPlan",
+      "sha256": "a5b0baa5a88a2d6e42b51f8b15c4c7ef31777c6dc36dae3d19c1403707da74b7"
+    },
+    {
+      "file": "phase_acceleration_benchmark_report.json",
+      "schema": "PhaseAccelerationBenchmarkReport",
+      "sha256": "e8ee06549432e450bc5afc63b9699d1fb5ee58eee89f22382770d819def56224"
+    },
+    {
       "file": "theory_fidelity_report.json",
       "schema": "TheoryFidelityReport",
       "sha256": "ac4d3fdc062436cb9bf4c21fba42ff2cc6acb682e159afdcf4505d57688857a8"
@@ -94,7 +104,9 @@
     "accepted and settled remain separate booleans",
     "residual ledgers are preserved in nested reports",
     "candidate and certificate outputs remain protocol-relative",
-    "live communication defaults remain bounded and candidate-only for explicit sources"
+    "live communication defaults remain bounded and candidate-only for explicit sources",
+    "phase acceleration plans are recommendation-only and cannot settle claims",
+    "candidate-only external volume cannot reduce phase gaps"
   ],
   "manifest_id": "pic-portability-conformance-v1",
   "schema_version": "portability-conformance-1.0"

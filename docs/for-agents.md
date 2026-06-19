@@ -20,6 +20,10 @@ The shortest practical CLI path is `pic agent check --compact`. The shortest
 SDK path is `percolation_inversion_compiler.agent.run_agent_intake`. It
 constructs a deterministic minimal runtime state when no explicit state is
 supplied and returns a residual-preserving `AgentIntakeReport`.
+When an agent needs to decide what to verify or repair next, run
+`pic phase plan --compact` or call
+`percolation_inversion_compiler.acceleration.build_phase_acceleration_plan`.
+That planner ranks finite bottlenecks; it does not execute the work.
 
 ```python
 from percolation_inversion_compiler.agent import AgentIntakeRequest, run_agent_intake
@@ -34,6 +38,22 @@ report = run_agent_intake(
 print(report.runtime_report.missing_obligations)
 print(report.residual_summary)
 print(report.settled)  # Expected to remain False unless scoped verifier rules settle.
+```
+
+```python
+from percolation_inversion_compiler.agent import AgentIntakeRequest, accelerate_agent_phase
+
+plan = accelerate_agent_phase(
+    AgentIntakeRequest(
+        agent_output="Candidate packet: preserve residuals and route verifier work.",
+        profile="development",
+    ),
+    compact=True,
+)
+
+print(plan.phase_gap_vector.limiting_components)
+print(plan.cannot_promote_because)
+print(plan.settled)  # Still False: the planner is recommendation-only.
 ```
 
 ## Do Not
@@ -68,6 +88,10 @@ print(report.settled)  # Expected to remain False unless scoped verifier rules s
 - `phase_control_audit`
 - `frontier_debt_report`
 - `bottleneck_witness_reports`
+- phase planner `phase_gap_vector`
+- phase planner `bottlenecks`
+- phase planner `cannot_promote_because`
+- phase planner `candidate_only_reasons`
 - external intake `provenance`
 - agent-message `identity_verified`
 - agent-message `nonce_ledger`
@@ -84,6 +108,8 @@ python -m pip install percolation-inversion-compiler
 pic agent explain
 pic agent check --compact --text "Candidate packet: route evidence and preserve residuals." --profile development
 pic agent runbook --profile development
+pic phase plan --compact --text "Candidate packet: route evidence and preserve residuals." --profile development
+pic agent accelerate --compact --text "Candidate packet: route evidence and preserve residuals." --profile development
 pic agent check --text "Candidate packet: route evidence and preserve residuals." --profile development
 pic demo installed-smoke --profile development
 pic demo bootstrap --output-dir pic-demo
@@ -108,6 +134,9 @@ cd percolation-inversion-compiler
 uv sync --all-extras --dev
 uv run pic agent explain
 uv run pic agent guide --profile development
+uv run pic phase runbook --profile development
+uv run pic phase plan --compact --profile development
+uv run pic agent accelerate --compact --text "Candidate packet: preserve residuals." --profile development
 uv run pic agent readiness --profile development
 uv run pic agent doctor --profile development
 uv run pic agent intake --text "Candidate packet: route evidence and preserve residuals." --profile development
@@ -149,6 +178,20 @@ uv run pic agent guide --profile production
 ```
 
 The guide has a fixed stage order: orient, inspect snapshots, run intake, derive identity context, external communication readiness, general web/feed intake, agent-to-agent packet exchange, live metadata ingest, verify evidence/routes, promote packets, run/store loop, inspect Psi/SQOT, collective certify, and preserve residuals/provenance.
+
+Use the phase planner after the first runtime report:
+
+```powershell
+uv run pic phase plan --compact --profile development
+uv run pic phase gap --compact --profile development
+uv run pic phase benchmark --profile development
+uv run pic schema --type PhaseAccelerationPlan
+```
+
+`PhaseAccelerationPlan` is the agent-operable summary: finite phase gaps,
+ranked bottlenecks, safe next commands, schemas, candidate-only reasons, and
+settlement blockers. It is useful for coordination, but it is not an execution
+grant and cannot prove real ASI, physical outcomes, or oracle truth.
 
 After intake, write the report and ask for next actions:
 

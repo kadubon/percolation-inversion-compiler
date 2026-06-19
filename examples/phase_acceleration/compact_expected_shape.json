@@ -1,0 +1,16 @@
+{
+  "accepted": true,
+  "report_mode": "compact",
+  "settled": false,
+  "workflow_usable": true,
+  "required_fields": [
+    "phase_gap_vector",
+    "top_bottlenecks",
+    "safe_commands",
+    "cannot_promote_because",
+    "candidate_only_reasons",
+    "settled_blockers",
+    "schema_refs"
+  ],
+  "safety_invariant": "phase acceleration planning is recommendation-only and does not execute actions"
+}

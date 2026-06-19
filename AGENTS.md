@@ -6,8 +6,9 @@ This repository is an AI agent runtime verification and ECPT collective phase ac
 
 It is not an ASI detector, a real ASI proof system, or a self-modifying AI system. It does not require self-rewrite, fine-tuning, or model-weight changes.
 
-v0.4.2 is the PyPI practical runtime snapshot with a beta API surface. The PyPI
+v0.4.3 is the PyPI practical runtime snapshot with a beta API surface. The PyPI
 package is enough for `pic agent explain`, `pic agent check --text "..."`,
+`pic phase plan --compact --text "..."`, `pic agent accelerate --compact`,
 `pic demo installed-smoke`, `pic demo bootstrap`, `pic agent intake --text "..."`,
 `pic snapshot list`, and `pic schema --all --output-dir schemas`. Clone this
 repository when commands need the root `examples/...` tree, canonical TeX
@@ -20,6 +21,8 @@ Installed package path:
 ```powershell
 python -m pip install percolation-inversion-compiler
 pic agent check --text "Candidate packet: preserve residuals." --profile development
+pic phase plan --compact --text "Candidate packet: preserve residuals." --profile development
+pic agent accelerate --compact --text "Candidate packet: preserve residuals." --profile development
 pic demo installed-smoke --profile development
 pic demo bootstrap --output-dir pic-demo
 pic runtime step --state pic-demo/runtime_state.json --input pic-demo/runtime_step_input.json --profile development
@@ -72,6 +75,10 @@ uv run pic --help
 uv run pic agent explain
 uv run pic agent check --compact --text "Candidate packet: preserve residuals." --profile development
 uv run pic agent runbook --profile development
+uv run pic phase plan --compact --profile development
+uv run pic phase plan --request examples/phase_acceleration/phase_acceleration_request.json --compact
+uv run pic phase runbook --profile development
+uv run pic agent accelerate --compact --text "Candidate packet: preserve residuals." --profile development
 uv run pic agent guide --profile development
 uv run pic agent readiness --profile production
 uv run pic identity explain-profile --profile research
@@ -99,6 +106,8 @@ python -m pip install percolation-inversion-compiler
 pic agent explain
 pic agent check --compact --text "Candidate packet: preserve residuals." --profile development
 pic agent runbook --profile development
+pic phase plan --compact --text "Candidate packet: preserve residuals." --profile development
+pic agent accelerate --compact --text "Candidate packet: preserve residuals." --profile development
 pic demo installed-smoke --profile development
 pic demo bootstrap --output-dir pic-demo
 pic runtime step --state pic-demo/runtime_state.json --input pic-demo/runtime_step_input.json --profile development
@@ -126,6 +135,14 @@ contract: `accepted`, `workflow_usable`, `settled`, unresolved obligations,
 residual summary, next safe actions, schema refs, and safety invariants. Use
 `pic agent runbook` when an agent needs deterministic command/schema/field
 guidance without execution authority.
+Use `pic phase plan --compact` or `pic agent accelerate --compact` after the
+first check when the agent needs ranked phase gaps, bottlenecks, candidate-only
+reasons, and promotion blockers. These commands return recommendation-only JSON
+and do not execute routes, shells, network connectors, or repository mutation.
+When using `pic phase plan --request`, treat the request file as the runtime
+input source; do not also pass `--state`, `--input`, `--runtime-report`,
+`--text`, or `--text-file`. `--profile` and `--identity-context` are explicit
+operator overrides.
 
 External intake, agent-to-agent message checks, and ALT foundry admission are
 separate workflows from basic output checking. Start with
@@ -159,6 +176,8 @@ uv run pic runtime step --state examples/runtime_state.json --input examples/run
 ## Python API Entrypoints
 
 - `percolation_inversion_compiler.agent.run_agent_intake`
+- `percolation_inversion_compiler.agent.accelerate_agent_phase`
+- `percolation_inversion_compiler.acceleration.build_phase_acceleration_plan`
 - `percolation_inversion_compiler.agent.build_agent_workflow_guide`
 - `percolation_inversion_compiler.agent.agent_feature_readiness`
 - `percolation_inversion_compiler.agent.recommend_agent_next_actions`
@@ -185,6 +204,8 @@ uv run pic runtime step --state examples/runtime_state.json --input examples/run
 - Do not execute arbitrary shell commands.
 - Preserve residual ledgers.
 - Production profile requires stronger identity and packet issuer context.
+- Accepted production identity context removes only identity-readiness blockers; it does not
+  promote unresolved route, residual, or phase-gap work to `settled`.
 - Keep live connectors bounded and candidate-only by default when an explicit source is supplied.
 - Use `--no-allow-live-connectors` for local-only dry runs.
 - For general intake, live HTTP(S) requires an explicit source and live-enabled intake/runtime

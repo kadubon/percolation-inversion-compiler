@@ -16,6 +16,8 @@ python -m pip install percolation-inversion-compiler
 pic agent explain
 pic agent check --compact --text "Candidate packet: route evidence and preserve residuals." --profile development
 pic agent runbook --profile development
+pic phase plan --compact --text "Candidate packet: route evidence and preserve residuals." --profile development
+pic agent accelerate --compact --text "Candidate packet: route evidence and preserve residuals." --profile development
 pic agent check --text "Candidate packet: route evidence and preserve residuals." --profile development
 pic demo installed-smoke --profile development
 pic demo bootstrap --output-dir pic-demo
@@ -52,6 +54,8 @@ Then run source-checkout commands:
 uv run pic agent explain
 uv run pic agent check --compact --text "Candidate packet: route evidence and preserve residuals." --profile development
 uv run pic agent runbook --profile development
+uv run pic phase plan --compact --profile development
+uv run pic phase runbook --profile development
 uv run pic agent guide --profile development
 uv run pic agent readiness --profile development
 uv run pic agent doctor --profile development
@@ -74,6 +78,31 @@ To move from minimal intake to the full feature path, save the report and ask fo
 uv run pic agent intake --text-file examples/agent_minimal/agent_output.txt --profile development --output intake-report.json
 uv run pic agent next --intake-report intake-report.json --profile development
 ```
+
+When the next question is “what should the agent verify or repair next?”, run:
+
+```powershell
+uv run pic phase plan --compact --profile development
+uv run pic phase plan --request examples/phase_acceleration/phase_acceleration_request.json --compact
+uv run pic agent accelerate --compact --text "Candidate packet: route evidence and preserve residuals." --profile development
+```
+
+Read these phase planner fields first:
+
+- `phase_gap_vector.limiting_components`
+- `top_bottlenecks`
+- `safe_commands`
+- `cannot_promote_because`
+- `candidate_only_reasons`
+- `settled_blockers`
+
+The planner is recommendation-only. It does not execute commands, promote
+candidate packets, or prove real ASI or physical outcomes.
+When using a `PhaseAccelerationRequest` file, pass it with `--request` and do
+not combine it with `--state`, `--input`, `--runtime-report`, `--text`, or
+`--text-file`. Production/adversarial runs need accepted identity context to
+remove identity-readiness blockers, but `settled=false` remains correct while
+route, residual, or phase-gap obligations remain.
 
 ## Networked Intake Quickstart
 

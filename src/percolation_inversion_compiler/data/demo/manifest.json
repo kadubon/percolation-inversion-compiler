@@ -1,7 +1,7 @@
 {
   "bundle_id": "percolation-inversion-compiler-installed-demo",
   "candidate_only": true,
-  "description": "Practical install-time demo assets for PyPI users. These files support residual-preserving agent checking, runtime steps, schema validation, and ALT admission without cloning the repository.",
+  "description": "Practical install-time demo assets for PyPI users. These files support residual-preserving agent checking, phase acceleration planning, runtime steps, schema validation, local agent relay, and ALT admission without cloning the repository.",
   "files": [
     {
       "media_type": "application/json",
@@ -11,7 +11,7 @@
     {
       "media_type": "application/json",
       "path": "runtime_step_input.json",
-      "purpose": "Minimal RuntimeStepInput with bounded live connectors enabled for explicit sources."
+      "purpose": "Minimal RuntimeStepInput for runtime step and pic phase plan."
     },
     {
       "media_type": "text/plain",
@@ -40,12 +40,17 @@
     }
   ],
   "license": "Apache-2.0 for repository demo JSON and text files",
-  "provenance": "Derived from repository examples for v0.4.2 practical installed-package workflows; no canonical TeX or PDF is vendored.",
+  "provenance": "Derived from repository examples for v0.4.3 practical installed-package workflows; no canonical TeX or PDF is vendored.",
+  "recommended_phase_commands": [
+    "pic phase plan --compact --text \"Candidate packet: preserve residuals.\" --profile development",
+    "pic agent accelerate --compact --text \"Candidate packet: preserve residuals.\" --profile development",
+    "pic schema --type PhaseAccelerationPlan"
+  ],
   "safety_invariants": [
     "demo output does not prove real ASI, physical outcomes, oracle truth, legal identity, or global Sybil uniqueness",
     "external content and ALT tokens remain candidate-only until finite verifier and residual-policy checks pass",
     "live connectors are bounded and candidate-only by default when an explicit source is supplied",
     "settled=false is expected when residual obligations remain"
   ],
-  "version": "0.4.2"
+  "version": "0.4.3"
 }

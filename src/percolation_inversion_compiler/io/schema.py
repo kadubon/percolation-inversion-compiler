@@ -11,6 +11,16 @@ import yaml
 from jsonschema import Draft202012Validator
 from pydantic import BaseModel
 
+from percolation_inversion_compiler.acceleration.records import (
+    BottleneckCandidate,
+    PhaseAccelerationBenchmarkReport,
+    PhaseAccelerationPlan,
+    PhaseAccelerationRequest,
+    PhaseComponentGap,
+    PhaseGapVector,
+    PhaseTrajectoryReport,
+    SafePhaseAction,
+)
 from percolation_inversion_compiler.agent.records import (
     AgentCheckReport,
     AgentCommunicationGuide,
@@ -376,6 +386,7 @@ def schema_model_map() -> dict[str, type[Any]]:
         "BasinReachabilityReport": BasinReachabilityReport,
         "BottleneckIntervention": BottleneckIntervention,
         "BottleneckInversionPlan": BottleneckInversionPlan,
+        "BottleneckCandidate": BottleneckCandidate,
         "BottleneckWitnessReport": BottleneckWitnessReport,
         "BoundaryGeneratorRecord": BoundaryGeneratorRecord,
         "BoundaryScriptRecord": BoundaryScriptRecord,
@@ -470,7 +481,11 @@ def schema_model_map() -> dict[str, type[Any]]:
         "OperationalCheck": OperationalCheck,
         "OperationalReadinessReport": OperationalReadinessReport,
         "OrderedPotentialCone": OrderedPotentialCone,
+        "PhaseAccelerationBenchmarkReport": PhaseAccelerationBenchmarkReport,
+        "PhaseAccelerationPlan": PhaseAccelerationPlan,
+        "PhaseAccelerationRequest": PhaseAccelerationRequest,
         "PhaseAccelerationScore": PhaseAccelerationScore,
+        "PhaseComponentGap": PhaseComponentGap,
         "PhaseControlAuditSummary": PhaseControlAuditSummary,
         "PhaseControlAction": PhaseControlAction,
         "PhaseControlEnvelope": PhaseControlEnvelope,
@@ -478,6 +493,8 @@ def schema_model_map() -> dict[str, type[Any]]:
         "PhaseControlPlan": PhaseControlPlan,
         "PhaseControlRunReport": PhaseControlRunReport,
         "PhaseControlState": PhaseControlState,
+        "PhaseGapVector": PhaseGapVector,
+        "PhaseTrajectoryReport": PhaseTrajectoryReport,
         "PacketIngestionReport": PacketIngestionReport,
         "PacketCapitalLineage": PacketCapitalLineage,
         "PacketPromotionPolicy": PacketPromotionPolicy,
@@ -529,6 +546,7 @@ def schema_model_map() -> dict[str, type[Any]]:
         "RuntimeStoreSnapshot": RuntimeStoreSnapshot,
         "RuntimeStepInput": RuntimeStepInput,
         "RuntimeStepReport": RuntimeStepReport,
+        "SafePhaseAction": SafePhaseAction,
         "SQOTTheorySnapshot": SQOTTheorySnapshot,
         "ScriptGroundMetricCertificate": ScriptGroundMetricCertificate,
         "SchemaBundleDigest": SchemaBundleDigest,

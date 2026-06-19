@@ -11,6 +11,8 @@ python -m pip install percolation-inversion-compiler
 pic agent explain
 pic agent check --compact --text "Candidate packet: preserve residuals." --profile development
 pic agent runbook --profile development
+pic phase plan --compact --text "Candidate packet: preserve residuals." --profile development
+pic agent accelerate --compact --text "Candidate packet: preserve residuals." --profile development
 pic agent check --text "Candidate packet: preserve residuals." --profile development
 pic demo installed-smoke --profile development
 pic demo bootstrap --output-dir pic-demo
@@ -58,6 +60,8 @@ uv run pic agent explain
 uv run pic agent manifest
 uv run pic agent check --compact --text "Candidate packet: route evidence and preserve residuals." --profile development
 uv run pic agent runbook --profile development
+uv run pic phase plan --compact --text "Candidate packet: route evidence and preserve residuals." --profile development
+uv run pic agent accelerate --compact --text "Candidate packet: route evidence and preserve residuals." --profile development
 uv run pic agent guide --profile development
 uv run pic agent communication-guide --profile development
 uv run pic agent network-readiness --profile development
@@ -71,6 +75,7 @@ uv run pic agent intake --text "Candidate packet: route evidence and preserve re
 uv run pic agent intake --text-file examples/agent_minimal/agent_output.txt --profile development
 uv run pic agent intake --text-file examples/agent_minimal/agent_output.txt --profile development --output intake-report.json
 uv run pic agent next --intake-report intake-report.json --profile development
+uv run pic agent accelerate --compact --text "Candidate packet: preserve residuals." --profile development
 uv run pic agent inbox init --inbox inbox.json
 uv run pic agent message create --sender agent:alice --text "Candidate packet: preserve residuals." --output message.json
 uv run pic agent message contract --message message.json
@@ -89,6 +94,26 @@ uv run pic agent intake --text-file examples/agent_minimal/agent_output.txt --pr
 ```
 
 These commands do not perform network access or arbitrary shell execution. They orient agents, run a minimal runtime step, and preserve residual ledgers.
+
+## Phase Acceleration Planner
+
+```powershell
+uv run pic phase plan --compact --text "Candidate packet: preserve residuals." --profile development
+uv run pic phase plan --state examples/runtime_state.json --input examples/runtime_step_input.json --profile development
+uv run pic phase gap --compact --state examples/runtime_state.json --input examples/runtime_step_input.json
+uv run pic phase trajectory --report runtime-step-1.json --report runtime-step-2.json
+uv run pic phase runbook --profile development
+uv run pic phase benchmark --profile development
+uv run pic agent accelerate --compact --text "Candidate packet: preserve residuals." --profile development
+uv run pic schema --type PhaseAccelerationPlan
+uv run pic schema --type PhaseGapVector
+```
+
+The phase planner emits recommendation-only JSON. It ranks finite Psi gaps,
+BIT witness tasks, verifier routes, SQOT queue obstructions, ALT capital
+formation work, candidate-only external inputs, identity blockers, and residual
+ledger work. It does not execute commands, crawl, promote candidates, or set
+`settled=true`.
 
 For GitHub Actions, see `docs/integrations/github-actions.md` and
 `examples/github_action_agent_output_check/README.md` for a read-only,
@@ -151,6 +176,8 @@ uv run pic schema --type TheoryAuditReport
 uv run pic schema --type TheoryFidelityReport
 uv run pic schema --type AgentCheckReport
 uv run pic schema --type AgentRunbookReport
+uv run pic schema --type PhaseAccelerationPlan
+uv run pic schema --type PhaseAccelerationBenchmarkReport
 uv run pic schema --all --output-dir schemas
 uv run pic provenance create --schema-dir schemas --output provenance.json
 uv run pic provenance verify --manifest provenance.json

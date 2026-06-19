@@ -18,6 +18,8 @@ portable schemas, not as the normative wire format.
 - Preserve `accepted`, `finite_checks_passed`, `operationally_usable`, and
   `settled` as distinct booleans. `accepted` alone is not enough for autonomous
   operational use.
+- Preserve `workflow_usable` where it exists. It means the JSON is useful for
+  the next safe workflow step; it is not a synonym for `settled`.
 - Preserve `finite_scope_usable`, `settled_scope`,
   `residual_external_obligations`, and `domain_witness_required` on
   `VerifierResolution`. A replay or contract route may expose useful finite
@@ -49,8 +51,8 @@ external obligation rather than a settled result.
 ## Agent Integration
 
 Agents should consume deterministic JSON outputs from `pic check`, `pic audit
-theory`, `pic agent check`, `pic runtime step`, `pic compile`, and
-`pic demo datacenter`. The agent-facing invariant is
+theory`, `pic agent check`, `pic phase plan`, `pic runtime step`,
+`pic compile`, and `pic demo datacenter`. The agent-facing invariant is
 that every accepted operational output has an explicit checker route, residual
 ledger, and failure mode.
 
@@ -74,12 +76,18 @@ Recommended connector behavior:
   `AgentMessageDeliveryReport`, `AgentRelayReadinessReport`,
   `ALTAdmissionDecision`, `CollectivePhaseCertificate`,
   `PhaseControlAuditSummary`, `FrontierDebtReport`,
-  `BottleneckWitnessReport`, `ValueBridgeReport`, and `TheoryFidelityReport`
+  `BottleneckWitnessReport`, `ValueBridgeReport`, `PhaseAccelerationPlan`,
+  `PhaseGapVector`, `BottleneckCandidate`, `SafePhaseAction`,
+  `PhaseAccelerationBenchmarkReport`, and `TheoryFidelityReport`
   as the minimum portability conformance pack for first ports.
 - For practical agent integrations, implement the compact `pic agent check`
   payload shape even if the port stores the full nested `AgentCheckReport`
   internally. The compact fields are the stable first-read fields for CI and
   agents.
+- For phase planning, implement the compact `pic phase plan --compact` payload
+  shape. Candidate-only external intake, agent messages, proxy-only ALT output,
+  and missing production identity must not reduce phase gaps or clear
+  `settled_blockers`.
 - Preserve default-live communication semantics: explicit sources are live-capable by default,
   `--no-allow-live-connectors` or `allow_live_connectors=false` is the opt-out, and external
   intake remains candidate-only until downstream verifier, identity, nonce, rollback, semantic

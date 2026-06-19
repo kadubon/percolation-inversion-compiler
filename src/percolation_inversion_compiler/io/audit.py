@@ -334,7 +334,7 @@ def audit_canonical_suite(canonical_dir: str | Path) -> TheoryAuditSuiteReport:
 
 
 def build_theory_fidelity_report(canonical_dir: str | Path) -> TheoryFidelityReport:
-    """Build a v0.4.2 theory-fidelity summary from the canonical suite audit."""
+    """Build a v0.4.3 theory-fidelity summary from the canonical suite audit."""
 
     suite = audit_canonical_suite(canonical_dir)
     theory_summaries: dict[str, dict[str, object]] = {}

@@ -12,9 +12,18 @@ import typer
 from rich.console import Console
 
 from percolation_inversion_compiler import __version__
+from percolation_inversion_compiler.acceleration import (
+    PhaseAccelerationRequest,
+    build_phase_acceleration_benchmark,
+    build_phase_acceleration_plan,
+    build_phase_trajectory,
+    phase_acceleration_compact_payload,
+    phase_acceleration_runbook,
+)
 from percolation_inversion_compiler.agent import (
     AgentIntakeReport,
     AgentIntakeRequest,
+    accelerate_agent_phase,
     agent_check_compact_payload,
     agent_feature_readiness,
     agent_manifest_payload,
@@ -24,6 +33,7 @@ from percolation_inversion_compiler.agent import (
     build_agent_runbook,
     build_agent_workflow_guide,
     minimal_runtime_state,
+    minimal_runtime_step_input,
     recommend_agent_next_actions,
     run_agent_check,
     run_agent_intake,
@@ -207,6 +217,7 @@ provenance_app = typer.Typer(help="Create and verify release provenance manifest
 sbom_app = typer.Typer(help="Create deterministic release SBOM documents.")
 parse_app = typer.Typer(help="Run strict TeX parser diagnostics.")
 portability_app = typer.Typer(help="Verify cross-language portability conformance packs.")
+phase_app = typer.Typer(help="Plan deterministic protocol-relative phase acceleration.")
 alt_app = typer.Typer(help="Run ALT abstraction-liquidity foundry tools.")
 ecpt_app = typer.Typer(help="Run ECPT active phase-control planning tools.")
 sqot_app = typer.Typer(help="Run SQOT salience-queue scheduling tools.")
@@ -227,6 +238,7 @@ app.add_typer(provenance_app, name="provenance")
 app.add_typer(sbom_app, name="sbom")
 app.add_typer(parse_app, name="parse")
 app.add_typer(portability_app, name="portability")
+app.add_typer(phase_app, name="phase")
 app.add_typer(alt_app, name="alt")
 app.add_typer(ecpt_app, name="ecpt")
 app.add_typer(sqot_app, name="sqot")
@@ -533,6 +545,105 @@ def _load_runtime_step_report(path: Path) -> RuntimeStepReport:
     if not isinstance(raw, dict):
         raise typer.BadParameter("runtime report file must contain an object")
     return RuntimeStepReport.model_validate(raw)
+
+
+def _load_phase_acceleration_request(
+    *,
+    request_path: Path | None,
+    runtime_report_path: Path | None,
+    state_path: Path | None,
+    step_input_path: Path | None,
+    text: str | None,
+    text_file: Path | None,
+    profile: str | None,
+    identity_context_path: Path | None,
+    allow_live_connectors: bool | None,
+    compact: bool,
+) -> PhaseAccelerationRequest:
+    if text is not None and text_file is not None:
+        raise typer.BadParameter("Use either --text or --text-file, not both")
+    if request_path is not None:
+        if any(
+            value is not None
+            for value in (runtime_report_path, state_path, step_input_path, text, text_file)
+        ):
+            raise typer.BadParameter(
+                "Use --request by itself, optionally with --profile, --compact, "
+                "--identity-context, or --allow-live-connectors/--no-allow-live-connectors"
+            )
+        data = load_data(request_path)
+        raw = data.get("phase_acceleration_request", data.get("request", data))
+        if not isinstance(raw, dict):
+            raise typer.BadParameter("phase acceleration request file must contain an object")
+        parsed = PhaseAccelerationRequest.model_validate(raw)
+        active_profile = profile or parsed.profile
+        identity_context = (
+            None
+            if identity_context_path is None
+            else _load_runtime_identity_context(identity_context_path)
+        )
+        runtime_config = parsed.runtime_config
+        step_input = parsed.step_input
+        if profile is not None and runtime_config is not None:
+            runtime_config = runtime_config.model_copy(update={"profile": active_profile})
+        if allow_live_connectors is not None:
+            runtime_config = (
+                runtime_config.model_copy(update={"allow_live_connectors": allow_live_connectors})
+                if runtime_config is not None
+                else AgentRuntimeConfig(
+                    profile=active_profile,
+                    allow_live_connectors=allow_live_connectors,
+                )
+            )
+            step_input = (
+                None
+                if step_input is None
+                else step_input.model_copy(update={"allow_live_connectors": allow_live_connectors})
+            )
+        return parsed.model_copy(
+            update={
+                "profile": active_profile,
+                "runtime_config": runtime_config,
+                "step_input": step_input,
+                "identity_context": identity_context or parsed.identity_context,
+                "compact": compact,
+            }
+        )
+    active_profile = profile or "development"
+    live_connectors = True if allow_live_connectors is None else allow_live_connectors
+    identity_context = (
+        None
+        if identity_context_path is None
+        else _load_runtime_identity_context(identity_context_path)
+    )
+    runtime_report = (
+        None if runtime_report_path is None else _load_runtime_step_report(runtime_report_path)
+    )
+    agent_output = text_file.read_text(encoding="utf-8") if text_file is not None else text
+    state = None if runtime_report is not None else _load_agent_default_state(state_path)
+    step_input = None
+    if runtime_report is None:
+        step_input = (
+            _load_runtime_step_input(step_input_path)
+            if step_input_path is not None
+            else minimal_runtime_step_input(agent_output)
+        )
+        if agent_output is not None and step_input_path is not None:
+            step_input = step_input.model_copy(update={"agent_output": agent_output})
+        step_input = step_input.model_copy(update={"allow_live_connectors": live_connectors})
+    return PhaseAccelerationRequest(
+        request_id="phase-cli",
+        profile=active_profile,
+        state=state,
+        step_input=step_input,
+        runtime_config=AgentRuntimeConfig(
+            profile=active_profile,
+            allow_live_connectors=live_connectors,
+        ),
+        runtime_report=runtime_report,
+        identity_context=identity_context,
+        compact=compact,
+    )
 
 
 def _load_runtime_action_results(path: Path) -> list[RuntimeActionResult]:
@@ -2638,6 +2749,247 @@ def runtime_service_command(
         raise typer.BadParameter(str(exc)) from exc
 
 
+@phase_app.command("plan")
+def phase_plan_command(
+    request: Annotated[
+        Path | None,
+        typer.Option("--request", help="PhaseAccelerationRequest JSON/YAML."),
+    ] = None,
+    runtime_report: Annotated[
+        Path | None,
+        typer.Option("--runtime-report", help="RuntimeStepReport JSON/YAML."),
+    ] = None,
+    state: Annotated[
+        Path | None,
+        typer.Option("--state", help="RuntimeState JSON/YAML. Defaults to minimal demo state."),
+    ] = None,
+    step_input: Annotated[
+        Path | None,
+        typer.Option("--input", help="RuntimeStepInput JSON/YAML. Defaults to minimal demo input."),
+    ] = None,
+    text: Annotated[
+        str | None,
+        typer.Option("--text", help="Literal agent output for the default runtime step."),
+    ] = None,
+    text_file: Annotated[
+        Path | None,
+        typer.Option("--text-file", help="File containing agent output text."),
+    ] = None,
+    profile: Annotated[
+        str | None,
+        typer.Option("--profile", help="Planner profile."),
+    ] = None,
+    identity_context: Annotated[
+        Path | None,
+        typer.Option("--identity-context", help="Optional RuntimeIdentityContext JSON/YAML."),
+    ] = None,
+    allow_live_connectors: Annotated[
+        bool | None,
+        typer.Option(
+            "--allow-live-connectors/--no-allow-live-connectors",
+            help="Allow bounded live connector use when explicit sources are supplied.",
+        ),
+    ] = None,
+    compact: Annotated[
+        bool,
+        typer.Option("--compact/--full", help="Emit compact CI/agent JSON."),
+    ] = False,
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Build a deterministic phase-acceleration plan."""
+
+    parsed_request = _load_phase_acceleration_request(
+        request_path=request,
+        runtime_report_path=runtime_report,
+        state_path=state,
+        step_input_path=step_input,
+        text=text,
+        text_file=text_file,
+        profile=profile,
+        identity_context_path=identity_context,
+        allow_live_connectors=allow_live_connectors,
+        compact=compact,
+    )
+    plan = build_phase_acceleration_plan(parsed_request)
+    payload = phase_acceleration_compact_payload(plan) if compact else plan.model_dump(mode="json")
+    _dump(payload, output)
+
+
+@phase_app.command("gap")
+def phase_gap_command(
+    request: Annotated[
+        Path | None,
+        typer.Option("--request", help="PhaseAccelerationRequest JSON/YAML."),
+    ] = None,
+    runtime_report: Annotated[
+        Path | None,
+        typer.Option("--runtime-report", help="RuntimeStepReport JSON/YAML."),
+    ] = None,
+    state: Annotated[
+        Path | None,
+        typer.Option("--state", help="RuntimeState JSON/YAML. Defaults to minimal demo state."),
+    ] = None,
+    step_input: Annotated[
+        Path | None,
+        typer.Option("--input", help="RuntimeStepInput JSON/YAML. Defaults to minimal demo input."),
+    ] = None,
+    text: Annotated[
+        str | None,
+        typer.Option("--text", help="Literal agent output for the default runtime step."),
+    ] = None,
+    text_file: Annotated[
+        Path | None,
+        typer.Option("--text-file", help="File containing agent output text."),
+    ] = None,
+    profile: Annotated[str | None, typer.Option("--profile", help="Planner profile.")] = None,
+    identity_context: Annotated[
+        Path | None,
+        typer.Option("--identity-context", help="Optional RuntimeIdentityContext JSON/YAML."),
+    ] = None,
+    allow_live_connectors: Annotated[
+        bool | None,
+        typer.Option("--allow-live-connectors/--no-allow-live-connectors"),
+    ] = None,
+    compact: Annotated[
+        bool,
+        typer.Option("--compact/--full", help="Accepted for command symmetry."),
+    ] = False,
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Emit only the finite phase-gap vector."""
+
+    parsed_request = _load_phase_acceleration_request(
+        request_path=request,
+        runtime_report_path=runtime_report,
+        state_path=state,
+        step_input_path=step_input,
+        text=text,
+        text_file=text_file,
+        profile=profile,
+        identity_context_path=identity_context,
+        allow_live_connectors=allow_live_connectors,
+        compact=compact,
+    )
+    plan = build_phase_acceleration_plan(parsed_request)
+    _dump(plan.phase_gap_vector.model_dump(mode="json"), output)
+
+
+@phase_app.command("trajectory")
+def phase_trajectory_command(
+    report: Annotated[
+        list[Path] | None,
+        typer.Option("--report", help="RuntimeStepReport JSON/YAML. May be repeated."),
+    ] = None,
+    profile: Annotated[str, typer.Option("--profile", help="Planner profile.")] = "development",
+    compact: Annotated[
+        bool,
+        typer.Option("--compact/--full", help="Omit nested runtime reports in generated plans."),
+    ] = True,
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Build a trajectory from one or more runtime reports."""
+
+    reports = report or []
+    if reports:
+        requests = [
+            PhaseAccelerationRequest(
+                request_id=f"phase-trajectory:{index}",
+                profile=profile,
+                runtime_report=_load_runtime_step_report(path),
+                compact=compact,
+            )
+            for index, path in enumerate(reports)
+        ]
+    else:
+        requests = [
+            PhaseAccelerationRequest(
+                request_id="phase-trajectory:default",
+                profile=profile,
+                state=_load_agent_default_state(None),
+                step_input=minimal_runtime_step_input(),
+                runtime_config=AgentRuntimeConfig(profile=profile),
+                compact=compact,
+            )
+        ]
+    trajectory = build_phase_trajectory(requests, profile=profile)
+    _dump(trajectory.model_dump(mode="json"), output)
+
+
+@phase_app.command("runbook")
+def phase_runbook_command(
+    profile: Annotated[str, typer.Option("--profile", help="Planner profile.")] = "development",
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Print deterministic phase-acceleration guidance for agents."""
+
+    _dump(phase_acceleration_runbook(profile), output)
+
+
+@phase_app.command("benchmark")
+def phase_benchmark_command(
+    request: Annotated[
+        Path | None,
+        typer.Option("--request", help="PhaseAccelerationRequest JSON/YAML."),
+    ] = None,
+    runtime_report: Annotated[
+        Path | None,
+        typer.Option("--runtime-report", help="RuntimeStepReport JSON/YAML."),
+    ] = None,
+    state: Annotated[
+        Path | None,
+        typer.Option("--state", help="RuntimeState JSON/YAML. Defaults to minimal demo state."),
+    ] = None,
+    step_input: Annotated[
+        Path | None,
+        typer.Option("--input", help="RuntimeStepInput JSON/YAML. Defaults to minimal demo input."),
+    ] = None,
+    text: Annotated[
+        str | None,
+        typer.Option("--text", help="Literal agent output for the default runtime step."),
+    ] = None,
+    text_file: Annotated[
+        Path | None,
+        typer.Option("--text-file", help="File containing agent output text."),
+    ] = None,
+    profile: Annotated[str, typer.Option("--profile", help="Planner profile.")] = "development",
+    identity_context: Annotated[
+        Path | None,
+        typer.Option("--identity-context", help="Optional RuntimeIdentityContext JSON/YAML."),
+    ] = None,
+    allow_live_connectors: Annotated[
+        bool | None,
+        typer.Option("--allow-live-connectors/--no-allow-live-connectors"),
+    ] = None,
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Compare candidate-only sharing with PIC-guided finite routing."""
+
+    parsed_request = _load_phase_acceleration_request(
+        request_path=request,
+        runtime_report_path=runtime_report,
+        state_path=state,
+        step_input_path=step_input,
+        text=text,
+        text_file=text_file,
+        profile=profile,
+        identity_context_path=identity_context,
+        allow_live_connectors=allow_live_connectors,
+        compact=True,
+    )
+    plan = build_phase_acceleration_plan(parsed_request)
+    _dump(build_phase_acceleration_benchmark(plan).model_dump(mode="json"), output)
+
+
 @agent_app.command("explain")
 def agent_explain_command(
     output: Annotated[
@@ -2660,6 +3012,8 @@ def agent_explain_command(
             "safe_first_commands": manifest["safe_cli_entrypoints"],
             "python_entrypoints": [
                 "percolation_inversion_compiler.agent.run_agent_intake",
+                "percolation_inversion_compiler.agent.accelerate_agent_phase",
+                "percolation_inversion_compiler.acceleration.build_phase_acceleration_plan",
                 "percolation_inversion_compiler.agent.minimal_runtime_state",
                 "percolation_inversion_compiler.runtime.build_runtime_step",
                 "percolation_inversion_compiler.runtime.derive_runtime_identity_context",
@@ -2979,6 +3333,66 @@ def agent_check_command(
         compact=compact,
     )
     payload = agent_check_compact_payload(report) if compact else report.model_dump(mode="json")
+    _dump(payload, output)
+
+
+@agent_app.command("accelerate")
+def agent_accelerate_command(
+    text: Annotated[
+        str | None,
+        typer.Option("--text", help="Literal agent output to plan around."),
+    ] = None,
+    text_file: Annotated[
+        Path | None,
+        typer.Option("--text-file", help="File containing agent output text."),
+    ] = None,
+    profile: Annotated[
+        str,
+        typer.Option("--profile", help="Runtime profile."),
+    ] = "development",
+    identity_context: Annotated[
+        Path | None,
+        typer.Option("--identity-context", help="Optional RuntimeIdentityContext JSON/YAML."),
+    ] = None,
+    allow_live_connectors: Annotated[
+        bool,
+        typer.Option(
+            "--allow-live-connectors/--no-allow-live-connectors",
+            help="Allow bounded runtime live connector ingestion for explicit sources.",
+        ),
+    ] = True,
+    compact: Annotated[
+        bool,
+        typer.Option(
+            "--compact/--full",
+            help="Emit compact CI/agent JSON without nested runtime output.",
+        ),
+    ] = False,
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Plan the next finite phase-acceleration steps for an agent output."""
+
+    if text is not None and text_file is not None:
+        raise typer.BadParameter("Use either --text or --text-file, not both")
+    agent_output = text
+    if text_file is not None:
+        agent_output = text_file.read_text(encoding="utf-8")
+    plan = accelerate_agent_phase(
+        AgentIntakeRequest(
+            agent_output=agent_output,
+            profile=profile,
+            identity_context=(
+                None
+                if identity_context is None
+                else _load_runtime_identity_context(identity_context)
+            ),
+            allow_live_connectors=allow_live_connectors,
+        ),
+        compact=compact,
+    )
+    payload = phase_acceleration_compact_payload(plan) if compact else plan.model_dump(mode="json")
     _dump(payload, output)
 
 

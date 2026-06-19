@@ -39,6 +39,10 @@ Use `workflow_usable` for beginner/onboarding checks such as `pic agent check`.
 agents; it intentionally omits nested runtime detail but does not loosen status
 semantics. `pic agent runbook` gives commands, schemas, and fields to inspect;
 it is not an execution grant.
+`pic phase plan --compact` and `pic agent accelerate --compact` add ranked
+phase gaps, bottlenecks, safe commands, candidate-only reasons, and settlement
+blockers. Their `safe_commands` are instructions to inspect under operator
+control, not authority to execute tools or promote packets.
 Use `operationally_usable` for stricter profile-aware routing decisions. Use
 `settled` only for scoped finite obligations actually discharged by verifier
 rules. A useful recommendation may still have `settled=false`.

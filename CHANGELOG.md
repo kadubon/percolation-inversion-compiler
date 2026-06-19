@@ -1,5 +1,23 @@
 # Changelog
 
+## v0.4.3 - 2026-06-20
+
+- Adds the public v0.4.3 hardening pass for the recommendation-only phase
+  acceleration planner, including request-file UX, compact agent/CI output,
+  production identity blocker handling, and explicit non-promotion semantics.
+- Improves portability and schema discoverability for the phase acceleration
+  contract by exposing planner, gap, bottleneck, action, trajectory, benchmark,
+  and component schemas through manifests, examples, and docs.
+- Reworks phase acceleration examples so the positive request-file fixture is
+  directly executable while the skeletal request remains a clearly labeled
+  shape reference for ports.
+- Tightens release-readiness checks around version consistency, canonical/fidelity
+  theory audits, publish-safety, distribution artifacts, and generated-cache
+  cleanup.
+- Preserves the safety boundary: v0.4.3 remains protocol-relative and does not
+  prove real ASI, physical/oracle truth, or hidden promotion from `accepted`,
+  `workflow_usable`, external volume, or identity readiness to `settled`.
+
 ## v0.4.2 - 2026-06-19
 
 - Makes explicit-source live communication bounded and candidate-only by
@@ -13,6 +31,11 @@
 - Extends ECPT, BIT, TRC, SQOT, and ALT theory-fidelity reports with finite
   phase-control, bottleneck witness, frontier debt, scheduler diagnostic, and
   value-bridge summaries.
+- Adds the recommendation-only phase acceleration planner with `pic phase plan`,
+  `pic phase gap`, `pic phase trajectory`, `pic phase runbook`,
+  `pic phase benchmark`, and `pic agent accelerate` for ranked finite
+  bottlenecks, safe next commands, promotion blockers, and portable
+  trajectory/benchmark schemas.
 - Expands portability conformance examples, schema exports, and bundled demo
   data for installed-package agent checks, runtime steps, ALT admission, schema
   validation, and local relay workflows.

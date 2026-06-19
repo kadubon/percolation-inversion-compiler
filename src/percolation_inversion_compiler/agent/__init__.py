@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from percolation_inversion_compiler.agent.algorithms import (
+    accelerate_agent_phase,
     agent_check_compact_payload,
     agent_feature_readiness,
     agent_manifest_payload,
@@ -45,6 +46,7 @@ __all__ = [
     "AgentRunbookReport",
     "AgentWorkflowGuide",
     "AgentWorkflowStep",
+    "accelerate_agent_phase",
     "agent_check_compact_payload",
     "agent_feature_readiness",
     "agent_manifest_payload",

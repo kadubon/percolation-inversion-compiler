@@ -22,7 +22,7 @@ Core records:
 - `QuarantineLedger`: stale, hash-invalid, authority-invalid, unsafe-route, or
   rollback-required records.
 - `SalienceScheduleReport`: deterministic scheduling output for agents.
-  v0.4.2 adds effective diagnostic reserve, audit recursion violations,
+  v0.4.3 adds effective diagnostic reserve, audit recursion violations,
   latency/deadline loss, rollback-class summary, aggregation occupation, and
   label-laundering suspicions. It also exposes distributed-origin count,
   protocol-integrity refs, privacy/rejoin refs, sovereignty-kernel refs,

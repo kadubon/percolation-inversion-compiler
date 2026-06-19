@@ -34,6 +34,7 @@ uv run pic agent network-readiness --profile development
 uv run pic ecology policy explain --profile controlled_web
 uv run pic ecology ingest-general --source examples/agent_network/feed.xml --kind rss
 uv run pic ecology bridge-runtime --report examples/agent_network/general_intake_report.example.json
+uv run pic phase plan --compact --profile development
 uv run pic alt admit --packet examples/alt/admission_packet.json
 uv run pic alt negative-certify --certificate examples/alt/negative_liquidity_certificate.json
 uv run pic alt refresh-baseline --certificate examples/alt/baseline_refresh_certificate.json
@@ -120,6 +121,16 @@ and residual checks promote a packet. Low-level Psi calculation also excludes ra
 candidate packets, candidate-only closure witnesses, candidate-only execution paths, and
 candidate-only basin paths from positive phase components. This preserves ECPT's distinction
 between packet availability and accepted collective phase progress.
+
+After bridging, run:
+
+```powershell
+uv run pic phase plan --compact --profile development
+```
+
+Read `candidate_only_reasons`, `top_bottlenecks`, and
+`cannot_promote_because`. External packet volume should appear as verifier,
+diagnostic, quarantine, or residual work, not as phase progress.
 
 ALT admission is a later promotion gate, not an intake shortcut. Uncertified
 abstraction-token candidates can enter `diagnostic_work`, `verifier_work`, or

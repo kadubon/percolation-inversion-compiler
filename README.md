@@ -4,11 +4,11 @@
 
 The abbreviations refer to the five source theories used by the repository: **ECPT** is Executable Capability Percolation Theory, the collective capability-packet phase model; **BIT** is Bottleneck Inversion Theory, the witness calculus for unlockable potential and frontier extraction; **TRC** is Typed Reality Compilation, the typed trace and tolerance-ledger compiler for cyber-physical frontiers; **SQOT** is Salience-Queue Occupation Theory, the salience scheduling and attention-occupation layer; and **ALT** is Abstraction Liquidity Theory, the reusable abstraction capital and foundry valuation layer.
 
-Search terms: ECPT, BIT, TRC, SQOT, ALT, abstraction liquidity, reusable abstraction capital, ASI-proxy collective phase, protocol-relative ASI-proxy phase-control, certificate compiler, proof obligations, residual ledgers, salience queue, packet ecology, semantic edge verification, typed trace normal forms, frontier extraction, AI agent integration, verifier SDK.
+Search terms: ECPT, BIT, TRC, SQOT, ALT, abstraction liquidity, reusable abstraction capital, ASI-proxy collective phase, protocol-relative ASI-proxy phase-control, phase acceleration planner, bottleneck ranking, certificate compiler, proof obligations, residual ledgers, salience queue, packet ecology, semantic edge verification, typed trace normal forms, frontier extraction, AI agent integration, verifier SDK.
 
 New to PIC? Start with the [GitHub Wiki](https://github.com/kadubon/percolation-inversion-compiler/wiki) for a plain-language guide to what PIC does, why AI agent output is treated as candidate work, getting started, use cases, core concepts, and agent-safe interpretation of `accepted=true` and `settled=false`.
 
-Distribution status: v0.4.2 is a practical runtime snapshot with a beta API
+Distribution status: v0.4.3 is a practical runtime snapshot with a beta API
 surface. Install the core package from PyPI with `pip install
 percolation-inversion-compiler`; use `pip install
 "percolation-inversion-compiler[identity,connectors,server]"` when you need
@@ -23,7 +23,9 @@ Common-language glossary: capability packet = checked reusable work item;
 residual ledger = explicit unresolved-work ledger; SQOT = finite attention/task
 scheduler; ALT = reusable abstraction value checker; ECPT = workflow graph and
 collective phase-control model; BIT = bottleneck/witness calculus; TRC = typed
-trace and real-world frontier compiler. See [Glossary](docs/glossary.md).
+trace and real-world frontier compiler; phase acceleration planner = ranked
+safe next-step planner for verified work reuse and bottleneck removal. See
+[Glossary](docs/glossary.md).
 
 ## What It Does Not Do
 
@@ -49,10 +51,11 @@ trace and real-world frontier compiler. See [Glossary](docs/glossary.md).
 | 9 | **Action results** | Execution reports, ALT admission decisions, and route resolutions that are applied back into the runtime state. |
 | 10 | **Runtime store** | Persistent event logs, verified packets, route batches, abstraction capital lineage, and residual ledgers. |
 | 11 | **Collective phase certificate** | A fail-closed certificate over fixed population, no self-rewrite, no hidden injection, closure, execution availability, Psi thresholds, certified liquidity, and resource-matched baseline. |
+| 12 | **Phase acceleration plan** | Recommendation-only JSON that ranks phase gaps, bottlenecks, safe commands, schemas, candidate-only reasons, and settlement blockers. |
 
 The runtime is fail-closed: planning can recommend finite ASI-proxy actions, but `settled` remains false unless scoped verifier rules discharge the required finite obligations. In production, signed identities and Sybil-resistance ledgers can prevent duplicate-key, clone-fanout, revoked, expired, or unsigned agent populations from producing accepted collective certificates. Residual external obligations remain explicit.
 
-v0.4.2 keeps ALT abstraction-liquidity foundry support so external knowledge and agent traces can become reusable abstraction-token candidates, then certified abstraction capital only after lower-bound surplus, calibrated proxy or causal value evidence, transport, root-of-trust, telemetry, lifecycle, and hazard checks pass. ALT also adds negative-liquidity, deprecation/resurrection, baseline refresh, reproduction diagnostics, and ALT-CARA acceleration certificates so stale or unsafe abstraction claims remain repairable residual work rather than silent capital. Use `development`, `research`, `controlled`, `federated`, `production`, or `adversarial` profiles to choose how communication policy, cryptographic identities, homogeneous fleets, signed packet issuers, and Sybil-resistance ledgers affect packet promotion and collective certificates.
+v0.4.3 keeps ALT abstraction-liquidity foundry support so external knowledge and agent traces can become reusable abstraction-token candidates, then certified abstraction capital only after lower-bound surplus, calibrated proxy or causal value evidence, transport, root-of-trust, telemetry, lifecycle, and hazard checks pass. ALT also adds negative-liquidity, deprecation/resurrection, baseline refresh, reproduction diagnostics, and ALT-CARA acceleration certificates so stale or unsafe abstraction claims remain repairable residual work rather than silent capital. Use `development`, `research`, `controlled`, `federated`, `production`, or `adversarial` profiles to choose how communication policy, cryptographic identities, homogeneous fleets, signed packet issuers, and Sybil-resistance ledgers affect packet promotion and collective certificates.
 
 Core contract: registry is metadata, not evidence. Use `pic doctor` and structured checker outputs to distinguish declared status, finite certificate results, proof obligations, and residual ledgers.
 
@@ -70,6 +73,8 @@ Start with [AGENTS.md](AGENTS.md) and [For AI agents](docs/for-agents.md). The f
 uv run pic agent explain
 uv run pic agent check --compact --text "Candidate packet: route evidence and preserve residuals." --profile development
 uv run pic agent runbook --profile development
+uv run pic phase plan --compact --text "Candidate packet: route evidence and preserve residuals." --profile development
+uv run pic agent accelerate --compact --text "Candidate packet: route evidence and preserve residuals." --profile development
 uv run pic agent guide --profile development
 uv run pic agent check --text "Candidate packet: route evidence and preserve residuals." --profile development
 uv run pic agent intake --text "Candidate packet: route evidence and preserve residuals." --profile development
@@ -79,6 +84,7 @@ Command choice:
 
 - Use `pic agent check --compact` when a human, CI job, or first-time agent needs the shortest practical JSON contract.
 - Use `pic agent runbook` when an agent needs deterministic next commands, schemas, and fields to inspect.
+- Use `pic phase plan --compact` or `pic agent accelerate --compact` when an agent needs ranked phase gaps, bottlenecks, safe next commands, and promotion blockers.
 - Use `pic agent intake` or `pic runtime step` when the caller needs the full nested runtime report.
 - Use `pic audit fidelity` from a source checkout when canonical TeX theory-fidelity and finite-upgrade candidates matter.
 
@@ -105,6 +111,7 @@ message checker, or an ALT abstraction-capital foundry.
 - External intake: treat web, feed, repository, and message inputs as candidate packets.
 - Agent-to-agent messages: inspect signatures, nonces, identity context, and residuals.
 - ALT foundry: check whether traces or outputs can become reusable abstraction capital.
+- Phase acceleration planner: rank finite bottlenecks and safe next actions without executing them.
 
 Start with [For AI agents](docs/for-agents.md). For the full integration map,
 see [Integration Examples](docs/integrations/README.md). For the CI pattern, see
@@ -135,6 +142,37 @@ Raw external packet volume, including candidate-only closure or execution-path r
 not improve positive Psi components or collective certificates until downstream promotion checks
 accept the packet as finite-scope capital.
 
+## Phase Acceleration Planner
+
+The phase planner is the practical bridge from the theory reports to agent
+action. It reads existing runtime output and adjacent ALT/SQOT/external-intake
+reports, then returns a deterministic `PhaseAccelerationPlan` with:
+
+- `phase_gap_vector`: finite Psi component gaps against thresholds.
+- `bottlenecks`: ranked verifier, packet repair, SQOT queue, ALT capital, identity, and residual-ledger work.
+- `safe_commands` and `sdk_calls`: next commands and APIs to inspect, not authority to execute.
+- `cannot_promote_because`, `candidate_only_reasons`, and `settled_blockers`: why the current state is useful but not settled.
+
+```powershell
+uv run pic phase plan --compact --profile development
+uv run pic phase plan --request examples/phase_acceleration/phase_acceleration_request.json --compact
+uv run pic phase gap --compact --profile development
+uv run pic phase runbook --profile development
+uv run pic phase benchmark --profile development
+uv run pic schema --type PhaseAccelerationPlan
+```
+
+For first-time agents, `pic agent check --compact` is still the first command.
+Run `pic phase plan --compact` next when the agent must choose finite bottleneck
+work. The planner can help a network of agents preserve reusable work and route
+verification, but it does not prove real ASI, physical outcomes, or oracle truth.
+With `--request`, use a self-contained `PhaseAccelerationRequest` file and do
+not also pass `--state`, `--input`, `--runtime-report`, `--text`, or
+`--text-file`; `--profile` and `--identity-context` are explicit operator
+overrides. In production/adversarial profiles, accepted identity context removes
+only the identity-readiness blocker. `settled=false` remains correct while
+residual obligations, route work, or phase gaps remain.
+
 ## Quickstart
 
 ### Path A: Pip Install For Immediate Practical Checks
@@ -148,6 +186,8 @@ python -m pip install percolation-inversion-compiler
 pic agent explain
 pic agent check --compact --text "Candidate packet: route evidence and preserve residuals." --profile development
 pic agent runbook --profile development
+pic phase plan --compact --text "Candidate packet: route evidence and preserve residuals." --profile development
+pic agent accelerate --compact --text "Candidate packet: route evidence and preserve residuals." --profile development
 pic agent check --text "Candidate packet: route evidence and preserve residuals." --profile development
 pic demo installed-smoke --profile development
 pic demo bootstrap --output-dir pic-demo

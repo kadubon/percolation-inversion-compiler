@@ -1,6 +1,6 @@
 # PyPI Distribution
 
-v0.4.2 is the practical-readiness patch for
+v0.4.3 is the practical-readiness patch for
 `percolation-inversion-compiler` on PyPI. It keeps existing schemas and
 commands stable while making the wheel useful as an installed agent-output and
 workflow checker, with bundled demo data, snapshots, schema export, and
@@ -15,6 +15,8 @@ python -m pip install percolation-inversion-compiler
 pic agent explain
 pic agent check --compact --text "Candidate packet: preserve residuals." --profile development
 pic agent runbook --profile development
+pic phase plan --compact --text "Candidate packet: preserve residuals." --profile development
+pic agent accelerate --compact --text "Candidate packet: preserve residuals." --profile development
 pic agent check --text "Candidate packet: preserve residuals." --profile development
 pic demo installed-smoke --profile development
 pic demo bootstrap --output-dir pic-demo
@@ -24,6 +26,7 @@ pic agent inbox verify --inbox pic-demo/agent_inbox.json
 pic agent intake --text "Candidate packet: preserve residuals." --profile development
 pic snapshot list
 pic schema --type AgentIntakeReport
+pic schema --type PhaseAccelerationPlan
 ```
 
 Optional identity, live-intake, and local service extras:
@@ -45,6 +48,12 @@ directory the user controls. The full root `examples/...` tree, canonical TeX
 audits, and release engineering checks require a source checkout. The wheel is
 intended for practical runtime, schema, snapshot, curated workflow, and CLI use;
 the repository is the full fixture and development workspace.
+
+`pic phase plan --compact` and `pic agent accelerate --compact` are installed
+package commands. They use bundled/minimal runtime data when no source checkout
+is present and return a recommendation-only `PhaseAccelerationPlan` for ranked
+finite bottlenecks, safe commands, promotion blockers, candidate-only reasons,
+and settlement blockers.
 
 Live HTTP/feed intake is bounded and candidate-only by default when an explicit source is
 supplied. Use `--no-allow-live-connectors` for local-only smoke tests. Default-live mode does
@@ -106,7 +115,7 @@ the publication workflow instead of falling back to token upload.
 
 ## Pre-Publish Checks
 
-Run these before publishing or republishing the v0.4.2 distributions:
+Run these before publishing or republishing the v0.4.3 distributions:
 
 ```powershell
 uv run pytest

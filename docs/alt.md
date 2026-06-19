@@ -25,7 +25,7 @@ lifecycle/finality, hazard bounds, and certified lower-bound surplus.
 - `ValueBridgeReport`: a typed diagnostic inside liquidity output. It states
   whether the value claim is only a proxy, whether a calibrated proxy is bridged
   to a common estimand, whether causal effect evidence is present, and which
-  refs support each step. v0.4.2 also reports instrumentation/contamination,
+  refs support each step. v0.4.3 also reports instrumentation/contamination,
   transportability, baseline refresh, negative-liquidity preservation,
   CARA-residual preservation, and foundry capacity labels. In common terms, it
   separates "this metric moved" from "this reusable abstraction has checked
@@ -65,6 +65,7 @@ uv run pic alt refresh-baseline --certificate examples/alt/baseline_refresh_cert
 uv run pic alt reproduction-report --certificate examples/alt/reproduction_certificate.json
 uv run pic alt check-cara --certificate examples/alt/alt_cara_certificate.json
 uv run pic alt foundry-dashboard --state examples/alt/foundry_state.json
+uv run pic phase plan --compact --profile development
 ```
 
 The output is protocol-relative. `accepted=true` means the finite ALT checker
@@ -80,6 +81,13 @@ not silent success and not permanent deletion. Foundry dashboards label the
 current bottleneck as evidence-limited, transport-limited, risk-limited,
 capacity-limited, subcritical, or unsaturated-supercritical so an agent can pick
 the next verifier route.
+
+`pic phase plan --compact` reads ALT admission decisions and foundry dashboards
+when they are supplied through `PhaseAccelerationRequest`. In the compact
+planner output, ALT issues appear as `bottlenecks`, `candidate_only_reasons`,
+and `cannot_promote_because`. This keeps proxy-only value evidence, missing
+transport, negative liquidity, stale baselines, and CARA residuals visible as
+repair work instead of silently counting them as reusable capital.
 
 ## Connection To ECPT And SQOT
 

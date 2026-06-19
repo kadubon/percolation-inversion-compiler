@@ -1,0 +1,12 @@
+{
+  "candidate_only": true,
+  "ecpt_phase_contribution_allowed": false,
+  "packet_ingestion": {
+    "accepted": true,
+    "packets": [],
+    "report_id": "packet-ingestion:external-candidate-only",
+    "source_kind": "web-page"
+  },
+  "report_id": "general-intake-runtime-bridge:external-candidate-only",
+  "source_report_id": "general-intake:external-candidate-only"
+}

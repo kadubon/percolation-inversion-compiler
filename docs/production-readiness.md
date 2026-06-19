@@ -16,6 +16,8 @@ python -m pip install percolation-inversion-compiler
 pic agent explain
 pic agent check --compact --text "Candidate packet: preserve residuals." --profile development
 pic agent runbook --profile development
+pic phase plan --compact --text "Candidate packet: preserve residuals." --profile development
+pic agent accelerate --compact --text "Candidate packet: preserve residuals." --profile development
 pic agent check --text "Candidate packet: preserve residuals." --profile development
 pic demo installed-smoke --profile development
 pic demo bootstrap --output-dir pic-demo
@@ -62,11 +64,29 @@ also returns `external_domain_required_routes`, `contract_enforced_routes`,
 `replay_residual_routes`, and `residual_external_obligation_count`.
 
 `commercial_readiness` reports `live_connectors_default_enabled=true`,
-`live_connector_opt_out_available=true`, and `bounded_intake_default=true` for v0.4.2.
+`live_connector_opt_out_available=true`, and `bounded_intake_default=true` for v0.4.3.
 This means explicit-source communication is usable by default, not that external packet volume
 can promote runtime state. Production/adversarial profiles still require accepted identity
 context before signed peer-agent messages or packet issuers become more than diagnostic
 candidates.
+
+## Phase Planner In Production
+
+Use the phase planner when a production agent needs ranked next work without
+loosening safety policy:
+
+```powershell
+uv run pic phase plan --compact --profile production
+uv run pic agent accelerate --compact --text "Signed packet candidate." --profile production
+uv run pic schema --type PhaseAccelerationPlan
+```
+
+Without accepted identity context, the plan remains useful but reports
+`production/adversarial identity context is missing or not accepted` in
+`cannot_promote_because`. That blocker is normal fail-closed behavior. The
+planner can rank verifier routes, residual obligations, SQOT queue service, and
+ALT capital work, but it cannot execute them or promote `workflow_usable` to
+`settled`.
 
 ## Provenance-Backed Production
 

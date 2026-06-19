@@ -13,6 +13,8 @@ Use these commands as integration boundaries:
 ```powershell
 pic agent check --compact --text "Candidate packet: preserve residuals." --profile development
 pic agent runbook --profile development
+pic phase plan --compact --text "Candidate packet: preserve residuals." --profile development
+pic agent accelerate --compact --text "Candidate packet: preserve residuals." --profile development
 pic agent check --text "Candidate packet: preserve residuals." --profile development
 uv run pic check --source tests\fixtures\minimal_claims.tex --strict-projection --derive-status
 uv run pic audit theory --source tests\fixtures\minimal_claims.tex --fail-on projection
@@ -43,6 +45,8 @@ uv run pic runtime population-step --population examples\agent_population.json -
 uv run pic runtime collective-certify --population examples\agent_population.json --state examples\collective_runtime_state.json --basin examples\ecpt_basin_contract.json --baseline examples\runtime_baseline_run.json --threshold examples\runtime_threshold.json
 uv run pic runtime loop --state examples\runtime_state.json --inputs examples\runtime_loop_inputs.jsonl --max-steps 2 --profile production
 uv run pic runtime health --state examples\runtime_state.json --profile production
+uv run pic phase plan --state examples\runtime_state.json --input examples\runtime_step_input.json --profile development
+uv run pic phase benchmark --profile development
 uv run pic runtime export-openapi --output runtime-openapi.json
 uv run pic doctor --profile production --required-route adapters.domain.verify_trc_telemetry_calibration --provenance provenance.json --fail-on fail
 uv run pic evidence verify --envelope examples\evidence_envelope.json --profile production
@@ -70,6 +74,12 @@ deterministic next commands, schemas, and fields to inspect. These fields
 preserve `operationally_usable` and `settled` semantics from the underlying
 runtime report.
 
+When the agent needs to choose the next finite bottleneck, call
+`pic phase plan --compact` or `pic agent accelerate --compact`. The compact
+phase output contains `phase_gap_vector`, `top_bottlenecks`, `safe_commands`,
+`cannot_promote_because`, `candidate_only_reasons`, and `settled_blockers`.
+Those commands are recommendation-only and do not grant execution authority.
+
 ## Connector Policy
 
 An agent connector should implement this policy:
@@ -90,7 +100,7 @@ An agent connector should implement this policy:
 9. For ECPT active planning, treat `PhaseControlPlan.selected_actions` as
    ranked finite recommendations and route every `missing_obligations` entry
    before main operational execution.
-10. For v0.4.2 active runtime, submit observations through `RuntimeStepInput`,
+10. For v0.4.3 active runtime, submit observations through `RuntimeStepInput`,
     let the runtime rebuild packet edges, update Psi, run SQOT scheduling,
     rank ECPT phase-control tasks, and preserve residual ledgers without
     settling unresolved proof obligations. Prefer typed
@@ -110,6 +120,10 @@ An agent connector should implement this policy:
     by default when an explicit source is supplied; use `--no-allow-live-connectors`
     for local-only dry runs. Treat general web, feed, and peer-agent messages as
     packet candidates until downstream checks accept finite scope.
+14. For phase acceleration planning, validate `PhaseAccelerationPlan`,
+    `PhaseGapVector`, `BottleneckCandidate`, and `SafePhaseAction`. Do not let
+    candidate-only external volume, proxy-only ALT output, or missing identity
+    context reduce phase gaps or clear settlement blockers.
 
 ## Routing Recipe
 
@@ -186,7 +200,7 @@ can use the package to organize capability, bottleneck, and cyber-physical
 frontier evidence. They must not treat it as evidence for unobserved ASI,
 unconditional phase transition claims, or uncertified simulator output.
 
-In v0.4.2, the workflow is closed-loop at the runtime and population levels.
+In v0.4.3, the workflow is closed-loop at the runtime and population levels.
 `pic runtime step`
 converts agent output into packets, builds edge witnesses, updates Psi, ranks
 bottleneck and ECPT phase-control tasks, schedules work through SQOT, emits

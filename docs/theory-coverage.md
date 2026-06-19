@@ -60,7 +60,7 @@ supplied.
 For ALT, checker coverage means the repository exposes finite interfaces for
 abstraction-token admission, signed lower-bound surplus, negative liquidity,
 deprecation/resurrection, baseline refresh, root/finality, telemetry, hazard,
-reproduction diagnostics, and ALT-CARA certificates. v0.4.2 also separates
+reproduction diagnostics, and ALT-CARA certificates. v0.4.3 also separates
 proxy-only value evidence from calibrated proxy bridges and causal evidence
 refs. It does not mean that raw external intake, agent text, or problem-solving
 traces are capital. A token contributes to ECPT collective phase metrics only
@@ -68,11 +68,19 @@ after the finite ALT checks and the existing semantic-edge, verifier-route,
 identity/Sybil, rollback, and residual-policy gates accept the scoped claim.
 
 Runtime outputs expose theory coverage in practical form. Prefer the typed
-v0.4.2 fields `phase_control_audit`, `frontier_debt_report`, and
+v0.4.3 fields `phase_control_audit`, `frontier_debt_report`, and
 `bottleneck_witness_reports`; compatibility summaries remain available as
 `phase_control_summary`, `frontier_debt_summary`, and
 `bottleneck_witness_tasks`. These are derived convenience fields, not new
 settlement rules.
+
+`PhaseAccelerationPlan` is the practical aggregation layer over those typed
+reports. It does not change canonical coverage counts. It combines ECPT phase
+gaps, BIT bottleneck witnesses, TRC frontier debt, SQOT queue diagnostics, ALT
+admission/foundry signals, external candidate-only reports, and identity
+readiness into ranked safe next actions. This makes theory coverage usable by
+first-time agents and non-Python ports while preserving all residual
+obligations.
 
 For the ASI-proxy objective, these reports expose the finite conditions that a
 network of agents can repeatedly inspect: verified packet reuse, residual debt,
@@ -99,6 +107,8 @@ uv run pic snapshot list
 uv run pic snapshot show --artifact ecpt
 uv run pic snapshot show --artifact sqot
 uv run pic snapshot show --artifact alt
+uv run pic schema --type PhaseAccelerationPlan
+uv run pic phase plan --compact --profile development
 ```
 
 When canonical TeX is available, `pic audit theory` also emits `snapshot_delta`

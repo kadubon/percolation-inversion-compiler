@@ -6,6 +6,11 @@ import hashlib
 import importlib.util
 import os
 
+from percolation_inversion_compiler.acceleration import (
+    PhaseAccelerationPlan,
+    PhaseAccelerationRequest,
+    build_phase_acceleration_plan,
+)
 from percolation_inversion_compiler.agent.records import (
     AgentCheckReport,
     AgentCommunicationGuide,
@@ -109,6 +114,11 @@ def agent_manifest_payload() -> dict[str, object]:
             "AgentWorkflowGuide",
             "AgentNextActionReport",
             "AgentFeatureReadinessReport",
+            "PhaseAccelerationRequest",
+            "PhaseAccelerationPlan",
+            "PhaseGapVector",
+            "BottleneckCandidate",
+            "SafePhaseAction",
             "AgentCommunicationPolicy",
             "AgentCommunicationGuide",
             "AgentNetworkReadinessReport",
@@ -275,6 +285,7 @@ def agent_manifest_payload() -> dict[str, object]:
             "Python SDK agent runtime embedding",
             "read-only GitHub Actions audit artifact generation",
             "bounded default-live explicit-source intake",
+            "deterministic phase acceleration planning",
         ],
         "purpose": (
             "AI agent runtime verification and ECPT ASI-proxy collective phase acceleration"
@@ -303,6 +314,7 @@ def agent_manifest_payload() -> dict[str, object]:
             "general web/feed intake",
             "agent-to-agent packet exchange",
             "live metadata ingest",
+            "phase acceleration planning",
             "verify evidence/routes",
             "promote packets",
             "run/store loop",
@@ -315,6 +327,14 @@ def agent_manifest_payload() -> dict[str, object]:
             "python -m pip install percolation-inversion-compiler",
             "pic agent explain",
             'pic agent check --text "Candidate packet: preserve residuals." --profile development',
+            (
+                'pic phase plan --compact --text "Candidate packet: preserve residuals." '
+                "--profile development"
+            ),
+            (
+                'pic agent accelerate --compact --text "Candidate packet: preserve residuals." '
+                "--profile development"
+            ),
             "pic demo installed-smoke --profile development",
             "pic demo bootstrap --output-dir pic-demo",
             (
@@ -364,7 +384,7 @@ def agent_manifest_payload() -> dict[str, object]:
                 "--output identity-context.json"
             ),
         ],
-        "version": "0.4.2",
+        "version": "0.4.3",
     }
 
 
@@ -915,6 +935,10 @@ def agent_check_schema_refs() -> list[str]:
         "BottleneckWitnessReport",
         "SalienceScheduleReport",
         "ALTAdmissionDecision",
+        "PhaseAccelerationPlan",
+        "PhaseGapVector",
+        "BottleneckCandidate",
+        "SafePhaseAction",
     ]
 
 
@@ -930,6 +954,7 @@ def agent_runbook_steps(profile: str = "development") -> list[str]:
             "and bottleneck_witness_reports when theory fidelity matters."
         ),
         "Use production identity context before production packet promotion.",
+        "Run pic phase plan --compact when an agent needs ranked finite bottlenecks.",
         f"Use profile={profile} consistently across intake, runtime, and readiness commands.",
     ]
 
@@ -944,6 +969,8 @@ def build_agent_runbook(profile: str = "development") -> AgentRunbookReport:
             f"pic agent runbook --profile {profile}",
             "pic schema --type AgentCheckReport",
             "pic schema --type RuntimeStepReport",
+            "pic schema --type PhaseAccelerationPlan",
+            f"pic phase plan --compact --profile {profile}",
             "pic agent readiness --profile production",
         ],
         schemas_to_inspect=agent_check_schema_refs(),
@@ -957,6 +984,9 @@ def build_agent_runbook(profile: str = "development") -> AgentRunbookReport:
             "intake_report.runtime_report.phase_control_audit",
             "intake_report.runtime_report.frontier_debt_report",
             "intake_report.runtime_report.bottleneck_witness_reports",
+            "phase_gap_vector.limiting_components",
+            "cannot_promote_because",
+            "candidate_only_reasons",
         ],
         runbook_steps=agent_runbook_steps(profile),
         safety_invariants=agent_safety_invariants(),
@@ -1344,6 +1374,39 @@ def run_agent_check(request: AgentIntakeRequest, *, compact: bool = False) -> Ag
         settled=False,
         reasons=sorted(set(reasons)),
         safety_invariants=agent_safety_invariants(),
+    )
+
+
+def accelerate_agent_phase(
+    request: AgentIntakeRequest,
+    *,
+    compact: bool = False,
+) -> PhaseAccelerationPlan:
+    """Build a phase-acceleration plan from the practical agent request shape."""
+
+    state = _with_identity_context(
+        request.state or minimal_runtime_state(), request.identity_context
+    )
+    step_input = request.step_input or minimal_runtime_step_input(request.agent_output)
+    if request.agent_output is not None and request.step_input is not None:
+        step_input = step_input.model_copy(update={"agent_output": request.agent_output})
+    step_input = step_input.model_copy(
+        update={"allow_live_connectors": request.allow_live_connectors}
+    )
+    return build_phase_acceleration_plan(
+        PhaseAccelerationRequest(
+            request_id=f"agent-accelerate:{request.request_id}",
+            profile=request.profile,
+            state=state,
+            step_input=step_input,
+            runtime_config=AgentRuntimeConfig(
+                profile=request.profile,
+                identity_profile=request.identity_profile,
+                allow_live_connectors=request.allow_live_connectors,
+            ),
+            identity_context=request.identity_context,
+            compact=compact,
+        )
     )
 
 

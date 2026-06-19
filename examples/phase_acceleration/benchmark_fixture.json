@@ -1,0 +1,9 @@
+{
+  "expected_invariants": [
+    "candidate_only_volume_does_not_reduce_gap",
+    "planner_does_not_execute_commands",
+    "settled_not_promoted",
+    "residuals_visible"
+  ],
+  "scenario": "candidate-sharing-vs-pic-guided-finite-routing"
+}

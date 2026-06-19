@@ -189,7 +189,7 @@ class TheoryAuditSuiteReport(BaseModel):
 
 
 class TheoryFidelityReport(BaseModel):
-    """Canonical-suite-derived theory-fidelity summary for v0.4.2 hardening."""
+    """Canonical-suite-derived theory-fidelity summary for v0.4.3 hardening."""
 
     report_id: str = "pic-theory-fidelity"
     canonical_dir: str = ""
