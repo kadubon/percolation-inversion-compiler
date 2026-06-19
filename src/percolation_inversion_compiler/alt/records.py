@@ -297,6 +297,33 @@ class BaselineRefreshCertificate(BaseModel):
     reasons: list[str] = Field(default_factory=list)
 
 
+class ValueBridgeReport(BaseModel):
+    """Typed ALT diagnostics for proxy-to-value evidence separation."""
+
+    report_id: str = "alt-value-bridge"
+    value_evidence_level: str = "calibrated-proxy"
+    proxy_only: bool = False
+    calibrated_proxy_bridge_ready: bool = False
+    causal_effect_ready: bool = False
+    common_estimand_ready: bool = False
+    proxy_bridge_refs: list[str] = Field(default_factory=list)
+    causal_effect_refs: list[str] = Field(default_factory=list)
+    common_estimand_refs: list[str] = Field(default_factory=list)
+    instrumentation_refs: list[str] = Field(default_factory=list)
+    contamination_diagnostics: list[str] = Field(default_factory=list)
+    transportability_ready: bool = False
+    causal_reproduction_ready: bool = False
+    portfolio_gaming_diagnostics: list[str] = Field(default_factory=list)
+    baseline_refresh_ready: bool = False
+    negative_liquidity_preserved: bool = True
+    cara_residual_preserved: bool = True
+    foundry_capacity_label: str = "evidence-limited"
+    accepted: bool = False
+    operationally_usable: bool = False
+    settled: bool = False
+    reasons: list[str] = Field(default_factory=list)
+
+
 class LiquidityCertificate(BaseModel):
     """Certified lower-bound surplus certificate for reusable abstraction capital."""
 
@@ -317,6 +344,11 @@ class LiquidityCertificate(BaseModel):
     evaluator_quorum_refs: list[str] = Field(default_factory=list)
     telemetry_refs: list[str] = Field(default_factory=list)
     robustness_refs: list[str] = Field(default_factory=list)
+    value_evidence_level: str = "calibrated-proxy"
+    proxy_bridge_refs: list[str] = Field(default_factory=list)
+    causal_effect_refs: list[str] = Field(default_factory=list)
+    common_estimand_refs: list[str] = Field(default_factory=list)
+    value_bridge_report: ValueBridgeReport = Field(default_factory=ValueBridgeReport)
     residual_external_obligations: list[str] = Field(default_factory=list)
     signed_surplus_lower_bound: float = 0.0
     residual_ledger: Ledger = Field(default_factory=Ledger)

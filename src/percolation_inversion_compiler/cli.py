@@ -15,14 +15,17 @@ from percolation_inversion_compiler import __version__
 from percolation_inversion_compiler.agent import (
     AgentIntakeReport,
     AgentIntakeRequest,
+    agent_check_compact_payload,
     agent_feature_readiness,
     agent_manifest_payload,
     agent_network_readiness,
     agent_safety_invariants,
     build_agent_communication_guide,
+    build_agent_runbook,
     build_agent_workflow_guide,
     minimal_runtime_state,
     recommend_agent_next_actions,
+    run_agent_check,
     run_agent_intake,
 )
 from percolation_inversion_compiler.alt import (
@@ -62,6 +65,7 @@ from percolation_inversion_compiler.core import (
     resolve_adapter_route,
 )
 from percolation_inversion_compiler.core.frontier import FrontierRecord
+from percolation_inversion_compiler.core.live_policy import default_allow_live_connectors
 from percolation_inversion_compiler.ecology import (
     AgentInboxRecord,
     AgentMessageEnvelope,
@@ -78,6 +82,7 @@ from percolation_inversion_compiler.ecology import (
     ProtocolFrameDigest,
     PsiDashboard,
     WebFetchPolicy,
+    agent_relay_readiness_report,
     append_agent_message,
     audit_general_intake_report,
     bridge_general_intake_to_runtime,
@@ -89,6 +94,7 @@ from percolation_inversion_compiler.ecology import (
     check_no_hidden_capability_injection,
     closed_loop_iteration,
     create_agent_message,
+    deliver_agent_message,
     discover_web_packets,
     find_accepted_paths_to_basin,
     find_autocatalytic_closures,
@@ -100,6 +106,7 @@ from percolation_inversion_compiler.ecology import (
     ingest_live_source,
     ingest_local_file,
     read_agent_inbox,
+    receive_agent_inbox,
     registry_from_json,
     verify_agent_message,
     verify_edge_relation,
@@ -122,9 +129,11 @@ from percolation_inversion_compiler.identity import (
     verify_agent_identity,
 )
 from percolation_inversion_compiler.io import (
+    audit_canonical_suite,
     audit_theory_source,
     build_operational_readiness_report,
     build_sbom_document,
+    build_theory_fidelity_report,
     canonical_manifest,
     count_mr_records_by_category,
     create_provenance_manifest,
@@ -138,8 +147,10 @@ from percolation_inversion_compiler.io import (
     schema_bundle_digest,
     schema_by_type,
     strict_tex_parse_report,
+    theory_audit_cli_payload,
     validate_canonical_source,
     validate_data,
+    verify_portability_conformance,
     verify_provenance_manifest,
 )
 from percolation_inversion_compiler.io.provenance import ProvenanceManifest
@@ -195,6 +206,7 @@ routes_app = typer.Typer(help="Inspect verifier route bindings.")
 provenance_app = typer.Typer(help="Create and verify release provenance manifests.")
 sbom_app = typer.Typer(help="Create deterministic release SBOM documents.")
 parse_app = typer.Typer(help="Run strict TeX parser diagnostics.")
+portability_app = typer.Typer(help="Verify cross-language portability conformance packs.")
 alt_app = typer.Typer(help="Run ALT abstraction-liquidity foundry tools.")
 ecpt_app = typer.Typer(help="Run ECPT active phase-control planning tools.")
 sqot_app = typer.Typer(help="Run SQOT salience-queue scheduling tools.")
@@ -214,6 +226,7 @@ app.add_typer(routes_app, name="routes")
 app.add_typer(provenance_app, name="provenance")
 app.add_typer(sbom_app, name="sbom")
 app.add_typer(parse_app, name="parse")
+app.add_typer(portability_app, name="portability")
 app.add_typer(alt_app, name="alt")
 app.add_typer(ecpt_app, name="ecpt")
 app.add_typer(sqot_app, name="sqot")
@@ -374,7 +387,7 @@ def _load_general_intake_policy(
     path: Path | None,
     *,
     profile: str = "development",
-    allow_live_connectors: bool = False,
+    allow_live_connectors: bool = default_allow_live_connectors(),
 ) -> GeneralIntakePolicy:
     if path is None:
         preset = general_intake_policy_for_profile(profile)
@@ -774,7 +787,7 @@ def check(
     source: Annotated[Path, typer.Option("--source", "-s", help="TeX source artifact.")],
     canonical_key: Annotated[
         str | None,
-        typer.Option("--canonical-key", help="Canonical key: ecpt, bit, or trc."),
+        typer.Option("--canonical-key", help="Canonical key: ecpt, bit, trc, sqot, or alt."),
     ] = None,
     strict_projection: Annotated[
         bool,
@@ -939,6 +952,62 @@ def audit_theory(
         raise typer.Exit(1)
 
 
+@audit_app.command("canonical-suite")
+def audit_canonical_suite_command(
+    canonical_dir: Annotated[
+        Path,
+        typer.Option(
+            "--canonical-dir",
+            help="Directory containing ECPT, BIT, TRC, SQOT, and ALT canonical TeX files.",
+        ),
+    ],
+    fail_on: Annotated[
+        str,
+        typer.Option("--fail-on", help="Exit nonzero on: fail or never."),
+    ] = "fail",
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Audit the complete canonical ECPT/BIT/TRC/SQOT/ALT source suite."""
+
+    if fail_on not in {"fail", "never"}:
+        console.print("Error: --fail-on must be one of: fail, never")
+        raise typer.Exit(2)
+    report = audit_canonical_suite(canonical_dir)
+    _dump(report.model_dump(mode="json"), output)
+    if fail_on == "fail" and not report.accepted:
+        raise typer.Exit(1)
+
+
+@audit_app.command("fidelity")
+def audit_fidelity_command(
+    canonical_dir: Annotated[
+        Path,
+        typer.Option(
+            "--canonical-dir",
+            help="Directory containing ECPT, BIT, TRC, SQOT, and ALT canonical TeX files.",
+        ),
+    ],
+    fail_on: Annotated[
+        str,
+        typer.Option("--fail-on", help="Exit nonzero on: fail or never."),
+    ] = "fail",
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Summarize canonical-suite theory fidelity and finite upgrade candidates."""
+
+    if fail_on not in {"fail", "never"}:
+        console.print("Error: --fail-on must be one of: fail, never")
+        raise typer.Exit(2)
+    report = build_theory_fidelity_report(canonical_dir)
+    _dump(report.model_dump(mode="json"), output)
+    if fail_on == "fail" and not report.accepted:
+        raise typer.Exit(1)
+
+
 @snapshot_app.command("list")
 def snapshot_list(
     output: Annotated[
@@ -963,6 +1032,31 @@ def snapshot_list(
         ]
     }
     _dump(data, output)
+
+
+@portability_app.command("verify")
+def portability_verify_command(
+    manifest: Annotated[
+        Path,
+        typer.Option("--manifest", help="Portability conformance manifest JSON/YAML."),
+    ],
+    fail_on: Annotated[
+        str,
+        typer.Option("--fail-on", help="Exit nonzero on: fail or never."),
+    ] = "fail",
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Validate golden portability examples against exported public schemas."""
+
+    if fail_on not in {"fail", "never"}:
+        console.print("Error: --fail-on must be one of: fail, never")
+        raise typer.Exit(2)
+    report = verify_portability_conformance(manifest)
+    _dump(report.model_dump(mode="json"), output)
+    if fail_on == "fail" and not report.accepted:
+        raise typer.Exit(1)
 
 
 @snapshot_app.command("show")
@@ -1217,24 +1311,19 @@ def alt_audit(
 ) -> None:
     """Audit ALT source coverage and strict parser compatibility."""
 
-    grammar = strict_tex_parse_report(source)
-    coverage_record = extract_theory_coverage(source)
     canonical_key = "alt" if source.name == "Abstraction Liquidity Theory.tex" else None
-    audit = audit_theory_source(source, canonical_key=canonical_key, strict_projection=True)
-    data = {
-        "source": str(source),
-        "strict_grammar": grammar.model_dump(mode="json"),
-        "coverage": coverage_record.model_dump(mode="json"),
-        "coverage_counts": coverage_record.counts_by_status(),
-        "audit": audit.model_dump(mode="json"),
-        "safety_invariants": [
+    data = theory_audit_cli_payload(
+        source,
+        canonical_key=canonical_key,
+        safety_invariants=[
             "ALT audit classifies finite checker coverage and external obligations",
             "ALT audit output does not prove real ASI or external-world outcomes",
             "TeX/PDF sources are not vendored by this command",
         ],
-    }
+    )
     _dump(data, output)
-    if strict_grammar and not grammar.accepted:
+    grammar = data["strict_grammar"]
+    if strict_grammar and isinstance(grammar, dict) and not bool(grammar.get("accepted")):
         raise typer.Exit(1)
 
 
@@ -1501,19 +1590,27 @@ def sqot_audit(
 ) -> None:
     """Audit SQOT source coverage and strict parser compatibility."""
 
-    grammar = strict_tex_parse_report(source)
-    coverage_record = extract_theory_coverage(source)
     canonical_key = "sqot" if source.name == "Salience-Queue Occupation Theory.tex" else None
-    audit = audit_theory_source(source, canonical_key=canonical_key, strict_projection=True)
-    data = {
-        "source": str(source),
-        "strict_grammar": grammar.model_dump(mode="json"),
-        "coverage": coverage_record.model_dump(mode="json"),
-        "coverage_counts": coverage_record.counts_by_status(),
-        "audit": audit.model_dump(mode="json"),
-    }
+    if canonical_key is None:
+        grammar = strict_tex_parse_report(source)
+        _dump(
+            {
+                "source": str(source),
+                "accepted": False,
+                "reasons": [
+                    "SQOT audit requires canonical source file Salience-Queue Occupation Theory.tex"
+                ],
+                "strict_grammar": grammar.model_dump(mode="json"),
+                "coverage_counts": {},
+                "audit": None,
+            },
+            output,
+        )
+        raise typer.Exit(1)
+    data = theory_audit_cli_payload(source, canonical_key=canonical_key)
     _dump(data, output)
-    if strict_grammar and not grammar.accepted:
+    grammar_data = data["strict_grammar"]
+    if strict_grammar and isinstance(grammar_data, dict) and not bool(grammar_data.get("accepted")):
         raise typer.Exit(1)
 
 
@@ -1638,9 +1735,9 @@ def ecology_ingest_general_command(
         bool,
         typer.Option(
             "--allow-live-connectors/--no-allow-live-connectors",
-            help="Explicitly enable live web/connector fetches.",
+            help="Allow bounded live web/connector fetches for explicit sources.",
         ),
-    ] = False,
+    ] = True,
     output: Annotated[
         Path | None, typer.Option("--output", "-o", help="Write JSON output.")
     ] = None,
@@ -1679,9 +1776,9 @@ def ecology_discover_web_command(
         bool,
         typer.Option(
             "--allow-live-connectors/--no-allow-live-connectors",
-            help="Explicitly enable live web fetches.",
+            help="Allow bounded live web fetches for explicit sources.",
         ),
-    ] = False,
+    ] = True,
     output: Annotated[
         Path | None, typer.Option("--output", "-o", help="Write JSON output.")
     ] = None,
@@ -1720,9 +1817,9 @@ def ecology_policy_explain_command(
         bool,
         typer.Option(
             "--allow-live-connectors/--no-allow-live-connectors",
-            help="Show the policy with live fetch permission enabled or disabled.",
+            help="Show the policy with bounded live fetch permission enabled or disabled.",
         ),
-    ] = False,
+    ] = True,
     output: Annotated[
         Path | None, typer.Option("--output", "-o", help="Write JSON output.")
     ] = None,
@@ -2063,9 +2160,9 @@ def runtime_step_command(
         bool,
         typer.Option(
             "--allow-live-connectors/--no-allow-live-connectors",
-            help="Allow explicitly requested live connector ingestion.",
+            help="Allow bounded live connector ingestion for explicit sources.",
         ),
-    ] = False,
+    ] = True,
     action_commit_policy: Annotated[
         str,
         typer.Option("--action-commit-policy", help="Runtime action commit policy."),
@@ -2096,7 +2193,9 @@ def runtime_step_command(
         _load_runtime_state(state),
         None if identity_context is None else _load_runtime_identity_context(identity_context),
     )
-    parsed_input = _load_runtime_step_input(step_input)
+    parsed_input = _load_runtime_step_input(step_input).model_copy(
+        update={"allow_live_connectors": allow_live_connectors}
+    )
     config = _runtime_config(
         profile=profile,
         allow_live_connectors=allow_live_connectors,
@@ -2128,9 +2227,9 @@ def runtime_loop_command(
         bool,
         typer.Option(
             "--allow-live-connectors/--no-allow-live-connectors",
-            help="Allow explicitly requested live connector ingestion.",
+            help="Allow bounded live connector ingestion for explicit sources.",
         ),
-    ] = False,
+    ] = True,
     action_commit_policy: Annotated[
         str,
         typer.Option("--action-commit-policy", help="Runtime action commit policy."),
@@ -2142,7 +2241,10 @@ def runtime_loop_command(
     """Run a deterministic ECPT active runtime loop over JSONL inputs."""
 
     parsed_state = _load_runtime_state(state)
-    parsed_inputs = _load_runtime_inputs(inputs)
+    parsed_inputs = [
+        item.model_copy(update={"allow_live_connectors": allow_live_connectors})
+        for item in _load_runtime_inputs(inputs)
+    ]
     config = _runtime_config(
         profile=profile,
         allow_live_connectors=allow_live_connectors,
@@ -2518,9 +2620,9 @@ def runtime_service_command(
         bool,
         typer.Option(
             "--allow-live-connectors/--no-allow-live-connectors",
-            help="Allow live connector use when requests also opt in.",
+            help="Allow bounded live connector use when requests provide explicit sources.",
         ),
-    ] = False,
+    ] = True,
 ) -> None:
     """Run the optional local ECPT active runtime HTTP service."""
 
@@ -2639,9 +2741,9 @@ def agent_communication_guide_command(
         bool,
         typer.Option(
             "--allow-live-connectors/--no-allow-live-connectors",
-            help="Describe the workflow with live connectors explicitly enabled.",
+            help="Describe the workflow with bounded live connectors enabled or disabled.",
         ),
-    ] = False,
+    ] = True,
     output: Annotated[
         Path | None, typer.Option("--output", "-o", help="Write JSON output.")
     ] = None,
@@ -2669,9 +2771,9 @@ def agent_network_readiness_command(
         bool,
         typer.Option(
             "--allow-live-connectors/--no-allow-live-connectors",
-            help="Check readiness for explicit live connector opt-in.",
+            help="Check readiness for bounded live connector use.",
         ),
-    ] = False,
+    ] = True,
     output: Annotated[
         Path | None, typer.Option("--output", "-o", help="Write JSON output.")
     ] = None,
@@ -2684,6 +2786,51 @@ def agent_network_readiness_command(
         allow_live_connectors,
     )
     _dump(report.model_dump(mode="json"), output)
+
+
+@agent_app.command("relay-readiness")
+def agent_relay_readiness_command(
+    inbox: Annotated[
+        Path | None,
+        typer.Option("--inbox", help="Optional local agent inbox JSON/JSONL path."),
+    ] = None,
+    profile: Annotated[
+        str,
+        typer.Option("--profile", help="Agent relay profile."),
+    ] = "development",
+    identity_context: Annotated[
+        Path | None,
+        typer.Option(
+            "--identity-context",
+            help="Optional RuntimeIdentityContext JSON/YAML accepted by population Sybil checks.",
+        ),
+    ] = None,
+    allow_live_connectors: Annotated[
+        bool,
+        typer.Option(
+            "--allow-live-connectors/--no-allow-live-connectors",
+            help="Report bounded live default mode for relay-adjacent explicit sources.",
+        ),
+    ] = True,
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Report local agent-message relay readiness without network calls."""
+
+    policy = GeneralIntakePolicy(
+        profile=profile,
+        allow_live_connectors=allow_live_connectors,
+        web_policy=WebFetchPolicy(allow_live_connectors=allow_live_connectors),
+    )
+    report = agent_relay_readiness_report(
+        inbox,
+        policy,
+        _load_agent_message_verification_context(identity_context),
+    )
+    _dump(report.model_dump(mode="json"), output)
+    if not report.accepted:
+        raise typer.Exit(1)
 
 
 @agent_app.command("readiness")
@@ -2731,9 +2878,9 @@ def agent_intake_command(
         bool,
         typer.Option(
             "--allow-live-connectors/--no-allow-live-connectors",
-            help="Explicitly allow runtime live connector ingestion when the input also opts in.",
+            help="Allow bounded runtime live connector ingestion for explicit sources.",
         ),
-    ] = False,
+    ] = True,
     output: Annotated[
         Path | None, typer.Option("--output", "-o", help="Write JSON output.")
     ] = None,
@@ -2758,6 +2905,81 @@ def agent_intake_command(
         )
     )
     _dump(report.model_dump(mode="json"), output)
+
+
+@agent_app.command("runbook")
+def agent_runbook_command(
+    profile: Annotated[
+        str,
+        typer.Option("--profile", help="Agent workflow profile."),
+    ] = "development",
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Print deterministic command/schema/field guidance for AI agents."""
+
+    _dump(build_agent_runbook(profile).model_dump(mode="json"), output)
+
+
+@agent_app.command("check")
+def agent_check_command(
+    text: Annotated[
+        str | None,
+        typer.Option("--text", help="Literal agent output to check."),
+    ] = None,
+    text_file: Annotated[
+        Path | None,
+        typer.Option("--text-file", help="File containing agent output text."),
+    ] = None,
+    profile: Annotated[
+        str,
+        typer.Option("--profile", help="Runtime profile."),
+    ] = "development",
+    identity_context: Annotated[
+        Path | None,
+        typer.Option("--identity-context", help="Optional RuntimeIdentityContext JSON/YAML."),
+    ] = None,
+    allow_live_connectors: Annotated[
+        bool,
+        typer.Option(
+            "--allow-live-connectors/--no-allow-live-connectors",
+            help="Allow bounded runtime live connector ingestion for explicit sources.",
+        ),
+    ] = True,
+    compact: Annotated[
+        bool,
+        typer.Option(
+            "--compact/--full",
+            help="Emit compact CI/agent JSON without nested runtime output.",
+        ),
+    ] = False,
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Check agent output with beginner-readable workflow usability fields."""
+
+    if text is not None and text_file is not None:
+        raise typer.BadParameter("Use either --text or --text-file, not both")
+    agent_output = text
+    if text_file is not None:
+        agent_output = text_file.read_text(encoding="utf-8")
+    report = run_agent_check(
+        AgentIntakeRequest(
+            agent_output=agent_output,
+            profile=profile,
+            identity_context=(
+                None
+                if identity_context is None
+                else _load_runtime_identity_context(identity_context)
+            ),
+            allow_live_connectors=allow_live_connectors,
+        ),
+        compact=compact,
+    )
+    payload = agent_check_compact_payload(report) if compact else report.model_dump(mode="json")
+    _dump(payload, output)
 
 
 @agent_app.command("next")
@@ -2855,6 +3077,43 @@ def agent_inbox_export_command(
     _dump(read_agent_inbox(inbox).model_dump(mode="json"), output)
 
 
+@agent_inbox_app.command("verify")
+def agent_inbox_verify_command(
+    inbox: Annotated[
+        Path,
+        typer.Option("--inbox", help="Agent inbox JSON or JSONL path."),
+    ],
+    policy: Annotated[
+        Path | None,
+        typer.Option("--policy", help="Optional GeneralIntakePolicy JSON/YAML."),
+    ] = None,
+    profile: Annotated[
+        str,
+        typer.Option("--profile", help="Message verification profile."),
+    ] = "development",
+    identity_context: Annotated[
+        Path | None,
+        typer.Option(
+            "--identity-context",
+            help="Optional RuntimeIdentityContext JSON/YAML accepted by population Sybil checks.",
+        ),
+    ] = None,
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Verify all local agent-message inbox entries."""
+
+    report = receive_agent_inbox(
+        inbox,
+        _load_general_intake_policy(policy, profile=profile),
+        _load_agent_message_verification_context(identity_context),
+    )
+    _dump(report.model_dump(mode="json"), output)
+    if not report.accepted:
+        raise typer.Exit(1)
+
+
 @agent_message_app.command("create")
 def agent_message_create_command(
     sender: Annotated[
@@ -2895,6 +3154,112 @@ def agent_message_create_command(
         nonce=nonce,
     )
     _dump(message.model_dump(mode="json"), output)
+
+
+@agent_message_app.command("send")
+def agent_message_send_command(
+    inbox: Annotated[
+        Path,
+        typer.Option("--inbox", help="Local agent inbox/outbox JSON path."),
+    ],
+    sender: Annotated[
+        str,
+        typer.Option("--sender", help="Sender agent id."),
+    ],
+    text: Annotated[
+        str | None,
+        typer.Option("--text", help="Literal message content."),
+    ] = None,
+    text_file: Annotated[
+        Path | None,
+        typer.Option("--text-file", help="Message content file."),
+    ] = None,
+    receiver: Annotated[
+        str | None,
+        typer.Option("--receiver", help="Optional receiver agent id."),
+    ] = None,
+    nonce: Annotated[
+        str | None,
+        typer.Option("--nonce", help="Optional replay nonce."),
+    ] = None,
+    policy: Annotated[
+        Path | None,
+        typer.Option("--policy", help="Optional GeneralIntakePolicy JSON/YAML."),
+    ] = None,
+    profile: Annotated[
+        str,
+        typer.Option("--profile", help="Message verification profile."),
+    ] = "development",
+    identity_context: Annotated[
+        Path | None,
+        typer.Option(
+            "--identity-context",
+            help="Optional RuntimeIdentityContext JSON/YAML accepted by population Sybil checks.",
+        ),
+    ] = None,
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Create, verify, and append one local agent-message envelope."""
+
+    if text is not None and text_file is not None:
+        raise typer.BadParameter("Use either --text or --text-file, not both")
+    content = text_file.read_text(encoding="utf-8") if text_file is not None else text
+    if content is None:
+        raise typer.BadParameter("message content requires --text or --text-file")
+    message = create_agent_message(
+        content,
+        sender_agent_id=sender,
+        receiver_agent_id=receiver,
+        nonce=nonce,
+    )
+    report = deliver_agent_message(
+        inbox,
+        message,
+        _load_general_intake_policy(policy, profile=profile),
+        _load_agent_message_verification_context(identity_context),
+    )
+    _dump(report.model_dump(mode="json"), output)
+    if not report.accepted:
+        raise typer.Exit(1)
+
+
+@agent_message_app.command("receive")
+def agent_message_receive_command(
+    inbox: Annotated[
+        Path,
+        typer.Option("--inbox", help="Local agent inbox JSON or JSONL path."),
+    ],
+    policy: Annotated[
+        Path | None,
+        typer.Option("--policy", help="Optional GeneralIntakePolicy JSON/YAML."),
+    ] = None,
+    profile: Annotated[
+        str,
+        typer.Option("--profile", help="Message verification profile."),
+    ] = "development",
+    identity_context: Annotated[
+        Path | None,
+        typer.Option(
+            "--identity-context",
+            help="Optional RuntimeIdentityContext JSON/YAML accepted by population Sybil checks.",
+        ),
+    ] = None,
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Receive and verify all messages in a local agent inbox."""
+
+    report = receive_agent_inbox(
+        inbox,
+        _load_general_intake_policy(policy, profile=profile),
+        _load_agent_message_verification_context(identity_context),
+    )
+    _dump(report.model_dump(mode="json"), output)
+    if not report.accepted:
+        raise typer.Exit(1)
 
 
 @agent_message_app.command("verify")
@@ -3452,6 +3817,11 @@ def demo_bootstrap(
     """Export curated install-time demo assets from package data."""
 
     written = _copy_installed_demo(output_dir, overwrite)
+    agent_output_path = output_dir / "agent_output.txt"
+    runtime_state_path = output_dir / "runtime_state.json"
+    runtime_input_path = output_dir / "runtime_step_input.json"
+    alt_packet_path = output_dir / "alt_admission_packet.json"
+    agent_inbox_path = output_dir / "agent_inbox.json"
     _dump(
         {
             "accepted": True,
@@ -3459,11 +3829,15 @@ def demo_bootstrap(
             "files": written,
             "output_dir": str(output_dir),
             "recommended_next_commands": [
-                f"pic runtime step --state {output_dir / 'runtime_state.json'} "
-                f"--input {output_dir / 'runtime_step_input.json'} --profile development",
-                f"pic alt admit --packet {output_dir / 'alt_admission_packet.json'}",
+                f"pic agent check --text-file {agent_output_path} --profile development",
+                f"pic runtime step --state {runtime_state_path} "
+                f"--input {runtime_input_path} --profile development",
+                f"pic agent message receive --inbox {agent_inbox_path}",
+                f"pic agent inbox verify --inbox {agent_inbox_path}",
+                f"pic alt admit --packet {alt_packet_path}",
             ],
             "settled": False,
+            "workflow_usable": True,
         },
         output,
     )
@@ -3481,11 +3855,12 @@ def demo_installed_smoke(
 ) -> None:
     """Run a no-network smoke check that works from a PyPI-installed wheel."""
 
+    demo_text = _demo_resource_text("agent_output.txt").strip()
     report = run_agent_intake(
         AgentIntakeRequest(
-            agent_output=_demo_resource_text("agent_output.txt").strip(),
+            agent_output=demo_text,
             profile=profile,
-            allow_live_connectors=False,
+            allow_live_connectors=True,
         )
     )
     _dump(
@@ -3495,11 +3870,13 @@ def demo_installed_smoke(
             "operationally_usable": report.operationally_usable,
             "profile": profile,
             "recommended_next_commands": [
+                f'pic agent check --text "{demo_text}" --profile {profile}',
                 "pic demo bootstrap --output-dir pic-demo",
                 (
                     f"pic runtime step --state pic-demo/runtime_state.json "
                     f"--input pic-demo/runtime_step_input.json --profile {profile}"
                 ),
+                "pic agent message receive --inbox pic-demo/agent_inbox.json",
                 "pic alt admit --packet pic-demo/alt_admission_packet.json",
             ],
             "residual_summary": report.residual_summary,
@@ -3507,6 +3884,7 @@ def demo_installed_smoke(
             "safety_invariants": agent_safety_invariants(),
             "settled": report.settled,
             "version": __version__,
+            "workflow_usable": bool(report.accepted),
         },
         output,
     )

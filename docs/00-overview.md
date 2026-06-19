@@ -16,12 +16,17 @@ The central ECPT interpretation used by this repository is collective phase prog
 
 ## Outputs
 
+- Compact practical agent checks from `pic agent check --compact`.
+- Deterministic agent runbooks listing next commands, schemas, and fields to inspect.
 - Deterministic JSON checker judgments.
 - Proof obligations and residual ledgers.
 - Semantic edge certificates and packet-promotion reports.
 - SQOT salience schedules and quarantine decisions.
 - Psi dashboards for finite collective-phase proxies.
 - Bottleneck tasks and phase-control recommendations.
+- Typed theory-fidelity runtime summaries:
+  `PhaseControlAuditSummary`, `FrontierDebtReport`, and
+  `BottleneckWitnessReport`.
 - Runtime event logs, persistent store snapshots, and collective phase certificates.
 - ALT liquidity certificates, admission decisions, and foundry bottleneck dashboards.
 - Identity check reports and Sybil-resistance ledgers for adversarial populations.
@@ -32,13 +37,18 @@ The package does not prove real ASI or unobserved physical/oracle outcomes. It p
 
 Cryptographic identity proves protocol-relative key control only. It does not prove legal identity, real-world personhood, or world-global uniqueness. Sybil-resistance ledgers prove compliance with the declared population policy.
 
+First command rule: use `pic agent check --compact` for a short practical JSON
+contract, `pic agent runbook` for command/schema/field guidance, and
+`pic audit fidelity` only from a source checkout with the canonical TeX suite.
+
 ## Primary Concepts
 
-- **Capability packet**: a finite reusable artifact with provenance, evidence refs, route requirements, receiver context, and residual charges.
+- **Capability packet**: a checked reusable work item with provenance, evidence refs, route requirements, receiver context, and residual charges.
 - **Verified packet capital**: a packet promoted only after required route, hash, receiver, authority, rollback, semantic edge, and residual policies pass.
 - **Semantic edge**: a checked relation such as theorem-to-code, code-to-test, obligation-to-verifier, execution-path, rollback-support, liquidity-transfer, or autocatalytic-regeneration.
-- **SQOT salience queue**: a finite scheduling layer that accounts for diagnostic reserve, stale packets, hazards, cost, and residual reduction.
-- **ALT abstraction liquidity**: a foundry layer that turns traces and packet candidates into reusable abstraction capital only after certified lower-bound surplus, transport, root-of-trust, telemetry, lifecycle, and hazard checks pass; negative-liquidity, deprecation, resurrection, baseline-refresh, reproduction, and ALT-CARA records keep stale or risky claims scoped and repairable.
+- **Residual ledger**: an explicit unresolved-work ledger that must not be hidden by a successful command.
+- **SQOT salience queue**: a finite attention/task scheduler that accounts for diagnostic reserve, audit recursion, latency/deadline loss, stale packets, hazards, cost, and residual reduction.
+- **ALT abstraction liquidity**: a reusable abstraction value checker that turns traces and packet candidates into reusable abstraction capital only after certified lower-bound surplus, calibrated proxy or causal value evidence, transport, root-of-trust, telemetry, lifecycle, and hazard checks pass; negative-liquidity, deprecation, resurrection, baseline-refresh, reproduction, and ALT-CARA records keep stale or risky claims scoped and repairable.
 - **Psi dashboard**: a vector of finite proxy components including graph availability, dependency/execution availability, autocatalytic closure, verification throughput, queue state, hazard load, and basin reachability.
 - **Collective phase certificate**: a protocol-relative certificate that checks fixed population, no self-rewrite, no hidden injection, closure, execution availability, Psi thresholds, SQOT reserve, hazard/authority checks, and resource-matched baseline.
 - **Sybil-resistance ledger**: a protocol-relative population check over signed identities, duplicate keys, revoked/expired credentials, overrepresentation, and clone fanout.
@@ -53,3 +63,4 @@ Cryptographic identity proves protocol-relative key control only. It does not pr
 6. [ALT abstraction liquidity](alt.md)
 7. [PyPI distribution](pypi-distribution.md)
 8. [Agent integration](agent-integration.md)
+9. [Glossary](glossary.md)

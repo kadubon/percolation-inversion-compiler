@@ -9,6 +9,9 @@ PyPI install:
 ```powershell
 python -m pip install percolation-inversion-compiler
 pic agent explain
+pic agent check --compact --text "Candidate packet: preserve residuals." --profile development
+pic agent runbook --profile development
+pic agent check --text "Candidate packet: preserve residuals." --profile development
 pic demo installed-smoke --profile development
 pic demo bootstrap --output-dir pic-demo
 pic runtime step --state pic-demo/runtime_state.json --input pic-demo/runtime_step_input.json --profile development
@@ -22,7 +25,7 @@ Optional extras:
 python -m pip install "percolation-inversion-compiler[identity,connectors,server]"
 ```
 
-Source checkout with repository fixtures and full practical workflows:
+Source checkout with repository fixtures, canonical audits, and development workflows:
 
 ```powershell
 powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
@@ -53,12 +56,17 @@ repository to run the full bundled fixtures.
 ```powershell
 uv run pic agent explain
 uv run pic agent manifest
+uv run pic agent check --compact --text "Candidate packet: route evidence and preserve residuals." --profile development
+uv run pic agent runbook --profile development
 uv run pic agent guide --profile development
+uv run pic agent communication-guide --profile development
+uv run pic agent network-readiness --profile development
 uv run pic agent communication-guide --profile development --no-allow-live-connectors
-uv run pic agent network-readiness --profile development --no-allow-live-connectors
 uv run pic agent readiness --profile production
 uv run pic agent doctor --profile development
 uv run pic agent doctor --profile production
+uv run pic agent check --text "Candidate packet: route evidence and preserve residuals." --profile development
+uv run pic agent check --text-file examples/agent_minimal/agent_output.txt --profile development
 uv run pic agent intake --text "Candidate packet: route evidence and preserve residuals." --profile development
 uv run pic agent intake --text-file examples/agent_minimal/agent_output.txt --profile development
 uv run pic agent intake --text-file examples/agent_minimal/agent_output.txt --profile development --output intake-report.json
@@ -66,6 +74,10 @@ uv run pic agent next --intake-report intake-report.json --profile development
 uv run pic agent inbox init --inbox inbox.json
 uv run pic agent message create --sender agent:alice --text "Candidate packet: preserve residuals." --output message.json
 uv run pic agent message contract --message message.json
+uv run pic agent relay-readiness --inbox inbox.json
+uv run pic agent message send --inbox inbox.json --sender agent:alice --text "Candidate packet: preserve residuals."
+uv run pic agent message receive --inbox inbox.json
+uv run pic agent inbox verify --inbox inbox.json
 uv run pic agent message verify --message message.json --profile development
 uv run pic agent message verify --message message.json --profile production --identity-context identity-context.json
 uv run pic agent inbox append --inbox inbox.json --message message.json
@@ -106,6 +118,8 @@ $env:PIC_CANONICAL_TEX_DIR = "path\to\canonical\tex"
 uv run pic extract --source "$env:PIC_CANONICAL_TEX_DIR\Executable Capability Percolation Theory.tex"
 uv run pic check --source "$env:PIC_CANONICAL_TEX_DIR\Executable Capability Percolation Theory.tex" --canonical-key ecpt --strict-projection --derive-status
 uv run pic audit theory --source "$env:PIC_CANONICAL_TEX_DIR\Executable Capability Percolation Theory.tex" --canonical-key ecpt --strict-grammar
+uv run pic audit canonical-suite --canonical-dir "$env:PIC_CANONICAL_TEX_DIR"
+uv run pic audit fidelity --canonical-dir "$env:PIC_CANONICAL_TEX_DIR"
 uv run pic coverage --source "$env:PIC_CANONICAL_TEX_DIR\Typed Reality Compilation.tex"
 uv run pic parse audit --source "$env:PIC_CANONICAL_TEX_DIR\Typed Reality Compilation.tex" --strict-grammar
 uv run pic sqot audit --source "$env:PIC_CANONICAL_TEX_DIR\Salience-Queue Occupation Theory.tex" --strict-grammar
@@ -134,6 +148,9 @@ uv run pic alt bridge-runtime --report examples/alt/runtime_bridge_report.json -
 
 ```powershell
 uv run pic schema --type TheoryAuditReport
+uv run pic schema --type TheoryFidelityReport
+uv run pic schema --type AgentCheckReport
+uv run pic schema --type AgentRunbookReport
 uv run pic schema --all --output-dir schemas
 uv run pic provenance create --schema-dir schemas --output provenance.json
 uv run pic provenance verify --manifest provenance.json
@@ -141,6 +158,8 @@ uv run pic sbom create --format pic --output pic-sbom.json
 uv run pic sbom create --format cyclonedx --output cyclonedx.sbom.json
 uv run pic doctor --fail-on never
 uv run pic doctor --profile production --provenance provenance.json --fail-on fail
+
+uv run pic portability verify --manifest examples/portability_conformance/manifest.json
 ```
 
 ## Routes And Evidence
@@ -194,7 +213,8 @@ uv run pic ecology ingest-general --source examples/agent_network/page.html --ki
 uv run pic ecology ingest-general --source examples/agent_network/packets.ndjson --kind ndjson
 uv run pic ecology ingest-general --source examples/agent_network/inbox.json --kind agent-inbox
 uv run pic ecology discover-web --source examples/agent_network/page.html
-uv run pic ecology ingest-general --source https://example.org --kind web-page --allow-live-connectors
+uv run pic ecology ingest-general --source https://example.org --kind web-page
+uv run pic ecology ingest-general --source https://example.org --kind web-page --no-allow-live-connectors
 uv run pic ecology intake-audit --report examples/agent_network/general_intake_report.example.json
 uv run pic ecology bridge-runtime --report examples/agent_network/general_intake_report.example.json
 uv run pic ecology build-edges --packets examples/ecology_packets.json --output ecology-registry.json

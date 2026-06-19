@@ -160,6 +160,60 @@ class TheoryAuditReport(BaseModel):
         )
 
 
+class TheoryAuditSuiteReport(BaseModel):
+    """Canonical multi-theory audit report for reproducible release checks."""
+
+    report_id: str = "pic-theory-audit-suite"
+    canonical_dir: str
+    expected_artifacts: list[str] = Field(default_factory=list)
+    audits: dict[str, TheoryAuditReport] = Field(default_factory=dict)
+    canonical_results: dict[str, dict[str, object]] = Field(default_factory=dict)
+    strict_grammar: dict[str, dict[str, object]] = Field(default_factory=dict)
+    snapshot_delta: dict[str, dict[str, object]] = Field(default_factory=dict)
+    coverage_counts: dict[str, dict[str, int]] = Field(default_factory=dict)
+    external_obligation_category_summary: dict[str, dict[str, int]] = Field(default_factory=dict)
+    unsupported_total: int = 0
+    partial_total: int = 0
+    coverage_counts_match: bool = False
+    external_category_summary_match: bool = False
+    accepted: bool = False
+    overall_status: str = "fail"
+    reasons: list[str] = Field(default_factory=list)
+    safety_invariants: list[str] = Field(
+        default_factory=lambda: [
+            "canonical suite audits compare local TeX only by declared canonical filenames",
+            "snapshot agreement is reproducibility metadata, not new mathematical evidence",
+            "unresolved external obligations remain residual obligations after suite acceptance",
+        ]
+    )
+
+
+class TheoryFidelityReport(BaseModel):
+    """Canonical-suite-derived theory-fidelity summary for v0.4.2 hardening."""
+
+    report_id: str = "pic-theory-fidelity"
+    canonical_dir: str = ""
+    suite_status: str = "fail"
+    theory_summaries: dict[str, dict[str, object]] = Field(default_factory=dict)
+    unsupported_total: int = 0
+    partial_total: int = 0
+    external_obligation_totals: dict[str, int] = Field(default_factory=dict)
+    finite_upgrade_candidates: dict[str, list[str]] = Field(default_factory=dict)
+    strict_grammar_accepted: dict[str, bool] = Field(default_factory=dict)
+    snapshot_health: dict[str, bool] = Field(default_factory=dict)
+    accepted: bool = False
+    operationally_usable: bool = False
+    settled: bool = False
+    reasons: list[str] = Field(default_factory=list)
+    safety_invariants: list[str] = Field(
+        default_factory=lambda: [
+            "theory-fidelity output is derived from finite canonical-suite audits",
+            "external obligations remain explicit residual work",
+            "finite upgrade candidates are implementation targets, not proof of real ASI",
+        ]
+    )
+
+
 @runtime_checkable
 class CheckerProtocol(Protocol):
     """Protocol implemented by structured finite checkers."""

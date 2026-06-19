@@ -6,9 +6,9 @@ abstraction-capital foundry layer for ECPT collective phase workflows.
 ALT answers a narrow operational question: when can an observed trace, external
 intake result, or agent output become reusable abstraction capital for later
 agents? The answer is not raw volume or a persuasive claim. A token contributes
-only after finite checks accept its trace support, mission validity, transport
-scope, root-of-trust, telemetry accounting, lifecycle/finality, hazard bounds,
-and certified lower-bound surplus.
+only after finite checks accept its trace support, mission validity, value
+evidence level, transport scope, root-of-trust, telemetry accounting,
+lifecycle/finality, hazard bounds, and certified lower-bound surplus.
 
 ## What ALT Adds
 
@@ -18,7 +18,18 @@ and certified lower-bound surplus.
 - `LiquidityCertificate`: a lower-bound surplus certificate. It subtracts
   formation, deployment, validation, certification, settlement, maintenance,
   depreciation, contamination, hidden-resource, telemetry, absorption,
-  misapplication, and hazard costs from downstream search-cost reduction.
+  misapplication, and hazard costs from downstream search-cost reduction. Its
+  `value_evidence_level` separates `proxy-only`, `calibrated-proxy`, and
+  `causal`; proxy-only evidence is useful diagnostic work but cannot certify
+  reusable abstraction capital.
+- `ValueBridgeReport`: a typed diagnostic inside liquidity output. It states
+  whether the value claim is only a proxy, whether a calibrated proxy is bridged
+  to a common estimand, whether causal effect evidence is present, and which
+  refs support each step. v0.4.2 also reports instrumentation/contamination,
+  transportability, baseline refresh, negative-liquidity preservation,
+  CARA-residual preservation, and foundry capacity labels. In common terms, it
+  separates "this metric moved" from "this reusable abstraction has checked
+  downstream value."
 - `NegativeLiquidityCertificate`: a scoped certificate that a token is harmful,
   stale, nonportable, contaminated, or no longer cost-positive for the declared
   receiver and opportunity measure.
@@ -65,7 +76,10 @@ as repairable candidates. Production and adversarial profiles should require
 complete finite evidence before treating a token as certified abstraction
 capital. Missing transport, root/finality, telemetry, lifecycle, hazard, or
 baseline-refresh evidence should create residual obligations and repair routes,
-not silent success and not permanent deletion.
+not silent success and not permanent deletion. Foundry dashboards label the
+current bottleneck as evidence-limited, transport-limited, risk-limited,
+capacity-limited, subcritical, or unsaturated-supercritical so an agent can pick
+the next verifier route.
 
 ## Connection To ECPT And SQOT
 

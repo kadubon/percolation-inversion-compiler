@@ -48,6 +48,21 @@ class SalienceQueueRecord(BaseModel):
     evidence_hash_valid: bool = True
     route_safe: bool = True
     rollback_available: bool = False
+    effective_reserve_eligible: bool = True
+    audit_recursion_depth: int = 0
+    latency_cost: float = 0.0
+    deadline_loss: float = 0.0
+    rollback_class: str = "none"
+    aggregation_group: str | None = None
+    source_label: str | None = None
+    underlying_signal_ref: str | None = None
+    label_laundering_suspected: bool = False
+    protocol_integrity_ref: str | None = None
+    privacy_rejoin_ref: str | None = None
+    sovereignty_kernel_ref: str | None = None
+    distributed_origin_ref: str | None = None
+    adversarial_transfer_risk: float = 0.0
+    thermodynamic_discharge_cost: float = 0.0
     obligation_ids: list[str] = Field(default_factory=list)
     verifier_routes: list[str] = Field(default_factory=list)
     residual_ledger: Ledger = Field(default_factory=Ledger)
@@ -118,6 +133,19 @@ class SalienceScheduleReport(BaseModel):
     low_contribution_occupation: float = 0.0
     unresolved_obligation_backlog: int = 0
     verifier_latency_proxy: float = 0.0
+    effective_diagnostic_reserve: float = 0.0
+    audit_recursion_violations: list[str] = Field(default_factory=list)
+    latency_deadline_loss: float = 0.0
+    rollback_class_summary: dict[str, int] = Field(default_factory=dict)
+    aggregation_group_counts: dict[str, int] = Field(default_factory=dict)
+    aggregation_group_occupation: dict[str, float] = Field(default_factory=dict)
+    label_laundering_suspicions: list[str] = Field(default_factory=list)
+    protocol_integrity_refs: list[str] = Field(default_factory=list)
+    privacy_rejoin_refs: list[str] = Field(default_factory=list)
+    sovereignty_kernel_refs: list[str] = Field(default_factory=list)
+    distributed_origin_count: int = 0
+    adversarial_transfer_charge: float = 0.0
+    thermodynamic_discharge_charge: float = 0.0
     stale_packet_ratio: float = 0.0
     false_liquidity_rate: float = 0.0
     residual_debt_growth: float = 0.0

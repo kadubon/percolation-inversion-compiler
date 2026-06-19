@@ -46,6 +46,8 @@ from percolation_inversion_compiler.core.checker import (
     ObligationTrace,
     ProjectionAudit,
     TheoryAuditReport,
+    TheoryAuditSuiteReport,
+    TheoryFidelityReport,
     audit_registry_projection,
 )
 from percolation_inversion_compiler.core.coverage import (
@@ -75,8 +77,10 @@ from percolation_inversion_compiler.core.judgment import (
 )
 from percolation_inversion_compiler.core.ledger import EvidenceStatus, Ledger, LedgerCoordinate
 from percolation_inversion_compiler.core.operations import (
+    CommercialReadinessSummary,
     OperationalCheck,
     OperationalReadinessReport,
+    PortabilityConformanceReport,
     ProductionReadinessProfile,
 )
 from percolation_inversion_compiler.core.order import (
@@ -112,6 +116,7 @@ __all__ = [
     "CheckerContext",
     "ClaimRecord",
     "ClaimStatus",
+    "CommercialReadinessSummary",
     "ConfidenceLedger",
     "CoverageStatus",
     "DKWCertificate",
@@ -149,6 +154,7 @@ __all__ = [
     "ObligationTrace",
     "OperationalCheck",
     "OperationalReadinessReport",
+    "PortabilityConformanceReport",
     "ProductOrder",
     "ProductionReadinessProfile",
     "ProjectionAudit",
@@ -160,7 +166,9 @@ __all__ = [
     "StatusDecision",
     "StatusRule",
     "TheoryAuditReport",
+    "TheoryAuditSuiteReport",
     "TheoryCoverageRecord",
+    "TheoryFidelityReport",
     "TheoryImplementationRecord",
     "TheoryItem",
     "ValidityDomain",

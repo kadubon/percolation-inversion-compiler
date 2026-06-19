@@ -6,13 +6,12 @@ This repository is an AI agent runtime verification and ECPT collective phase ac
 
 It is not an ASI detector, a real ASI proof system, or a self-modifying AI system. It does not require self-rewrite, fine-tuning, or model-weight changes.
 
-v0.4.1 is the PyPI distribution snapshot with a beta API surface. The PyPI
-package is enough for `pic agent explain`, `pic demo installed-smoke`,
-`pic demo bootstrap`, `pic agent intake --text "..."`, `pic snapshot list`, and
-`pic schema --all --output-dir schemas`. Full practical use is clone
-recommended: commands that reference the root `examples/...` tree, canonical
-TeX audits, development fixtures, and release engineering checks require this
-repository checkout.
+v0.4.2 is the PyPI practical runtime snapshot with a beta API surface. The PyPI
+package is enough for `pic agent explain`, `pic agent check --text "..."`,
+`pic demo installed-smoke`, `pic demo bootstrap`, `pic agent intake --text "..."`,
+`pic snapshot list`, and `pic schema --all --output-dir schemas`. Clone this
+repository when commands need the root `examples/...` tree, canonical TeX
+audits, development fixtures, or release engineering checks.
 
 ## Install Modes
 
@@ -20,6 +19,7 @@ Installed package path:
 
 ```powershell
 python -m pip install percolation-inversion-compiler
+pic agent check --text "Candidate packet: preserve residuals." --profile development
 pic demo installed-smoke --profile development
 pic demo bootstrap --output-dir pic-demo
 pic runtime step --state pic-demo/runtime_state.json --input pic-demo/runtime_step_input.json --profile development
@@ -70,10 +70,12 @@ PowerShell:
 ```powershell
 uv run pic --help
 uv run pic agent explain
+uv run pic agent check --compact --text "Candidate packet: preserve residuals." --profile development
+uv run pic agent runbook --profile development
 uv run pic agent guide --profile development
 uv run pic agent readiness --profile production
 uv run pic identity explain-profile --profile research
-uv run pic agent communication-guide --profile development --no-allow-live-connectors
+uv run pic agent communication-guide --profile development
 uv run pic ecology policy explain --profile controlled_web
 uv run pic ecology ingest-general --source examples/agent_network/feed.xml --kind rss
 uv run pic ecology bridge-runtime --report examples/agent_network/general_intake_report.example.json
@@ -95,6 +97,8 @@ Installed package smoke commands:
 ```powershell
 python -m pip install percolation-inversion-compiler
 pic agent explain
+pic agent check --compact --text "Candidate packet: preserve residuals." --profile development
+pic agent runbook --profile development
 pic demo installed-smoke --profile development
 pic demo bootstrap --output-dir pic-demo
 pic runtime step --state pic-demo/runtime_state.json --input pic-demo/runtime_step_input.json --profile development
@@ -116,6 +120,12 @@ Do not infer that PIC is GitHub Actions-only. GitHub Actions is one copyable CI
 pattern. The fastest general entrypoint is still `pic agent intake`, and
 programmatic integration should start with
 `percolation_inversion_compiler.agent.run_agent_intake`.
+For first-time humans, CI jobs, and first-time agents, run
+`pic agent check --compact` before full intake. It emits the short practical
+contract: `accepted`, `workflow_usable`, `settled`, unresolved obligations,
+residual summary, next safe actions, schema refs, and safety invariants. Use
+`pic agent runbook` when an agent needs deterministic command/schema/field
+guidance without execution authority.
 
 External intake, agent-to-agent message checks, and ALT foundry admission are
 separate workflows from basic output checking. Start with
@@ -175,9 +185,10 @@ uv run pic runtime step --state examples/runtime_state.json --input examples/run
 - Do not execute arbitrary shell commands.
 - Preserve residual ledgers.
 - Production profile requires stronger identity and packet issuer context.
-- Keep live connectors disabled unless both request and runtime config explicitly opt in.
-- For general intake, live HTTP(S) requires source/request, intake policy, and runtime/service
-  config to opt in; one true flag is not enough.
+- Keep live connectors bounded and candidate-only by default when an explicit source is supplied.
+- Use `--no-allow-live-connectors` for local-only dry runs.
+- For general intake, live HTTP(S) requires an explicit source and live-enabled intake/runtime
+  policy. It never grants background crawling, shell execution, or downstream promotion.
 - Treat web/feed/agent-message input as packet candidates, not verified packet capital.
 - Treat ALT abstraction tokens as candidates until liquidity, transport, root, telemetry,
   lifecycle, and hazard checks pass.
@@ -196,7 +207,12 @@ Use `uv run pic agent guide --profile development` to get the deterministic work
 
 Use `uv run pic agent next --intake-report intake-report.json --profile production` after a runtime intake to decide which safe commands, SDK calls, schemas, and output fields to inspect next. These recommendations are not execution grants.
 
-For networked workflows, run `uv run pic agent communication-guide --profile development --no-allow-live-connectors` before enabling live connectors. General intake supports local HTML, RSS/Atom, JSON feed, NDJSON, bounded HTTP(S), and agent-message inboxes. Live web access remains explicit opt-in and fail-closed. Production/adversarial agent-message verification requires an accepted identity context; otherwise messages remain diagnostic packet candidates.
+For networked workflows, run `uv run pic agent communication-guide --profile development`.
+General intake supports local HTML, RSS/Atom, JSON feed, NDJSON, bounded HTTP(S), and
+agent-message inboxes. Live web access is enabled for explicit sources by default and remains
+candidate-only; use `--no-allow-live-connectors` for local-only dry runs. Production/adversarial
+agent-message verification requires an accepted identity context; otherwise messages remain
+diagnostic packet candidates.
 
 ## How To Patch This Repo
 

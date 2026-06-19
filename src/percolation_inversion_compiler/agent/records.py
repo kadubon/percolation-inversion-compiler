@@ -4,6 +4,11 @@ from __future__ import annotations
 
 from pydantic import BaseModel, Field
 
+from percolation_inversion_compiler.core.live_policy import (
+    default_allow_live_connectors,
+    live_default_mode,
+)
+from percolation_inversion_compiler.core.operations import CommercialReadinessSummary
 from percolation_inversion_compiler.runtime.records import (
     RuntimeIdentityContext,
     RuntimeState,
@@ -22,7 +27,7 @@ class AgentIntakeRequest(BaseModel):
     state: RuntimeState | None = None
     step_input: RuntimeStepInput | None = None
     identity_context: RuntimeIdentityContext | None = None
-    allow_live_connectors: bool = False
+    allow_live_connectors: bool = Field(default_factory=default_allow_live_connectors)
 
 
 class AgentIntakeReport(BaseModel):
@@ -37,6 +42,30 @@ class AgentIntakeReport(BaseModel):
     operationally_usable: bool = False
     settled: bool = False
     reasons: list[str] = Field(default_factory=list)
+
+
+class AgentCheckReport(BaseModel):
+    """Beginner-readable practical workflow check for installed-package users."""
+
+    report_id: str
+    profile: str = "development"
+    report_mode: str = "full"
+    compact: bool = False
+    practical_entrypoint: str = "pic agent check"
+    intake_report: AgentIntakeReport
+    checked_outputs: dict[str, str] = Field(default_factory=dict)
+    unresolved_obligations: list[str] = Field(default_factory=list)
+    residual_summary: dict[str, float] = Field(default_factory=dict)
+    next_safe_actions: list[str] = Field(default_factory=list)
+    schema_refs: list[str] = Field(default_factory=list)
+    runbook_steps: list[str] = Field(default_factory=list)
+    beginner_glossary: dict[str, str] = Field(default_factory=dict)
+    workflow_usable: bool = False
+    accepted: bool = False
+    operationally_usable: bool = False
+    settled: bool = False
+    reasons: list[str] = Field(default_factory=list)
+    safety_invariants: list[str] = Field(default_factory=list)
 
 
 class AgentWorkflowStep(BaseModel):
@@ -64,6 +93,23 @@ class AgentWorkflowGuide(BaseModel):
     settled: bool = False
 
 
+class AgentRunbookReport(BaseModel):
+    """Compact deterministic command/schema/field guidance for AI agents."""
+
+    report_id: str = "agent-runbook"
+    profile: str = "development"
+    entrypoint: str = "pic agent check --compact"
+    commands: list[str] = Field(default_factory=list)
+    schemas_to_inspect: list[str] = Field(default_factory=list)
+    fields_to_inspect: list[str] = Field(default_factory=list)
+    runbook_steps: list[str] = Field(default_factory=list)
+    safety_invariants: list[str] = Field(default_factory=list)
+    accepted: bool = True
+    operationally_usable: bool = True
+    settled: bool = False
+    reasons: list[str] = Field(default_factory=list)
+
+
 class AgentFeatureReadinessReport(BaseModel):
     """Agent-facing readiness summary for full runtime use."""
 
@@ -71,6 +117,9 @@ class AgentFeatureReadinessReport(BaseModel):
     profile: str
     runtime_health: dict[str, object] = Field(default_factory=dict)
     readiness: dict[str, str] = Field(default_factory=dict)
+    commercial_readiness: CommercialReadinessSummary = Field(
+        default_factory=CommercialReadinessSummary
+    )
     recommended_next_commands: list[str] = Field(default_factory=list)
     safety_invariants: list[str] = Field(default_factory=list)
     accepted: bool = False
@@ -97,10 +146,10 @@ class AgentNextActionReport(BaseModel):
 
 
 class AgentCommunicationPolicy(BaseModel):
-    """Explicit opt-in policy for external communication guidance."""
+    """Bounded default-live policy for external communication guidance."""
 
     profile: str = "development"
-    allow_live_connectors: bool = False
+    allow_live_connectors: bool = Field(default_factory=default_allow_live_connectors)
     allowed_source_kinds: list[str] = Field(
         default_factory=lambda: [
             "github",
@@ -120,7 +169,12 @@ class AgentCommunicationPolicy(BaseModel):
     required_env_vars: list[str] = Field(default_factory=list)
     token_policy: str = "environment-only"
     arbitrary_execution_allowed: bool = False
-    live_connectors_default_enabled: bool = False
+    live_connectors_default_enabled: bool = Field(default_factory=default_allow_live_connectors)
+    live_default_mode: str = Field(default_factory=live_default_mode)
+    explicit_source_required: bool = True
+    candidate_only_by_default: bool = True
+    opt_out_available: bool = True
+    background_crawling_allowed: bool = False
     residual_behavior: str = "connector failures become diagnostic residual ledger entries"
 
 
@@ -146,7 +200,7 @@ class AgentCommunicationGuide(BaseModel):
 
     guide_id: str = "agent-communication-guide"
     profile: str = "development"
-    allow_live_connectors: bool = False
+    allow_live_connectors: bool = Field(default_factory=default_allow_live_connectors)
     policy: AgentCommunicationPolicy = Field(default_factory=AgentCommunicationPolicy)
     steps: list[AgentCommunicationStep] = Field(default_factory=list)
     safety_invariants: list[str] = Field(default_factory=list)
@@ -160,7 +214,10 @@ class AgentNetworkReadinessReport(BaseModel):
 
     report_id: str
     profile: str = "development"
-    allow_live_connectors: bool = False
+    allow_live_connectors: bool = Field(default_factory=default_allow_live_connectors)
+    live_default_mode: str = Field(default_factory=live_default_mode)
+    opt_out_available: bool = True
+    bounded_candidate_intake: bool = True
     connector_dependency_present: bool = False
     github_token_present: bool = False
     runtime_token_present: bool = False

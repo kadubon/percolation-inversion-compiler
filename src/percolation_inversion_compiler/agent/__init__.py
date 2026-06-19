@@ -3,18 +3,22 @@
 from __future__ import annotations
 
 from percolation_inversion_compiler.agent.algorithms import (
+    agent_check_compact_payload,
     agent_feature_readiness,
     agent_manifest_payload,
     agent_network_readiness,
     agent_safety_invariants,
     build_agent_communication_guide,
+    build_agent_runbook,
     build_agent_workflow_guide,
     minimal_runtime_state,
     minimal_runtime_step_input,
     recommend_agent_next_actions,
+    run_agent_check,
     run_agent_intake,
 )
 from percolation_inversion_compiler.agent.records import (
+    AgentCheckReport,
     AgentCommunicationGuide,
     AgentCommunicationPolicy,
     AgentCommunicationStep,
@@ -23,11 +27,13 @@ from percolation_inversion_compiler.agent.records import (
     AgentIntakeRequest,
     AgentNetworkReadinessReport,
     AgentNextActionReport,
+    AgentRunbookReport,
     AgentWorkflowGuide,
     AgentWorkflowStep,
 )
 
 __all__ = [
+    "AgentCheckReport",
     "AgentCommunicationGuide",
     "AgentCommunicationPolicy",
     "AgentCommunicationStep",
@@ -36,16 +42,20 @@ __all__ = [
     "AgentIntakeRequest",
     "AgentNetworkReadinessReport",
     "AgentNextActionReport",
+    "AgentRunbookReport",
     "AgentWorkflowGuide",
     "AgentWorkflowStep",
+    "agent_check_compact_payload",
     "agent_feature_readiness",
     "agent_manifest_payload",
     "agent_network_readiness",
     "agent_safety_invariants",
     "build_agent_communication_guide",
+    "build_agent_runbook",
     "build_agent_workflow_guide",
     "minimal_runtime_state",
     "minimal_runtime_step_input",
     "recommend_agent_next_actions",
+    "run_agent_check",
     "run_agent_intake",
 ]

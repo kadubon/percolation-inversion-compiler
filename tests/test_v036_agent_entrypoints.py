@@ -6,9 +6,13 @@ from pathlib import Path
 from typer.testing import CliRunner
 
 from percolation_inversion_compiler.agent import (
+    AgentCheckReport,
     AgentIntakeReport,
     AgentIntakeRequest,
+    agent_check_compact_payload,
     build_agent_communication_guide,
+    build_agent_runbook,
+    run_agent_check,
     run_agent_intake,
 )
 from percolation_inversion_compiler.cli import app
@@ -32,7 +36,7 @@ def test_agents_md_exists_and_states_safety_contract() -> None:
 def test_agent_manifest_json_is_machine_readable() -> None:
     data = json.loads((ROOT / "agent-manifest.json").read_text(encoding="utf-8"))
     assert data["name"] == "percolation-inversion-compiler"
-    assert data["version"] == "0.4.1"
+    assert data["version"] == "0.4.2"
     assert "non_goals" in data
     assert "safe_cli_entrypoints" in data
     assert "important_schemas" in data
@@ -44,9 +48,10 @@ def test_agent_manifest_json_is_machine_readable() -> None:
     assert "AgentMessageEnvelope" in data["important_schemas"]
     assert "AgentMessageVerificationContext" in data["important_schemas"]
     assert "pic demo installed-smoke --profile development" in data["safe_cli_entrypoints"]
+    assert any("pic agent check" in item for item in data["safe_cli_entrypoints"])
     assert data["machine_contract"]["curated_demo_bundle_in_wheel"] is True
     assert data["clone_url"] == "https://github.com/kadubon/percolation-inversion-compiler.git"
-    assert data["clone_recommended_for_full_use"] is True
+    assert data["clone_recommended_for_full_use"] is False
     assert "examples/..." in data["pip_boundary"]["clone_required_for"][0]
     assert "astral.sh/uv/install.ps1" in data["uv_install_commands"]["windows_powershell"]
     assert "astral.sh/uv/install.sh" in data["uv_install_commands"]["macos_linux"]
@@ -68,7 +73,7 @@ def test_schema_index_json_points_to_schema_bundle_command() -> None:
     assert "pic demo installed-smoke --profile development" in data["network_safe_cli"]
     assert data["network_contract"]["curated_demo_bundle_in_wheel"] is True
     assert data["clone_url"] == "https://github.com/kadubon/percolation-inversion-compiler.git"
-    assert data["clone_recommended_for_full_use"] is True
+    assert data["clone_recommended_for_full_use"] is False
     assert data["install_modes"][0]["mode"] == "pip"
     assert data["install_modes"][1]["mode"] == "source-checkout"
     assert "astral.sh/uv/install.ps1" in data["uv_install_commands"]["windows_powershell"]
@@ -103,8 +108,9 @@ def test_pic_agent_explain_and_manifest_exit_zero() -> None:
     assert manifest.exit_code == 0
     manifest_data = json.loads(manifest.output)
     assert manifest_data["machine_contract"]["settled_false_is_expected"] is True
-    assert manifest_data["clone_recommended_for_full_use"] is True
+    assert manifest_data["clone_recommended_for_full_use"] is False
     assert manifest_data["install_modes"][0]["mode"] == "pip"
+    assert "pic agent check" in "\n".join(manifest_data["safe_cli_entrypoints"])
     assert "pic demo bootstrap" in "\n".join(manifest_data["safe_cli_entrypoints"])
 
 
@@ -153,6 +159,85 @@ def test_pic_agent_intake_development_exit_zero() -> None:
     assert data["runtime_report"]["settled"] is False
 
 
+def test_pic_agent_check_reports_beginner_workflow_without_settlement() -> None:
+    report = run_agent_check(
+        AgentIntakeRequest(
+            agent_output="Candidate packet: preserve residuals and route verifier work.",
+            profile="development",
+        )
+    )
+    assert isinstance(report, AgentCheckReport)
+    assert report.workflow_usable is True
+    assert report.accepted is True
+    assert report.operationally_usable is False
+    assert report.settled is False
+    assert report.unresolved_obligations
+    assert report.next_safe_actions
+    assert report.schema_refs
+    assert report.runbook_steps
+
+    result = runner.invoke(
+        app,
+        [
+            "agent",
+            "check",
+            "--text",
+            "Candidate packet: preserve residuals and route verifier work.",
+            "--profile",
+            "development",
+        ],
+    )
+    assert result.exit_code == 0
+    data = json.loads(result.output)
+    assert data["workflow_usable"] is True
+    assert data["settled"] is False
+    assert data["unresolved_obligations"]
+
+    compact_report = run_agent_check(
+        AgentIntakeRequest(
+            agent_output="Candidate packet: preserve residuals and route verifier work.",
+            profile="development",
+        ),
+        compact=True,
+    )
+    payload = agent_check_compact_payload(compact_report)
+    assert payload["report_mode"] == "compact"
+    assert "intake_report" not in payload
+    assert "AgentCheckReport" in payload["schema_refs"]
+
+    compact_result = runner.invoke(
+        app,
+        [
+            "agent",
+            "check",
+            "--compact",
+            "--text",
+            "Candidate packet: preserve residuals and route verifier work.",
+            "--profile",
+            "development",
+        ],
+    )
+    assert compact_result.exit_code == 0
+    compact_data = json.loads(compact_result.output)
+    assert compact_data["workflow_usable"] is True
+    assert compact_data["settled"] is False
+    assert "intake_report" not in compact_data
+
+
+def test_pic_agent_runbook_reports_practical_next_fields() -> None:
+    report = build_agent_runbook("development")
+    assert report.accepted
+    assert report.settled is False
+    assert "AgentCheckReport" in report.schemas_to_inspect
+    assert "intake_report.runtime_report.phase_control_audit" in report.fields_to_inspect
+
+    result = runner.invoke(app, ["agent", "runbook", "--profile", "development"])
+    assert result.exit_code == 0
+    data = json.loads(result.output)
+    assert data["entrypoint"] == "pic agent check --compact"
+    assert "RuntimeStepReport" in data["schemas_to_inspect"]
+
+
 def test_run_agent_intake_can_explicitly_opt_into_live_config() -> None:
     report = run_agent_intake(
         AgentIntakeRequest(
@@ -166,6 +251,15 @@ def test_run_agent_intake_can_explicitly_opt_into_live_config() -> None:
 
 
 def test_pic_agent_communication_guide_reports_general_intake() -> None:
+    default_result = runner.invoke(
+        app,
+        ["agent", "communication-guide", "--profile", "development"],
+    )
+    assert default_result.exit_code == 0
+    default_data = json.loads(default_result.output)
+    assert default_data["allow_live_connectors"] is True
+    assert default_data["policy"]["live_connectors_default_enabled"] is True
+
     result = runner.invoke(
         app,
         [
@@ -205,6 +299,50 @@ def test_pic_agent_network_readiness_has_no_network_side_effects() -> None:
     enabled_data = json.loads(enabled.output)
     assert enabled_data["allow_live_connectors"] is True
     assert "connector_dependency_present" in enabled_data
+
+
+def test_pic_agent_message_send_receive_and_relay_readiness(tmp_path: Path) -> None:
+    inbox = tmp_path / "cli-inbox.json"
+    readiness = runner.invoke(app, ["agent", "relay-readiness", "--inbox", str(inbox)])
+    assert readiness.exit_code == 0
+    readiness_data = json.loads(readiness.output)
+    assert readiness_data["allow_live_connectors"] is True
+    assert readiness_data["readiness"]["local_inbox"] == "create-on-send"
+
+    sent = runner.invoke(
+        app,
+        [
+            "agent",
+            "message",
+            "send",
+            "--inbox",
+            str(inbox),
+            "--sender",
+            "agent:alice",
+            "--receiver",
+            "agent:bob",
+            "--nonce",
+            "nonce-cli-1",
+            "--text",
+            "CLI relay packet: preserve residuals.",
+        ],
+    )
+    assert sent.exit_code == 0
+    sent_data = json.loads(sent.output)
+    assert sent_data["accepted"] is True
+    assert sent_data["action"] == "send"
+    assert inbox.exists()
+
+    received = runner.invoke(app, ["agent", "message", "receive", "--inbox", str(inbox)])
+    assert received.exit_code == 0
+    received_data = json.loads(received.output)
+    assert received_data["accepted"] is True
+    assert received_data["action"] == "receive"
+    assert received_data["nonce_ledger"]["consumed_nonces"] == ["nonce-cli-1"]
+
+    verified = runner.invoke(app, ["agent", "inbox", "verify", "--inbox", str(inbox)])
+    assert verified.exit_code == 0
+    assert json.loads(verified.output)["accepted"] is True
 
 
 def test_pic_agent_doctor_production_reports_identity_not_ready() -> None:
@@ -306,6 +444,14 @@ def test_agent_intake_report_schema_is_exported() -> None:
     )
     assert verification_context.exit_code == 0
     assert json.loads(verification_context.output)["title"] == "AgentMessageVerificationContext"
+
+    check = runner.invoke(app, ["schema", "--type", "AgentCheckReport"])
+    assert check.exit_code == 0
+    assert json.loads(check.output)["title"] == "AgentCheckReport"
+
+    runbook = runner.invoke(app, ["schema", "--type", "AgentRunbookReport"])
+    assert runbook.exit_code == 0
+    assert json.loads(runbook.output)["title"] == "AgentRunbookReport"
 
 
 def test_general_intake_and_agent_message_cli_smoke(tmp_path: Path) -> None:

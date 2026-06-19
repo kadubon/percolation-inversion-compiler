@@ -1,5 +1,5 @@
 {
-  "allow_live_connectors": false,
+  "allow_live_connectors": true,
   "allowed_source_kinds": [
     "web-page",
     "rss",
@@ -21,7 +21,7 @@
   "seen_message_nonces": [],
   "web_policy": {
     "allow_http": false,
-    "allow_live_connectors": false,
+    "allow_live_connectors": true,
     "allowed_content_types": [
       "application/atom+xml",
       "application/feed+json",
@@ -53,6 +53,6 @@
     "respect_robots": true,
     "robots_uncertainty_is_diagnostic": false,
     "timeout_seconds": 20.0,
-    "user_agent": "percolation-inversion-compiler-agent-intake/0.4.1"
+    "user_agent": "percolation-inversion-compiler-agent-intake/0.4.2"
   }
 }

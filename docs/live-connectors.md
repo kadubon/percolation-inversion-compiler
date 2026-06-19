@@ -1,6 +1,6 @@
 # Live Connectors And General Intake
 
-PIC supports optional live connector ingestion for GitHub, Zenodo, arXiv, and bounded
+PIC supports bounded live connector ingestion for GitHub, Zenodo, arXiv, and bounded
 general HTTP(S)/feed sources. Connectors are intentionally small and fail closed:
 network errors, rate limits, missing optional dependencies, authentication failures,
 private-network targets, unsupported content types, and oversized responses return
@@ -25,13 +25,15 @@ uv run pic ecology discover-web --source examples/agent_network/page.html
 uv run pic ecology bridge-runtime --report examples/agent_network/general_intake_report.example.json
 ```
 
-Live web intake remains explicit. The CLI sets both the source descriptor and intake policy
-only when `--allow-live-connectors` is present; runtime/service callers must also set their
-own runtime config flag.
+Live web intake is default-enabled only for explicit sources. The CLI sets both the source
+descriptor and intake policy to live-capable by default; pass `--no-allow-live-connectors`
+for local-only dry runs. Runtime/service callers can still set their own runtime config flag
+to false.
 
 ```powershell
-uv run pic ecology ingest-general --source https://example.org --kind web-page --allow-live-connectors
-uv run pic ecology discover-web --source https://example.org --allow-live-connectors
+uv run pic ecology ingest-general --source https://example.org --kind web-page
+uv run pic ecology discover-web --source https://example.org
+uv run pic ecology ingest-general --source https://example.org --kind web-page --no-allow-live-connectors
 ```
 
 Connector policy:
@@ -55,6 +57,8 @@ Connector policy:
 - Local HTML discovery follows only links inside the seed file directory; `..` path escapes are
   ignored.
 - Web discovery does not execute scripts, submit forms, or mutate repositories.
+- Default-live mode does not grant background crawling, autonomous polling, shell execution,
+  or status promotion.
 - CI tests use fixtures or mocks, not live network availability.
 
 Connectors produce candidate packets. A candidate still needs edge witnesses, verifier routes,

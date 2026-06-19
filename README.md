@@ -8,16 +8,22 @@ Search terms: ECPT, BIT, TRC, SQOT, ALT, abstraction liquidity, reusable abstrac
 
 New to PIC? Start with the [GitHub Wiki](https://github.com/kadubon/percolation-inversion-compiler/wiki) for a plain-language guide to what PIC does, why AI agent output is treated as candidate work, getting started, use cases, core concepts, and agent-safe interpretation of `accepted=true` and `settled=false`.
 
-Distribution status: v0.4.1 is a stable distribution snapshot with a beta API
+Distribution status: v0.4.2 is a practical runtime snapshot with a beta API
 surface. Install the core package from PyPI with `pip install
 percolation-inversion-compiler`; use `pip install
 "percolation-inversion-compiler[identity,connectors,server]"` when you need
-cryptographic identity checks, explicit opt-in live intake, or the optional
-local HTTP service. The PyPI package is intended for curated demo smoke checks,
-bundled snapshots, schema export, library import, and basic CLI/runtime
-verification. Clone the repository for full practical use: commands that
-reference `examples/...`, canonical TeX audits, live development fixtures, and
-release engineering require a source checkout.
+cryptographic identity checks, live HTTP/feed intake, or the optional
+local HTTP service. The PyPI package is intended for practical agent output checking,
+bundled snapshots, schema export, library import, curated installed workflows,
+and CLI/runtime verification. Clone the repository for canonical TeX audits,
+commands that reference the root `examples/...` tree, live development
+fixtures, and release engineering.
+
+Common-language glossary: capability packet = checked reusable work item;
+residual ledger = explicit unresolved-work ledger; SQOT = finite attention/task
+scheduler; ALT = reusable abstraction value checker; ECPT = workflow graph and
+collective phase-control model; BIT = bottleneck/witness calculus; TRC = typed
+trace and real-world frontier compiler. See [Glossary](docs/glossary.md).
 
 ## What It Does Not Do
 
@@ -46,9 +52,15 @@ release engineering require a source checkout.
 
 The runtime is fail-closed: planning can recommend finite ASI-proxy actions, but `settled` remains false unless scoped verifier rules discharge the required finite obligations. In production, signed identities and Sybil-resistance ledgers can prevent duplicate-key, clone-fanout, revoked, expired, or unsigned agent populations from producing accepted collective certificates. Residual external obligations remain explicit.
 
-v0.4.1 keeps ALT abstraction-liquidity foundry support so external knowledge and agent traces can become reusable abstraction-token candidates, then certified abstraction capital only after lower-bound surplus, transport, root-of-trust, telemetry, lifecycle, and hazard checks pass. ALT also adds negative-liquidity, deprecation/resurrection, baseline refresh, reproduction diagnostics, and ALT-CARA acceleration certificates so stale or unsafe abstraction claims remain repairable residual work rather than silent capital. Use `development`, `research`, `controlled`, `federated`, `production`, or `adversarial` profiles to choose how communication policy, cryptographic identities, homogeneous fleets, signed packet issuers, and Sybil-resistance ledgers affect packet promotion and collective certificates.
+v0.4.2 keeps ALT abstraction-liquidity foundry support so external knowledge and agent traces can become reusable abstraction-token candidates, then certified abstraction capital only after lower-bound surplus, calibrated proxy or causal value evidence, transport, root-of-trust, telemetry, lifecycle, and hazard checks pass. ALT also adds negative-liquidity, deprecation/resurrection, baseline refresh, reproduction diagnostics, and ALT-CARA acceleration certificates so stale or unsafe abstraction claims remain repairable residual work rather than silent capital. Use `development`, `research`, `controlled`, `federated`, `production`, or `adversarial` profiles to choose how communication policy, cryptographic identities, homogeneous fleets, signed packet issuers, and Sybil-resistance ledgers affect packet promotion and collective certificates.
 
 Core contract: registry is metadata, not evidence. Use `pic doctor` and structured checker outputs to distinguish declared status, finite certificate results, proof obligations, and residual ledgers.
+
+The intended ASI-proxy effect is operational: many agents repeatedly exchange
+bounded candidate work, preserve residuals, verify reusable packets, and route
+bottlenecks through finite checks. PIC can make that networked workflow
+machine-readable and auditable; it does not guarantee that a real ASI phase,
+physical event, or oracle-truth transition has occurred.
 
 ## For AI Agents
 
@@ -56,9 +68,19 @@ Start with [AGENTS.md](AGENTS.md) and [For AI agents](docs/for-agents.md). The f
 
 ```powershell
 uv run pic agent explain
+uv run pic agent check --compact --text "Candidate packet: route evidence and preserve residuals." --profile development
+uv run pic agent runbook --profile development
 uv run pic agent guide --profile development
+uv run pic agent check --text "Candidate packet: route evidence and preserve residuals." --profile development
 uv run pic agent intake --text "Candidate packet: route evidence and preserve residuals." --profile development
 ```
+
+Command choice:
+
+- Use `pic agent check --compact` when a human, CI job, or first-time agent needs the shortest practical JSON contract.
+- Use `pic agent runbook` when an agent needs deterministic next commands, schemas, and fields to inspect.
+- Use `pic agent intake` or `pic runtime step` when the caller needs the full nested runtime report.
+- Use `pic audit fidelity` from a source checkout when canonical TeX theory-fidelity and finite-upgrade candidates matter.
 
 Production packet promotion requires identity context:
 
@@ -90,19 +112,21 @@ see [Integration Examples](docs/integrations/README.md). For the CI pattern, see
 [copyable example workflow](examples/github_action_agent_output_check/README.md).
 
 For networked collective-phase workflows, inspect the communication guide first. General web,
-feed, and agent-to-agent intake are default-off for live network access; external content becomes
-packet candidates only. Live intake requires three aligned opt-ins: the source/request flag,
-the intake policy, and the runtime or service config. Reports preserve sanitized provenance
+feed, and agent-to-agent intake are live-capable by default when an explicit source is supplied;
+external content becomes packet candidates only. Use `--no-allow-live-connectors` for local-only
+dry runs. Reports preserve sanitized provenance
 (`provenance`, `web_fetch_reports`, content SHA-256, redirect and robots/rate diagnostics)
 without exposing local absolute paths, cookies, tokens, or query secrets.
 
 ```powershell
-uv run pic agent communication-guide --profile development --no-allow-live-connectors
+uv run pic agent communication-guide --profile development
 uv run pic ecology policy explain --profile controlled_web
 uv run pic ecology ingest-general --source examples/agent_network/feed.xml --kind rss
 uv run pic ecology bridge-runtime --report examples/agent_network/general_intake_report.example.json
 uv run pic alt admit --packet examples/alt/admission_packet.json
 uv run pic agent message contract --message examples/agent_network/agent_message.json
+uv run pic agent message send --inbox inbox.json --sender agent:alice --text "Candidate packet: preserve residuals."
+uv run pic agent message receive --inbox inbox.json
 ```
 
 For production agent-to-agent messages, derive an accepted identity context first and pass it
@@ -113,24 +137,29 @@ accept the packet as finite-scope capital.
 
 ## Quickstart
 
-### Path A: Pip Install For Immediate Runtime Smoke
+### Path A: Pip Install For Immediate Practical Checks
 
 Use this when an agent has no source checkout and needs to verify the installed
-package, inspect schemas/snapshots, or run the bundled curated demo.
+package, check agent output, inspect schemas/snapshots, or run the bundled
+curated workflow.
 
 ```powershell
 python -m pip install percolation-inversion-compiler
 pic agent explain
+pic agent check --compact --text "Candidate packet: route evidence and preserve residuals." --profile development
+pic agent runbook --profile development
+pic agent check --text "Candidate packet: route evidence and preserve residuals." --profile development
 pic demo installed-smoke --profile development
 pic demo bootstrap --output-dir pic-demo
 pic agent intake --text "Candidate packet: route evidence and preserve residuals." --profile development
 pic runtime step --state pic-demo/runtime_state.json --input pic-demo/runtime_step_input.json --profile development
 ```
 
-### Path B: Clone For Full Practical Use
+### Path B: Clone For Canonical Audits And Development
 
-Use this when you want fixture-backed commands, `examples/...`, canonical-source
-audits, full research workflows, release checks, or local development.
+Use this when you want fixture-backed commands, `examples/...`,
+canonical-source audits, full research workflows, release checks, or local
+development.
 
 Install `uv` if it is not already available. Official install commands:
 

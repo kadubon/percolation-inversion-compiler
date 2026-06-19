@@ -68,7 +68,7 @@ def create_runtime_app(settings: RuntimeServiceSettings | None = None) -> Any:
 
     fastapi_app = fastapi.FastAPI(
         title="Percolation Inversion Compiler Runtime",
-        version="0.4.1",
+        version="0.4.2",
         description="Local-first ECPT active ASI-proxy phase-control runtime service.",
     )
     http_exception = fastapi.HTTPException
@@ -335,7 +335,9 @@ def create_runtime_app(settings: RuntimeServiceSettings | None = None) -> Any:
         payload = await request.json()
         source = str(payload.get("source", ""))
         kind = str(payload.get("kind", "agent-output"))
-        allow_live = bool(payload.get("allow_live_connectors", False))
+        allow_live = bool(
+            payload.get("allow_live_connectors", active_settings.allow_live_connectors)
+        )
         if kind == "agent-output":
             report = ingest_agent_output(source, output_id=str(payload.get("output_id", "service")))
         elif (

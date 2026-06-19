@@ -202,6 +202,51 @@ def test_sqot_scheduler_exercises_fail_closed_decisions() -> None:
     assert risk_report.decisions[0].reasons == ["risk budget would be exceeded"]
 
 
+def test_sqot_scheduler_reports_v042_attention_diagnostics() -> None:
+    diagnostic = SalienceQueueRecord(
+        record_id="diag",
+        item_type="diagnostic",
+        salience_class="diagnostic",
+        expected_downstream_gain=0.8,
+        residual_reduction=0.4,
+        verification_cost=0.4,
+        effective_reserve_eligible=True,
+        aggregation_group="shared-signal",
+        rollback_class="none",
+    )
+    verifier = SalienceQueueRecord(
+        record_id="verifier",
+        item_type="verifier",
+        salience_class="verifier",
+        expected_downstream_gain=0.8,
+        residual_reduction=0.4,
+        verification_cost=0.2,
+        latency_cost=0.1,
+        deadline_loss=0.2,
+        audit_recursion_depth=3,
+        rollback_class="soft",
+        aggregation_group="shared-signal",
+        label_laundering_suspected=True,
+    )
+    report = build_salience_schedule(
+        [diagnostic, verifier],
+        attention_budget=1.0,
+        diagnostic_reserve=DiagnosticReservePolicy(minimum_reserve=0.2, audit_depth=1),
+        risk_budget=1.0,
+    )
+    decisions = {decision.record_id: decision for decision in report.decisions}
+    assert decisions["diag"].decision == SalienceDecision.RUN
+    assert decisions["verifier"].decision == SalienceDecision.DEFER
+    assert "audit recursion budget would be exceeded" in decisions["verifier"].reasons
+    assert report.effective_diagnostic_reserve == 0.4
+    assert report.audit_recursion_violations == ["verifier"]
+    assert abs(report.latency_deadline_loss - 0.3) < 1e-9
+    assert report.rollback_class_summary["soft"] == 1
+    assert report.aggregation_group_counts["shared-signal"] == 2
+    assert "aggregation-group:shared-signal" in report.label_laundering_suspicions
+    assert "verifier" in report.label_laundering_suspicions
+
+
 def test_packet_ecology_builds_edges_psi_and_bottleneck_plan() -> None:
     ingestion = ingest_agent_output(
         "ECPT packet verifier output for SQOT salience queue.\n"

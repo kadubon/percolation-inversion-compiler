@@ -74,10 +74,13 @@ from percolation_inversion_compiler.runtime.records import (
     AgentPopulationState,
     AgentRuntimeConfig,
     AgentTask,
+    BottleneckWitnessReport,
     CollectivePhaseCertificate,
     EvidenceResolutionBatch,
     FixedPopulationLedger,
+    FrontierDebtReport,
     PhaseAccelerationScore,
+    PhaseControlAuditSummary,
     PopulationRuntimeStepReport,
     ResourceEnvelope,
     ResourceMatchedBaselineConfig,
@@ -277,6 +280,7 @@ def build_runtime_step(
         | route_residuals
         | {obligation for task in tasks for obligation in task.residual_coordinates}
     )
+    bottleneck_tasks = [task for task in tasks if task.task_type == "bottleneck-intervention"]
     if step_input.live_sources and not _live_enabled(step_input, active_config):
         reasons.append(
             "live connector sources were diagnostic because runtime live ingestion is disabled"
@@ -297,6 +301,13 @@ def build_runtime_step(
         and not schedule.quarantine_ledger.quarantined_items
         and active_config.action_commit_policy != ActionCommitPolicy.RECOMMEND_ONLY
     )
+    phase_control_audit = _phase_control_audit_summary(
+        phase_report,
+        target_nodes=state.phase_objective.target.target_nodes,
+        proxy_coordinates=state.phase_objective.target.proxy_coordinates,
+    )
+    frontier_debt_report = _frontier_debt_report(missing_obligations, residual)
+    bottleneck_witness_reports = _bottleneck_witness_reports(bottleneck_tasks)
     event_log_delta = RuntimeEventLog(
         events=[
             _runtime_event(
@@ -336,6 +347,12 @@ def build_runtime_step(
         phase_run_report=phase_report,
         salience_schedule=schedule,
         phase_acceleration_score=score,
+        phase_control_summary=_phase_control_summary(phase_control_audit),
+        frontier_debt_summary=_frontier_debt_summary(frontier_debt_report),
+        bottleneck_witness_tasks=bottleneck_tasks,
+        phase_control_audit=phase_control_audit,
+        frontier_debt_report=frontier_debt_report,
+        bottleneck_witness_reports=bottleneck_witness_reports,
         evidence_resolution_batch=evidence_batch,
         promotion_report=promotion_report,
         edge_relation_reports=edge_relation_reports,
@@ -352,6 +369,240 @@ def build_runtime_step(
         reasons=sorted(set(reasons)),
         allow_live_connectors=_live_enabled(step_input, active_config),
     )
+
+
+def _phase_control_audit_summary(
+    phase_report: PhaseControlRunReport,
+    *,
+    target_nodes: Sequence[str],
+    proxy_coordinates: Mapping[str, float],
+) -> PhaseControlAuditSummary:
+    baseline_proxy_mass = sum(
+        max(0.0, phase_report.baseline_reachable_mass.get(node, 0.0)) for node in target_nodes
+    )
+    controlled_proxy_mass = sum(
+        max(0.0, phase_report.controlled_reachable_mass.get(node, 0.0)) for node in target_nodes
+    )
+    proxy_bundle_mass = sum(max(0.0, value) for value in proxy_coordinates.values())
+    target_node_count = len(target_nodes)
+    proxy_coordinate_count = len(proxy_coordinates)
+    selected_action_count = len(phase_report.plan.selected_actions)
+    candidate_count = len(phase_report.plan.candidates)
+    missing_obligation_count = len(phase_report.plan.missing_obligations)
+    duplicate_mass_excluded = (
+        len(set(target_nodes)) == target_node_count
+        and len(set(proxy_coordinates)) == proxy_coordinate_count
+    )
+    baseline_comparison_ready = bool(phase_report.baseline_reachable_mass)
+    reasons: list[str] = []
+    if not target_nodes or not proxy_coordinates:
+        reasons.append("proxy target grounding is incomplete")
+    if not duplicate_mass_excluded:
+        reasons.append("duplicate target or proxy mass must be excluded")
+    if not baseline_comparison_ready:
+        reasons.append("baseline reachable mass is unavailable")
+    if not candidate_count:
+        reasons.append("phase-control candidates are unavailable")
+    if missing_obligation_count:
+        reasons.append("phase-control missing obligations remain")
+    queue_capacity_margin = float(max(0, candidate_count - selected_action_count))
+    return PhaseControlAuditSummary(
+        summary_id=f"phase-control-audit:{phase_report.target_id}",
+        target_id=phase_report.target_id,
+        target_node_count=target_node_count,
+        proxy_bundle_coordinate_count=proxy_coordinate_count,
+        proxy_bundle_mass=proxy_bundle_mass,
+        baseline_proxy_mass=baseline_proxy_mass,
+        controlled_proxy_mass=controlled_proxy_mass,
+        finite_proxy_gain_total=phase_report.plan.finite_proxy_gain_total,
+        selected_action_count=selected_action_count,
+        candidate_count=candidate_count,
+        missing_obligation_count=missing_obligation_count,
+        split_certified_quotient_ready=bool(
+            phase_report.plan.accepted and not phase_report.plan.partial
+        ),
+        duplicate_mass_excluded=duplicate_mass_excluded,
+        proxy_target_grounding_required=not bool(target_nodes and proxy_coordinates),
+        baseline_comparison_ready=baseline_comparison_ready,
+        execution_availability_required=bool(selected_action_count),
+        queue_capacity_constraints_visible=bool(candidate_count >= selected_action_count),
+        queue_capacity_margin=queue_capacity_margin,
+        split_certificate_refs=sorted(
+            {action.action_id for action in phase_report.plan.selected_actions}
+        ),
+        proxy_target_grounding_refs=sorted(proxy_coordinates),
+        baseline_comparison_label=(
+            "resource-comparable-proxy-baseline" if baseline_comparison_ready else "unavailable"
+        ),
+        execution_available_path_count=selected_action_count,
+        partial=phase_report.plan.partial,
+        operationally_usable=phase_report.plan.operationally_usable,
+        settled=False,
+        reasons=sorted(set(reasons)),
+    )
+
+
+def _phase_control_summary(
+    report: PhaseControlAuditSummary,
+) -> dict[str, str | int | float | bool]:
+    return {
+        "target_id": report.target_id,
+        "target_node_count": report.target_node_count,
+        "proxy_bundle_coordinate_count": report.proxy_bundle_coordinate_count,
+        "proxy_bundle_mass": report.proxy_bundle_mass,
+        "baseline_proxy_mass": report.baseline_proxy_mass,
+        "controlled_proxy_mass": report.controlled_proxy_mass,
+        "finite_proxy_gain_total": report.finite_proxy_gain_total,
+        "selected_action_count": report.selected_action_count,
+        "candidate_count": report.candidate_count,
+        "missing_obligation_count": report.missing_obligation_count,
+        "split_certified_quotient_ready": report.split_certified_quotient_ready,
+        "duplicate_mass_excluded": report.duplicate_mass_excluded,
+        "proxy_target_grounding_required": report.proxy_target_grounding_required,
+        "baseline_comparison_ready": report.baseline_comparison_ready,
+        "execution_availability_required": report.execution_availability_required,
+        "queue_capacity_constraints_visible": report.queue_capacity_constraints_visible,
+        "queue_capacity_margin": report.queue_capacity_margin,
+        "execution_available_path_count": report.execution_available_path_count,
+        "partial": report.partial,
+        "operationally_usable": report.operationally_usable,
+        "settled": report.settled,
+    }
+
+
+def _frontier_debt_report(
+    missing_obligations: Sequence[str], residual_ledger: Ledger
+) -> FrontierDebtReport:
+    labels = [*missing_obligations, *residual_ledger.coordinates]
+    lowered = [label.lower() for label in labels]
+    partial_frontier_count = sum(
+        1 for label in lowered if "partial" in label or "frontier" in label
+    )
+    progressive_fidelity_count = sum(
+        1
+        for label in lowered
+        if "progressive" in label
+        or "fidelity" in label
+        or "tolerance" in label
+        or "relaxed" in label
+    )
+    trace_or_frontier_count = sum(1 for label in lowered if "trace" in label or "frontier" in label)
+    trace_normal_form_count = sum(
+        1 for label in lowered if "normal-form" in label or "normal_form" in label
+    )
+    physical_hybrid_count = sum(
+        1
+        for label in lowered
+        if "physical" in label or "hybrid" in label or "world" in label or "oracle" in label
+    )
+    physical_null_channel_count = sum(
+        1 for label in lowered if "physical-null" in label or "null-channel" in label
+    )
+    hybrid_residual_count = sum(
+        1 for label in lowered if "hybrid" in label or "residual-propagation" in label
+    )
+    telemetry_resource_count = sum(
+        1
+        for label in lowered
+        if "telemetry" in label or "resource-cost" in label or "resource_cost" in label
+    )
+    external_count = sum(
+        1
+        for label in lowered
+        if "external" in label or "physical" in label or "hybrid" in label or "oracle" in label
+    )
+    reasons: list[str] = []
+    if missing_obligations:
+        reasons.append("missing obligations remain on the runtime frontier")
+    if residual_ledger.coordinates:
+        reasons.append("residual coordinates remain on the runtime frontier")
+    return FrontierDebtReport(
+        missing_obligation_count=len(missing_obligations),
+        residual_coordinate_count=len(residual_ledger.coordinates),
+        residual_burden=residual_ledger.burden_sum(),
+        partial_frontier_debt_count=partial_frontier_count,
+        progressive_fidelity_debt_count=progressive_fidelity_count,
+        trace_or_frontier_debt_count=trace_or_frontier_count,
+        trace_normal_form_debt_count=trace_normal_form_count,
+        physical_hybrid_obligation_count=physical_hybrid_count,
+        physical_null_channel_debt_count=physical_null_channel_count,
+        hybrid_residual_propagation_count=hybrid_residual_count,
+        telemetry_resource_cost_debt_count=telemetry_resource_count,
+        external_obligation_count=external_count,
+        frontier_debt_classes=dict(
+            sorted(
+                {
+                    "partial_frontier": partial_frontier_count,
+                    "progressive_fidelity": progressive_fidelity_count,
+                    "trace_normal_form": trace_normal_form_count,
+                    "physical_hybrid": physical_hybrid_count,
+                    "physical_null_channel": physical_null_channel_count,
+                    "hybrid_residual_propagation": hybrid_residual_count,
+                    "telemetry_resource_cost": telemetry_resource_count,
+                    "external": external_count,
+                }.items()
+            )
+        ),
+        residual_coordinates=sorted(residual_ledger.coordinates),
+        missing_obligations=sorted(set(missing_obligations)),
+        accepted=True,
+        operationally_usable=not missing_obligations and not residual_ledger.coordinates,
+        settled=False,
+        reasons=sorted(set(reasons)),
+    )
+
+
+def _frontier_debt_summary(report: FrontierDebtReport) -> dict[str, int | float]:
+    return {
+        "missing_obligation_count": report.missing_obligation_count,
+        "residual_coordinate_count": report.residual_coordinate_count,
+        "residual_burden": report.residual_burden,
+        "partial_frontier_debt_count": report.partial_frontier_debt_count,
+        "progressive_fidelity_debt_count": report.progressive_fidelity_debt_count,
+        "trace_or_frontier_debt_count": report.trace_or_frontier_debt_count,
+        "trace_normal_form_debt_count": report.trace_normal_form_debt_count,
+        "physical_hybrid_obligation_count": report.physical_hybrid_obligation_count,
+        "physical_null_channel_debt_count": report.physical_null_channel_debt_count,
+        "hybrid_residual_propagation_count": report.hybrid_residual_propagation_count,
+        "telemetry_resource_cost_debt_count": report.telemetry_resource_cost_debt_count,
+        "external_obligation_count": report.external_obligation_count,
+    }
+
+
+def _bottleneck_witness_reports(tasks: Sequence[AgentTask]) -> list[BottleneckWitnessReport]:
+    reports: list[BottleneckWitnessReport] = []
+    for task in tasks:
+        release_delta = max(0.0, task.expected_proxy_gain)
+        burden_delta = float(len(task.residual_coordinates))
+        reports.append(
+            BottleneckWitnessReport(
+                report_id=f"bottleneck-witness:{task.task_id}",
+                task_id=task.task_id,
+                witness_kind=task.metadata.get("witness_kind", task.task_type),
+                target_component=task.target_component,
+                action_kind=task.action_kind,
+                action_id=task.action_id,
+                release_delta=release_delta,
+                burden_delta=burden_delta,
+                priority_score=task.priority_score,
+                next_verifier_routes=sorted(task.required_routes),
+                required_evidence_kind=sorted(task.required_evidence_kind),
+                residual_coordinates=sorted(task.residual_coordinates),
+                simulation_barrier_residuals=sorted(
+                    coord
+                    for coord in task.residual_coordinates
+                    if "simulation" in coord.lower() or "barrier" in coord.lower()
+                ),
+                next_verifier_route=(
+                    sorted(task.required_routes)[0] if task.required_routes else None
+                ),
+                rollback_condition=task.rollback_condition,
+                operationally_usable=task.operationally_usable,
+                settled=False,
+                reasons=list(task.reasons),
+            )
+        )
+    return reports
 
 
 def run_runtime_loop(

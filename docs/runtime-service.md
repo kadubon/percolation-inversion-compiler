@@ -16,11 +16,11 @@ Production policy:
 - Binds to `127.0.0.1` by default.
 - Requires `Authorization: Bearer <PIC_RUNTIME_TOKEN>`.
 - Does not store bearer tokens, private keys, or local absolute paths.
-- Does not call live connectors unless request JSON explicitly opts in and the
-  service was started with `--allow-live-connectors`.
+- Allows bounded live connectors for explicit sources by default; start with
+  `--no-allow-live-connectors` or send `"allow_live_connectors": false` for local-only mode.
 - `/ecology/ingest` accepts agent output, general web/feed/message intake, and
-  specialized metadata sources; live network access still requires request and
-  service opt-in.
+  specialized metadata sources; live network access remains candidate-only and explicit-source
+  bounded.
 - Returns deterministic diagnostic JSON for failures rather than stack traces.
 
 Endpoints:

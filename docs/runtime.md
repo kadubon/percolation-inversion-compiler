@@ -1,6 +1,6 @@
 # ECPT Active Agent Runtime
 
-`pic runtime` is the v0.3.4 active loop for agents. It composes the existing
+`pic runtime` is the v0.4.2 active loop for agents. It composes the existing
 finite ECPT planner, SQOT salience scheduler, packet ecology, certificate
 checks, verifier route catalog, provenance policy, and residual ledgers into
 one deterministic report.
@@ -25,6 +25,24 @@ It returns `RuntimeStepReport`:
 - `salience_schedule`: SQOT queue decisions for packets, obligations, and
   verifier tasks.
 - `phase_acceleration_score`: finite score for ranking active agent work.
+- `phase_control_summary`: ECPT target, baseline, controlled proxy mass,
+  proxy-bundle, action-count, and missing-obligation summary. Kept for
+  compatibility.
+- `phase_control_audit`: typed ECPT phase-control diagnostics for
+  split-certified quotient readiness, duplicate-mass exclusion, proxy-target
+  grounding, baseline comparison, execution availability, and queue/capacity
+  visibility.
+- `frontier_debt_summary`: TRC-facing partial-frontier/progressive-fidelity
+  debt summary derived from missing obligations and residual coordinates. Kept
+  for compatibility.
+- `frontier_debt_report`: typed TRC debt report covering partial-frontier,
+  progressive-fidelity, trace-normal-form, physical/hybrid, and external
+  obligations.
+- `bottleneck_witness_tasks`: BIT-facing bottleneck tasks extracted from the
+  full `agent_tasks` list for reuse by ports and orchestrators.
+- `bottleneck_witness_reports`: typed BIT witness records with witness kind,
+  release delta, burden delta, residual coordinates, rollback condition, and
+  next verifier routes.
 - `evidence_resolution_batch`: accepted and rejected verifier obligations for
   inline evidence envelopes.
 - `promotion_report`: verified packet capital and packet rejections.
@@ -58,9 +76,18 @@ uv run pic runtime health --state examples/runtime_state.json --profile producti
 uv run pic runtime export-openapi --output runtime-openapi.json
 ```
 
-Live connectors are disabled by default. A runtime step uses GitHub, Zenodo, or
-arXiv only when both the runtime config and the step input set
-`allow_live_connectors=true`.
+Live connectors are enabled by default for explicit sources, bounded by runtime
+config and step input. Use `--no-allow-live-connectors` or set
+`allow_live_connectors=false` in both records for a local-only dry run.
+
+For installed-package use without repository fixtures, start with:
+
+```powershell
+python -m pip install percolation-inversion-compiler
+pic agent check --text "Candidate packet: preserve residuals." --profile development
+pic demo bootstrap --output-dir pic-demo
+pic runtime step --state pic-demo/runtime_state.json --input pic-demo/runtime_step_input.json --profile development
+```
 
 ## Python SDK
 

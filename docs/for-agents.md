@@ -16,7 +16,10 @@ agent output
 -> next runtime step
 ```
 
-The shortest SDK path is `percolation_inversion_compiler.agent.run_agent_intake`. It constructs a deterministic minimal runtime state when no explicit state is supplied and returns a residual-preserving `AgentIntakeReport`.
+The shortest practical CLI path is `pic agent check --compact`. The shortest
+SDK path is `percolation_inversion_compiler.agent.run_agent_intake`. It
+constructs a deterministic minimal runtime state when no explicit state is
+supplied and returns a residual-preserving `AgentIntakeReport`.
 
 ```python
 from percolation_inversion_compiler.agent import AgentIntakeRequest, run_agent_intake
@@ -62,6 +65,9 @@ print(report.settled)  # Expected to remain False unless scoped verifier rules s
 - `salience_schedule`
 - `route_execution_requests`
 - `agent_tasks`
+- `phase_control_audit`
+- `frontier_debt_report`
+- `bottleneck_witness_reports`
 - external intake `provenance`
 - agent-message `identity_verified`
 - agent-message `nonce_ledger`
@@ -76,6 +82,9 @@ Installed package path:
 ```powershell
 python -m pip install percolation-inversion-compiler
 pic agent explain
+pic agent check --compact --text "Candidate packet: route evidence and preserve residuals." --profile development
+pic agent runbook --profile development
+pic agent check --text "Candidate packet: route evidence and preserve residuals." --profile development
 pic demo installed-smoke --profile development
 pic demo bootstrap --output-dir pic-demo
 pic runtime step --state pic-demo/runtime_state.json --input pic-demo/runtime_step_input.json --profile development
@@ -85,9 +94,10 @@ pic snapshot list
 pic schema --type AgentIntakeReport
 ```
 
-Use the installed package path for curated demo smoke checks, bundled snapshots,
-schema export, and your own JSON inputs. Clone the repository for full practical
-use with repository fixtures and `examples/...`.
+Use the installed package path for practical agent-output checks, curated
+workflow checks, bundled snapshots, schema export, and your own JSON inputs.
+Clone the repository for root fixtures, canonical TeX audits, release checks,
+and `examples/...`.
 
 Source checkout path with repository fixtures:
 
@@ -101,11 +111,13 @@ uv run pic agent guide --profile development
 uv run pic agent readiness --profile development
 uv run pic agent doctor --profile development
 uv run pic agent intake --text "Candidate packet: route evidence and preserve residuals." --profile development
-uv run pic agent communication-guide --profile development --no-allow-live-connectors
+uv run pic agent communication-guide --profile development
 uv run pic ecology policy explain --profile controlled_web
 uv run pic ecology ingest-general --source examples/agent_network/feed.xml --kind rss
 uv run pic ecology bridge-runtime --report examples/agent_network/general_intake_report.example.json
 uv run pic agent message contract --message examples/agent_network/agent_message.json
+uv run pic agent message send --inbox inbox.json --sender agent:alice --text "Candidate packet: preserve residuals."
+uv run pic agent message receive --inbox inbox.json
 uv run pic agent message ingest --message examples/agent_network/agent_message.json
 ```
 
@@ -149,17 +161,18 @@ uv run pic agent next --intake-report intake-report.json --profile development
 
 ## Networked Packet Intake
 
-Use [Agent external communication](agent-external-communication.md) before enabling live
-connectors. Offline intake covers RSS/Atom, local HTML, JSON feed, NDJSON, and agent-message
-inboxes:
+Use [Agent external communication](agent-external-communication.md) to inspect bounded live
+defaults and opt-out behavior. Offline intake covers RSS/Atom, local HTML, JSON feed, NDJSON,
+and agent-message inboxes:
 
 ```powershell
-uv run pic agent network-readiness --profile development --no-allow-live-connectors
+uv run pic agent network-readiness --profile development
 uv run pic ecology ingest-general --source examples/agent_network/page.html --kind web-page
 uv run pic ecology discover-web --source examples/agent_network/page.html
 ```
 
-Live HTTP(S), GitHub, Zenodo, and arXiv intake require explicit opt-in. External content becomes
+Live HTTP(S), GitHub, Zenodo, and arXiv intake are allowed by default for explicit sources and
+can be disabled with `--no-allow-live-connectors`. External content becomes
 `CapabilityPacketCandidate` records. It cannot become verified packet capital, improve a
 collective certificate, or set `settled=true` without verifier route, semantic edge, identity,
 rollback, and residual checks.
@@ -169,7 +182,7 @@ The bridge output tells agents whether each packet is SQOT diagnostic work, veri
 quarantine work, or candidate-only. Treat `ecpt_phase_contribution_allowed=false` as the default
 until packet promotion produces finite verified capital.
 
-For live general intake, require all three opt-ins: source/request, `GeneralIntakePolicy`, and
+For live general intake, require an explicit source plus live-enabled `GeneralIntakePolicy` and
 runtime/service config. For agent-to-agent messages, production/adversarial verification also
 requires an accepted identity context:
 

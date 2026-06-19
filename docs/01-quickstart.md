@@ -1,9 +1,9 @@
 # Quickstart
 
 This page shows the shortest paths to useful deterministic JSON. Use PyPI for
-installed-package smoke checks and curated demos. Clone the repository for full
-practical use with `examples/...`, canonical-source audits, fixtures, and
-release checks.
+practical agent-output checks, installed-package workflow checks, snapshots, and
+schemas. Clone the repository when you need the root `examples/...` tree,
+canonical-source audits, fixtures, or release checks.
 
 ## Agent Quickstart
 
@@ -14,6 +14,9 @@ After PyPI installation:
 ```powershell
 python -m pip install percolation-inversion-compiler
 pic agent explain
+pic agent check --compact --text "Candidate packet: route evidence and preserve residuals." --profile development
+pic agent runbook --profile development
+pic agent check --text "Candidate packet: route evidence and preserve residuals." --profile development
 pic demo installed-smoke --profile development
 pic demo bootstrap --output-dir pic-demo
 pic agent guide --profile development
@@ -21,7 +24,8 @@ pic agent intake --text "Candidate packet: route evidence and preserve residuals
 pic runtime step --state pic-demo/runtime_state.json --input pic-demo/runtime_step_input.json --profile development
 ```
 
-For full practical use, clone the source checkout first:
+For source fixtures, canonical audits, and development checks, clone the source
+checkout first:
 
 ```powershell
 powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
@@ -46,9 +50,12 @@ Then run source-checkout commands:
 
 ```powershell
 uv run pic agent explain
+uv run pic agent check --compact --text "Candidate packet: route evidence and preserve residuals." --profile development
+uv run pic agent runbook --profile development
 uv run pic agent guide --profile development
 uv run pic agent readiness --profile development
 uv run pic agent doctor --profile development
+uv run pic agent check --text "Candidate packet: route evidence and preserve residuals." --profile development
 uv run pic agent intake --text "Candidate packet: route evidence and preserve residuals." --profile development
 ```
 
@@ -70,20 +77,24 @@ uv run pic agent next --intake-report intake-report.json --profile development
 
 ## Networked Intake Quickstart
 
-Use this path before enabling live connectors. It exercises broad intake and agent-to-agent
-exchange with offline fixtures:
+Use this path to inspect bounded live defaults and exercise broad intake and agent-to-agent
+exchange with offline fixtures. Add `--no-allow-live-connectors` when a local-only dry run is
+required:
 
 ```powershell
-uv run pic agent communication-guide --profile development --no-allow-live-connectors
-uv run pic agent network-readiness --profile development --no-allow-live-connectors
+uv run pic agent communication-guide --profile development
+uv run pic agent network-readiness --profile development
 uv run pic ecology ingest-general --source examples/agent_network/feed.xml --kind rss
 uv run pic ecology ingest-general --source examples/agent_network/page.html --kind web-page
+uv run pic agent relay-readiness --profile development
+uv run pic agent message send --inbox inbox.json --sender agent:alice --text "Candidate packet: preserve residuals."
+uv run pic agent message receive --inbox inbox.json
 uv run pic agent message ingest --message examples/agent_network/agent_message.json
 ```
 
-Live HTTP(S), GitHub, Zenodo, and arXiv intake require `--allow-live-connectors`.
-External content remains packet candidates until verifier, semantic edge, identity, rollback,
-and residual policies pass.
+Live HTTP(S), GitHub, Zenodo, and arXiv intake are allowed by default for explicit sources and
+remain bounded/candidate-only. External content remains packet candidates until verifier,
+semantic edge, identity, rollback, and residual policies pass.
 
 ## 1. Install
 
@@ -172,6 +183,11 @@ See [examples/walkthrough_collective_phase](../examples/walkthrough_collective_p
 $env:PIC_CANONICAL_TEX_DIR = "path\to\canonical\tex"
 uv run pic check --source "$env:PIC_CANONICAL_TEX_DIR\Executable Capability Percolation Theory.tex" --canonical-key ecpt --strict-projection
 uv run pic audit theory --source "$env:PIC_CANONICAL_TEX_DIR\Executable Capability Percolation Theory.tex" --canonical-key ecpt --strict-grammar
+uv run pic audit canonical-suite --canonical-dir "$env:PIC_CANONICAL_TEX_DIR"
+uv run pic audit fidelity --canonical-dir "$env:PIC_CANONICAL_TEX_DIR"
 ```
 
-Canonical TeX is never vendored. Use local files or the DOI metadata workflow appropriate for your environment.
+Canonical TeX is never vendored and is not required for installed-package
+agent checking. Use local files or the DOI metadata workflow appropriate for
+your environment when you need theory-fidelity audits and finite-upgrade
+candidates.

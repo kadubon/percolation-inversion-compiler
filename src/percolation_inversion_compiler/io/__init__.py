@@ -2,11 +2,19 @@
 
 from __future__ import annotations
 
-from percolation_inversion_compiler.io.audit import audit_theory_source
+from percolation_inversion_compiler.io.audit import (
+    audit_canonical_suite,
+    audit_theory_source,
+    build_theory_fidelity_report,
+    canonical_suite_sources,
+    theory_audit_cli_payload,
+)
+from percolation_inversion_compiler.io.commercial import build_commercial_readiness_summary
 from percolation_inversion_compiler.io.doctor import (
     build_operational_readiness_report,
     readiness_profile,
 )
+from percolation_inversion_compiler.io.portability import verify_portability_conformance
 from percolation_inversion_compiler.io.provenance import (
     AttestationRecord,
     ProvenanceManifest,
@@ -84,12 +92,16 @@ __all__ = [
     "TexGrammarDiagnostic",
     "TheorySnapshot",
     "TheorySnapshotItem",
+    "audit_canonical_suite",
     "audit_theory_source",
+    "build_commercial_readiness_summary",
     "build_cyclonedx_sbom",
     "build_operational_readiness_report",
     "build_pic_sbom",
     "build_sbom_document",
+    "build_theory_fidelity_report",
     "canonical_manifest",
+    "canonical_suite_sources",
     "count_mr_records_by_category",
     "create_provenance_manifest",
     "extract_artifact",
@@ -107,7 +119,9 @@ __all__ = [
     "schema_by_type",
     "snapshot_delta",
     "strict_tex_parse_report",
+    "theory_audit_cli_payload",
     "validate_canonical_source",
     "validate_data",
+    "verify_portability_conformance",
     "verify_provenance_manifest",
 ]

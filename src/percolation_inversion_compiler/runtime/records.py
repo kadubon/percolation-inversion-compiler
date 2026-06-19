@@ -17,6 +17,10 @@ from percolation_inversion_compiler.core.adapter_routes import (
     VerifierResolution,
 )
 from percolation_inversion_compiler.core.ledger import Ledger
+from percolation_inversion_compiler.core.live_policy import (
+    default_allow_live_connectors,
+    live_default_safety_invariant,
+)
 from percolation_inversion_compiler.core.status import ClaimStatus
 from percolation_inversion_compiler.ecology.records import (
     AutocatalyticClosureWitness,
@@ -65,7 +69,7 @@ class AgentRuntimeConfig(BaseModel):
     profile: str = "development"
     identity_profile: str | None = None
     action_commit_policy: ActionCommitPolicy = ActionCommitPolicy.REQUIRE_VERIFIER_RESOLUTION
-    allow_live_connectors: bool = False
+    allow_live_connectors: bool = Field(default_factory=default_allow_live_connectors)
     attention_budget: float = 1.0
     risk_budget: float = 1.0
     psi_threshold: dict[str, float] = Field(default_factory=dict)
@@ -330,7 +334,7 @@ class RuntimeStepInput(BaseModel):
     local_sources: list[str] = Field(default_factory=list)
     live_sources: list[str] = Field(default_factory=list)
     packets: list[CapabilityPacketCandidate] = Field(default_factory=list)
-    allow_live_connectors: bool = False
+    allow_live_connectors: bool = Field(default_factory=default_allow_live_connectors)
     evidence_envelope_refs: list[str] = Field(default_factory=list)
     evidence_envelopes: list[VerifierEvidenceEnvelope] = Field(default_factory=list)
     edge_certificates: list[EdgeWitnessCertificate] = Field(default_factory=list)
@@ -400,6 +404,86 @@ class PhaseAccelerationScore(BaseModel):
     false_liquidity_charge: float = 0.0
     missing_route_charge: float = 0.0
     components: dict[str, float] = Field(default_factory=dict)
+
+
+class PhaseControlAuditSummary(BaseModel):
+    """Typed ECPT phase-control diagnostics derived from a finite runtime step."""
+
+    summary_id: str = "phase-control-audit:runtime"
+    target_id: str = ""
+    target_node_count: int = 0
+    proxy_bundle_coordinate_count: int = 0
+    proxy_bundle_mass: float = 0.0
+    baseline_proxy_mass: float = 0.0
+    controlled_proxy_mass: float = 0.0
+    finite_proxy_gain_total: float = 0.0
+    selected_action_count: int = 0
+    candidate_count: int = 0
+    missing_obligation_count: int = 0
+    split_certified_quotient_ready: bool = False
+    duplicate_mass_excluded: bool = False
+    proxy_target_grounding_required: bool = True
+    baseline_comparison_ready: bool = False
+    execution_availability_required: bool = True
+    queue_capacity_constraints_visible: bool = False
+    queue_capacity_margin: float = 0.0
+    split_certificate_refs: list[str] = Field(default_factory=list)
+    proxy_target_grounding_refs: list[str] = Field(default_factory=list)
+    baseline_comparison_label: str = "unavailable"
+    execution_available_path_count: int = 0
+    partial: bool = False
+    operationally_usable: bool = False
+    settled: bool = False
+    reasons: list[str] = Field(default_factory=list)
+
+
+class FrontierDebtReport(BaseModel):
+    """Typed TRC frontier debt summary for finite runtime outputs."""
+
+    report_id: str = "frontier-debt:runtime"
+    missing_obligation_count: int = 0
+    residual_coordinate_count: int = 0
+    residual_burden: float = 0.0
+    partial_frontier_debt_count: int = 0
+    progressive_fidelity_debt_count: int = 0
+    trace_or_frontier_debt_count: int = 0
+    trace_normal_form_debt_count: int = 0
+    physical_hybrid_obligation_count: int = 0
+    physical_null_channel_debt_count: int = 0
+    hybrid_residual_propagation_count: int = 0
+    telemetry_resource_cost_debt_count: int = 0
+    external_obligation_count: int = 0
+    frontier_debt_classes: dict[str, int] = Field(default_factory=dict)
+    residual_coordinates: list[str] = Field(default_factory=list)
+    missing_obligations: list[str] = Field(default_factory=list)
+    accepted: bool = False
+    operationally_usable: bool = False
+    settled: bool = False
+    reasons: list[str] = Field(default_factory=list)
+
+
+class BottleneckWitnessReport(BaseModel):
+    """Portable BIT witness task extracted from runtime bottleneck diagnostics."""
+
+    report_id: str
+    task_id: str = ""
+    witness_kind: str = "bottleneck-intervention"
+    target_component: str = ""
+    action_kind: str = ""
+    action_id: str | None = None
+    release_delta: float = 0.0
+    burden_delta: float = 0.0
+    priority_score: float = 0.0
+    next_verifier_routes: list[str] = Field(default_factory=list)
+    required_evidence_kind: list[str] = Field(default_factory=list)
+    residual_coordinates: list[str] = Field(default_factory=list)
+    simulation_barrier_residuals: list[str] = Field(default_factory=list)
+    portable_task_kind: str = "runtime-bottleneck-verifier-task"
+    next_verifier_route: str | None = None
+    rollback_condition: str = "runtime-score-nonpositive"
+    operationally_usable: bool = False
+    settled: bool = False
+    reasons: list[str] = Field(default_factory=list)
 
 
 class RuntimeRunReport(BaseModel):
@@ -591,6 +675,12 @@ class RuntimeStepReport(BaseModel):
     phase_run_report: PhaseControlRunReport
     salience_schedule: SalienceScheduleReport
     phase_acceleration_score: PhaseAccelerationScore
+    phase_control_summary: dict[str, str | int | float | bool] = Field(default_factory=dict)
+    frontier_debt_summary: dict[str, int | float] = Field(default_factory=dict)
+    bottleneck_witness_tasks: list[AgentTask] = Field(default_factory=list)
+    phase_control_audit: PhaseControlAuditSummary = Field(default_factory=PhaseControlAuditSummary)
+    frontier_debt_report: FrontierDebtReport = Field(default_factory=FrontierDebtReport)
+    bottleneck_witness_reports: list[BottleneckWitnessReport] = Field(default_factory=list)
     evidence_resolution_batch: EvidenceResolutionBatch = Field(
         default_factory=lambda: EvidenceResolutionBatch(batch_id="evidence-resolution:none")
     )
@@ -613,7 +703,7 @@ class RuntimeStepReport(BaseModel):
         default_factory=lambda: [
             "runtime planning does not prove unobserved ASI, physical, or oracle outcomes",
             "settled remains false unless verifier rules discharge the full finite route scope",
-            "live network ingestion is disabled unless explicitly requested",
+            live_default_safety_invariant(),
             "residual ledgers and missing obligations are preserved across runtime steps",
         ]
     )
@@ -663,6 +753,6 @@ class RuntimeServiceSettings(BaseModel):
     profile: str = "development"
     require_token: bool | None = None
     token_env_var: str = "PIC_RUNTIME_TOKEN"
-    allow_live_connectors: bool = False
+    allow_live_connectors: bool = Field(default_factory=default_allow_live_connectors)
     max_request_bytes: int = 1_000_000
     allowed_route_ids: list[str] = Field(default_factory=list)

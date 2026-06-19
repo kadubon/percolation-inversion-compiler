@@ -7,6 +7,7 @@ import importlib.util
 import os
 
 from percolation_inversion_compiler.agent.records import (
+    AgentCheckReport,
     AgentCommunicationGuide,
     AgentCommunicationPolicy,
     AgentCommunicationStep,
@@ -15,8 +16,14 @@ from percolation_inversion_compiler.agent.records import (
     AgentIntakeRequest,
     AgentNetworkReadinessReport,
     AgentNextActionReport,
+    AgentRunbookReport,
     AgentWorkflowGuide,
     AgentWorkflowStep,
+)
+from percolation_inversion_compiler.core.live_policy import (
+    default_allow_live_connectors,
+    live_default_non_authorities,
+    live_default_safety_invariant,
 )
 from percolation_inversion_compiler.ecology.records import (
     CapabilityPacketCandidate,
@@ -32,6 +39,7 @@ from percolation_inversion_compiler.ecpt.records import (
     PhaseControlObjective,
     PhaseControlState,
 )
+from percolation_inversion_compiler.io.commercial import build_commercial_readiness_summary
 from percolation_inversion_compiler.runtime.algorithms import build_runtime_step, runtime_health
 from percolation_inversion_compiler.runtime.records import (
     AgentRuntimeConfig,
@@ -40,12 +48,8 @@ from percolation_inversion_compiler.runtime.records import (
     RuntimeStepInput,
 )
 
-_CMD_AGENT_COMM_GUIDE_DEV = (
-    "uv run pic agent communication-guide --profile development --no-allow-live-connectors"
-)
-_CMD_AGENT_NETWORK_DEV = (
-    "uv run pic agent network-readiness --profile development --no-allow-live-connectors"
-)
+_CMD_AGENT_COMM_GUIDE_DEV = "uv run pic agent communication-guide --profile development"
+_CMD_AGENT_NETWORK_DEV = "uv run pic agent network-readiness --profile development"
 _CMD_INGEST_FEED = (
     "uv run pic ecology ingest-general --source examples/agent_network/feed.xml --kind rss"
 )
@@ -73,12 +77,9 @@ _CMD_PROVENANCE_CREATE = (
     "uv run pic provenance create --schema-dir schemas/generated --output provenance.json"
 )
 _CMD_LIVE_WEB_INGEST = (
-    "uv run pic ecology ingest-general --source https://example.org --kind web-page "
-    "--allow-live-connectors"
+    "uv run pic ecology ingest-general --source https://example.org --kind web-page"
 )
-_CMD_LIVE_WEB_DISCOVER = (
-    "uv run pic ecology discover-web --source https://example.org --allow-live-connectors"
-)
+_CMD_LIVE_WEB_DISCOVER = "uv run pic ecology discover-web --source https://example.org"
 _CMD_ALT_NEGATIVE = (
     "uv run pic alt negative-certify --certificate examples/alt/negative_liquidity_certificate.json"
 )
@@ -155,9 +156,11 @@ def agent_manifest_payload() -> dict[str, object]:
             "external_content_is_candidate_only": True,
             "feed_and_inbox_entry_counts_are_bounded": True,
             "general_intake_reports_sanitized_fetch_provenance": True,
-            "general_intake_requires_source_and_policy_opt_in": True,
+            "general_intake_requires_explicit_source": True,
+            "general_intake_is_bounded_candidate_only_by_default": True,
             "installed_package_smoke_commands_available": True,
-            "live_connectors_default_enabled": False,
+            "live_connectors_default_enabled": True,
+            "live_connectors_opt_out_available": True,
             "live_discovery_fetches_each_resource_once": True,
             "local_staged_intake_uses_byte_limits": True,
             "local_web_discovery_disallows_seed_directory_escape": True,
@@ -173,10 +176,12 @@ def agent_manifest_payload() -> dict[str, object]:
                 "mode": "pip",
                 "command": "python -m pip install percolation-inversion-compiler",
                 "intended_for": [
-                    "curated installed demo",
+                    "practical agent output checking",
+                    "curated installed workflow",
                     "bundled snapshots",
                     "schema export",
                     "library and CLI runtime checks",
+                    "ALT admission smoke with bundled data",
                 ],
                 "does_not_include": [
                     "root examples tree",
@@ -190,7 +195,6 @@ def agent_manifest_payload() -> dict[str, object]:
                     "git clone https://github.com/kadubon/percolation-inversion-compiler.git"
                 ),
                 "intended_for": [
-                    "full practical workflows",
                     "examples-backed commands",
                     "canonical TeX audits",
                     "development tests",
@@ -208,7 +212,13 @@ def agent_manifest_payload() -> dict[str, object]:
             "alt-foundry",
         ],
         "clone_url": "https://github.com/kadubon/percolation-inversion-compiler.git",
-        "clone_recommended_for_full_use": True,
+        "clone_recommended_for_full_use": False,
+        "clone_recommended_for": [
+            "canonical TeX audits",
+            "development fixtures",
+            "release engineering",
+            "editing examples and docs",
+        ],
         "uv_install_commands": {
             "windows_powershell": (
                 'powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"'
@@ -219,6 +229,7 @@ def agent_manifest_payload() -> dict[str, object]:
         "pip_boundary": {
             "pip_supports": [
                 "pic agent explain",
+                "pic agent check",
                 "pic demo installed-smoke",
                 "pic demo bootstrap",
                 "pic runtime step with bootstrapped demo files",
@@ -229,7 +240,6 @@ def agent_manifest_payload() -> dict[str, object]:
             "clone_required_for": [
                 "commands that reference examples/...",
                 "canonical TeX/PDF audits through local source files",
-                "full fixture-backed runtime workflows",
                 "release checks and provenance/SBOM asset generation",
             ],
         },
@@ -264,6 +274,7 @@ def agent_manifest_payload() -> dict[str, object]:
             "CLI AI agent output checking",
             "Python SDK agent runtime embedding",
             "read-only GitHub Actions audit artifact generation",
+            "bounded default-live explicit-source intake",
         ],
         "purpose": (
             "AI agent runtime verification and ECPT ASI-proxy collective phase acceleration"
@@ -303,6 +314,7 @@ def agent_manifest_payload() -> dict[str, object]:
         "safe_cli_entrypoints": [
             "python -m pip install percolation-inversion-compiler",
             "pic agent explain",
+            'pic agent check --text "Candidate packet: preserve residuals." --profile development',
             "pic demo installed-smoke --profile development",
             "pic demo bootstrap --output-dir pic-demo",
             (
@@ -333,6 +345,12 @@ def agent_manifest_payload() -> dict[str, object]:
             "uv run pic alt foundry-dashboard --state examples/alt/foundry_state.json",
             "uv run pic agent message contract --message examples/agent_network/agent_message.json",
             _CMD_AGENT_MESSAGE_INGEST,
+            "uv run pic agent relay-readiness --profile development",
+            (
+                "uv run pic agent message send --inbox inbox.json --sender agent:alice "
+                '--text "Candidate packet: preserve residuals."'
+            ),
+            "uv run pic agent message receive --inbox inbox.json",
             "uv run pic schema --type IntakeProvenanceRecord",
             "uv run pic runtime health --state examples/runtime_state.json --profile development",
             (
@@ -346,7 +364,7 @@ def agent_manifest_payload() -> dict[str, object]:
                 "--output identity-context.json"
             ),
         ],
-        "version": "0.4.1",
+        "version": "0.4.2",
     }
 
 
@@ -360,8 +378,8 @@ def agent_safety_invariants() -> list[str]:
         "this package does not require self-rewrite, fine-tuning, or model-weight changes",
         "agent-facing commands are recommendation-only and do not execute arbitrary shell commands",
         "production packet promotion requires accepted identity context",
-        "live connectors are disabled unless source/request, policy, "
-        "and runtime config explicitly opt in",
+        live_default_safety_invariant(),
+        *live_default_non_authorities(),
         "external metadata packets remain candidates until downstream checks pass",
         "candidate-only external intake cannot improve Psi, BR, AC, or collective certificates",
         "general web intake is bounded and does not execute scripts, forms, or repo mutation",
@@ -385,9 +403,9 @@ def _communication_policy(
 
 def build_agent_communication_guide(
     profile: str = "development",
-    allow_live_connectors: bool = False,
+    allow_live_connectors: bool = default_allow_live_connectors(),
 ) -> AgentCommunicationGuide:
-    """Build a deterministic guide for explicit external communication workflows."""
+    """Build a deterministic guide for bounded external communication workflows."""
 
     policy = _communication_policy(profile, allow_live_connectors)
     live_flag = "--allow-live-connectors" if allow_live_connectors else "--no-allow-live-connectors"
@@ -408,7 +426,7 @@ def build_agent_communication_guide(
             inspect_fields=["settled", "residual_summary", "readiness.live_metadata_ingest"],
             failure_modes=["missing local files", "diagnostic residuals"],
             residual_behavior="local diagnostics remain explicit residuals",
-            safety_notes=["Start local-only before enabling live connectors."],
+            safety_notes=["Use --no-allow-live-connectors when a local-only dry run is required."],
         ),
         AgentCommunicationStep(
             step_id="02-token-env-readiness",
@@ -473,7 +491,7 @@ def build_agent_communication_guide(
             residual_behavior="web/feed intake failures return diagnostic residuals",
             safety_notes=[
                 "General web intake never executes scripts or submits forms.",
-                "Live HTTP(S) requires source/request, policy, and runtime opt-in.",
+                "Live HTTP(S) requires an explicit source and remains bounded.",
                 "External candidate volume alone cannot improve accepted ECPT phase status.",
             ],
         ),
@@ -523,7 +541,10 @@ def build_agent_communication_guide(
         AgentCommunicationStep(
             step_id="05-live-metadata-ingest",
             title="Live Metadata Ingest",
-            purpose="Opt in to GitHub, Zenodo, or arXiv metadata packet candidates.",
+            purpose=(
+                "Ingest GitHub, Zenodo, or arXiv metadata packet candidates when sources "
+                "are explicit."
+            ),
             allowed_source_kinds=policy.allowed_source_kinds,
             safe_commands=[
                 _CMD_GITHUB_INGEST,
@@ -696,14 +717,10 @@ def build_agent_workflow_guide(profile: str = "development") -> AgentWorkflowGui
             title="External Communication Readiness",
             purpose="Check live connector and service readiness before any external communication.",
             safe_commands=[
-                (
-                    f"uv run pic agent communication-guide --profile {profile} "
-                    "--no-allow-live-connectors"
-                ),
-                (
-                    f"uv run pic agent network-readiness --profile {profile} "
-                    "--no-allow-live-connectors"
-                ),
+                f"uv run pic agent communication-guide --profile {profile}",
+                f"uv run pic agent network-readiness --profile {profile}",
+                f"uv run pic agent communication-guide --profile {profile} "
+                "--no-allow-live-connectors",
             ],
             sdk_entrypoints=[
                 "percolation_inversion_compiler.agent.build_agent_communication_guide",
@@ -711,7 +728,10 @@ def build_agent_workflow_guide(profile: str = "development") -> AgentWorkflowGui
             ],
             schemas=["AgentCommunicationGuide", "AgentNetworkReadinessReport"],
             inspect_fields=["allow_live_connectors", "readiness", "failure_modes"],
-            safety_notes=["Network access remains disabled until explicit opt-in."],
+            safety_notes=[
+                "Default-live mode is bounded and candidate-only for explicit sources.",
+                "Use --no-allow-live-connectors for local-only dry runs.",
+            ],
         ),
         AgentWorkflowStep(
             step_id="06-general-web-feed-intake",
@@ -742,7 +762,7 @@ def build_agent_workflow_guide(profile: str = "development") -> AgentWorkflowGui
             ],
             safety_notes=[
                 "General web intake is bounded and does not execute page code.",
-                "Live HTTP(S) requires source/request, policy, and runtime opt-in.",
+                "Live HTTP(S) requires an explicit source and remains candidate-only.",
             ],
         ),
         AgentWorkflowStep(
@@ -883,10 +903,73 @@ def build_agent_workflow_guide(profile: str = "development") -> AgentWorkflowGui
     )
 
 
+def agent_check_schema_refs() -> list[str]:
+    """Return compact practical schemas that first-time agents should inspect."""
+
+    return [
+        "AgentCheckReport",
+        "AgentIntakeReport",
+        "RuntimeStepReport",
+        "PhaseControlAuditSummary",
+        "FrontierDebtReport",
+        "BottleneckWitnessReport",
+        "SalienceScheduleReport",
+        "ALTAdmissionDecision",
+    ]
+
+
+def agent_runbook_steps(profile: str = "development") -> list[str]:
+    """Return deterministic practical steps without granting execution authority."""
+
+    return [
+        "Run pic agent check --compact on candidate agent output.",
+        "Read accepted, workflow_usable, settled, unresolved_obligations, and residual_summary.",
+        "Inspect next_safe_actions before promoting any reusable work item.",
+        (
+            "Read RuntimeStepReport phase_control_audit, frontier_debt_report, "
+            "and bottleneck_witness_reports when theory fidelity matters."
+        ),
+        "Use production identity context before production packet promotion.",
+        f"Use profile={profile} consistently across intake, runtime, and readiness commands.",
+    ]
+
+
+def build_agent_runbook(profile: str = "development") -> AgentRunbookReport:
+    """Build compact command/schema/field guidance for first-time agents."""
+
+    return AgentRunbookReport(
+        profile=profile,
+        commands=[
+            'pic agent check --compact --text "Candidate packet: preserve residuals."',
+            f"pic agent runbook --profile {profile}",
+            "pic schema --type AgentCheckReport",
+            "pic schema --type RuntimeStepReport",
+            "pic agent readiness --profile production",
+        ],
+        schemas_to_inspect=agent_check_schema_refs(),
+        fields_to_inspect=[
+            "accepted",
+            "workflow_usable",
+            "settled",
+            "unresolved_obligations",
+            "residual_summary",
+            "next_safe_actions",
+            "intake_report.runtime_report.phase_control_audit",
+            "intake_report.runtime_report.frontier_debt_report",
+            "intake_report.runtime_report.bottleneck_witness_reports",
+        ],
+        runbook_steps=agent_runbook_steps(profile),
+        safety_invariants=agent_safety_invariants(),
+        accepted=True,
+        operationally_usable=True,
+        settled=False,
+    )
+
+
 def agent_network_readiness(
     state: RuntimeState | None = None,
     profile: str = "development",
-    allow_live_connectors: bool = False,
+    allow_live_connectors: bool = default_allow_live_connectors(),
 ) -> AgentNetworkReadinessReport:
     """Summarize network readiness without making network calls."""
 
@@ -917,7 +1000,7 @@ def agent_network_readiness(
     }
     reasons: list[str] = []
     if not allow_live_connectors:
-        reasons.append("live connectors are disabled by default")
+        reasons.append("live connectors disabled by explicit opt-out")
     if not connector_dependency_present:
         reasons.append("optional connector dependency httpx is not installed")
     if profile_lower == "production" and not runtime_token_present:
@@ -944,6 +1027,8 @@ def agent_network_readiness(
         report_id=f"agent-network-readiness:{profile}:{str(allow_live_connectors).lower()}",
         profile=profile,
         allow_live_connectors=allow_live_connectors,
+        opt_out_available=True,
+        bounded_candidate_intake=True,
         connector_dependency_present=connector_dependency_present,
         github_token_present=github_token_present,
         runtime_token_present=runtime_token_present,
@@ -971,6 +1056,7 @@ def agent_network_readiness(
             "unsupported source kind",
             "private network target rejected",
             "source/request/policy/runtime opt-in mismatch",
+            "missing explicit source for live intake",
             "unsupported content type",
             "oversized response",
             "robots uncertainty",
@@ -1081,7 +1167,7 @@ def minimal_runtime_step_input(agent_output: str | None = None) -> RuntimeStepIn
                 rollback_available=False,
             )
         ],
-        allow_live_connectors=False,
+        allow_live_connectors=default_allow_live_connectors(),
     )
 
 
@@ -1111,6 +1197,51 @@ def _residual_summary(runtime_report: object) -> dict[str, float]:
     return dict(sorted(summary.items()))
 
 
+def _agent_check_glossary() -> dict[str, str]:
+    return {
+        "accepted": "The finite checker accepted the report shape and safe routing record.",
+        "capability_packet": "A checked reusable work item candidate.",
+        "operationally_usable": "The report can be used for stricter operational promotion.",
+        "residual_ledger": "Explicit unresolved-work ledger; residuals are not hidden failures.",
+        "settled": "All scoped verifier obligations are discharged. This usually remains false.",
+        "workflow_usable": (
+            "The report is useful for the next verification step even when unresolved "
+            "obligations keep settled=false."
+        ),
+    }
+
+
+def _unresolved_obligations_from_runtime_report(runtime_report: object) -> list[str]:
+    obligations = list(getattr(runtime_report, "missing_obligations", []))
+    for request in getattr(runtime_report, "route_execution_requests", []):
+        obligations.extend(getattr(request, "residual_external_obligations", []))
+        obligations.extend(getattr(request, "obligation_ids", []))
+    return sorted(set(str(item) for item in obligations if item))
+
+
+def _checked_outputs_from_runtime_report(runtime_report: object) -> dict[str, str]:
+    route_requests = getattr(runtime_report, "route_execution_requests", [])
+    agent_tasks = getattr(runtime_report, "agent_tasks", [])
+    promotion_report = getattr(runtime_report, "promotion_report", None)
+    salience_schedule = getattr(runtime_report, "salience_schedule", None)
+    return {
+        "agent_tasks": "present" if agent_tasks else "none",
+        "input": "accepted" if getattr(runtime_report, "accepted", False) else "diagnostic",
+        "promotion": (
+            "accepted"
+            if promotion_report is not None and getattr(promotion_report, "accepted", False)
+            else "diagnostic"
+        ),
+        "residual_ledger": "preserved",
+        "route_requests": "present" if route_requests else "none",
+        "salience_schedule": (
+            "accepted"
+            if salience_schedule is not None and getattr(salience_schedule, "accepted", False)
+            else "diagnostic"
+        ),
+    }
+
+
 def _recommended_next_commands(request: AgentIntakeRequest, runtime_report: object) -> list[str]:
     commands = [
         "Inspect runtime_report.residual_ledger and runtime_report.missing_obligations.",
@@ -1136,8 +1267,8 @@ def _recommended_next_commands(request: AgentIntakeRequest, runtime_report: obje
 def run_agent_intake(request: AgentIntakeRequest) -> AgentIntakeReport:
     """Run one safe runtime intake step for an AI agent.
 
-    This helper does not execute shell commands, mutate repositories, or access
-    live network connectors. It only assembles records and calls
+    This helper does not execute shell commands, mutate repositories, or start
+    background network activity. It only assembles records and calls
     ``build_runtime_step``.
     """
 
@@ -1173,11 +1304,79 @@ def run_agent_intake(request: AgentIntakeRequest) -> AgentIntakeReport:
     )
 
 
+def run_agent_check(request: AgentIntakeRequest, *, compact: bool = False) -> AgentCheckReport:
+    """Run a practical installed-package agent-output check.
+
+    This wrapper keeps existing ``accepted``, ``operationally_usable``, and
+    ``settled`` semantics unchanged. ``workflow_usable`` only means the report
+    is safe and useful for the next verification/routing step.
+    """
+
+    intake = run_agent_intake(request)
+    runtime_report = intake.runtime_report
+    unresolved = _unresolved_obligations_from_runtime_report(runtime_report)
+    next_actions = [
+        "Inspect unresolved_obligations before reusing the output.",
+        "Preserve residual_summary in downstream logs.",
+        "Route verifier requests before promoting candidates to reusable work.",
+    ]
+    next_actions.extend(intake.recommended_next_commands)
+    reasons = list(intake.reasons)
+    if unresolved:
+        reasons.append("unresolved obligations remain; use workflow_usable for routing only")
+    return AgentCheckReport(
+        report_id=f"agent-check:{request.request_id}",
+        profile=request.profile,
+        report_mode="compact" if compact else "full",
+        compact=compact,
+        practical_entrypoint="pic agent check --compact" if compact else "pic agent check",
+        intake_report=intake,
+        checked_outputs=_checked_outputs_from_runtime_report(runtime_report),
+        unresolved_obligations=unresolved,
+        residual_summary=intake.residual_summary,
+        next_safe_actions=sorted(set(next_actions)),
+        schema_refs=agent_check_schema_refs(),
+        runbook_steps=agent_runbook_steps(request.profile),
+        beginner_glossary=_agent_check_glossary(),
+        workflow_usable=bool(intake.accepted),
+        accepted=intake.accepted,
+        operationally_usable=intake.operationally_usable,
+        settled=False,
+        reasons=sorted(set(reasons)),
+        safety_invariants=agent_safety_invariants(),
+    )
+
+
+def agent_check_compact_payload(report: AgentCheckReport) -> dict[str, object]:
+    """Return the compact JSON contract for CI and agent runners."""
+
+    return {
+        "report_id": report.report_id,
+        "profile": report.profile,
+        "report_mode": "compact",
+        "accepted": report.accepted,
+        "workflow_usable": report.workflow_usable,
+        "operationally_usable": report.operationally_usable,
+        "settled": report.settled,
+        "checked_outputs": report.checked_outputs,
+        "unresolved_obligations": report.unresolved_obligations,
+        "residual_summary": report.residual_summary,
+        "next_safe_actions": report.next_safe_actions,
+        "schema_refs": report.schema_refs,
+        "runbook_steps": report.runbook_steps,
+        "safety_invariants": report.safety_invariants,
+        "reasons": report.reasons,
+    }
+
+
 def agent_feature_readiness(
     state: RuntimeState | None = None,
     profile: str = "development",
 ) -> AgentFeatureReadinessReport:
     """Summarize whether the agent can use the full runtime feature path."""
+
+    from percolation_inversion_compiler.io.schema import schema_model_map
+    from percolation_inversion_compiler.io.snapshots import list_theory_snapshots
 
     active_state = state or minimal_runtime_state()
     health = runtime_health(active_state, AgentRuntimeConfig(profile=profile))
@@ -1217,11 +1416,20 @@ def agent_feature_readiness(
             "--profile production --output identity-context.json"
         )
         reasons.append("production/adversarial packet promotion requires identity context")
+    commercial = build_commercial_readiness_summary(
+        profile=profile,
+        schema_count=len(schema_model_map()),
+        snapshot_count=len(list_theory_snapshots()),
+        provenance_verified=False,
+        security_metadata_present=True,
+        identity_ready=has_identity_context,
+    )
     return AgentFeatureReadinessReport(
         report_id=f"agent-feature-readiness:{active_state.state_id}:{profile}",
         profile=profile,
         runtime_health=health.model_dump(mode="json"),
         readiness=readiness,
+        commercial_readiness=commercial,
         recommended_next_commands=recommendations,
         safety_invariants=agent_safety_invariants(),
         accepted=True,
@@ -1283,7 +1491,7 @@ def recommend_agent_next_actions(
         next_sdk_calls.append("percolation_inversion_compiler.core.resolve_adapter_route")
     if not runtime_report.allow_live_connectors:
         next_commands.append(
-            "Use `pic agent communication-guide` before enabling live connector ingestion."
+            "Use `pic agent communication-guide` to inspect bounded live defaults."
         )
         next_commands.append(
             "Use `pic ecology ingest-general --source examples/agent_network/feed.xml --kind rss` "
@@ -1297,6 +1505,14 @@ def recommend_agent_next_actions(
             "percolation_inversion_compiler.agent.build_agent_communication_guide"
         )
         next_sdk_calls.append("percolation_inversion_compiler.ecology.ingest_general_source")
+    else:
+        next_commands.append(
+            "Use `pic ecology ingest-general --source <url-or-feed>` for "
+            "explicit-source live intake."
+        )
+        next_commands.append(
+            "Use `pic agent message send/receive` for local agent-to-agent relay checks."
+        )
     if runtime_report.agent_tasks:
         next_commands.append("Review agent_tasks; execute only through allowlisted policies.")
     if runtime_report.missing_obligations:

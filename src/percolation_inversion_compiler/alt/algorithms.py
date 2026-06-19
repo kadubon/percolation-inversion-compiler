@@ -30,6 +30,7 @@ from percolation_inversion_compiler.alt.records import (
     TelemetryCostCertificate,
     TokenLineage,
     TransportCertificate,
+    ValueBridgeReport,
 )
 from percolation_inversion_compiler.core.ledger import CoordinateKind, Ledger
 from percolation_inversion_compiler.core.records import CheckResult
@@ -462,6 +463,82 @@ def check_baseline_refresh_certificate(
     )
 
 
+def _value_bridge_report(certificate: LiquidityCertificate) -> ValueBridgeReport:
+    evidence_level = certificate.value_evidence_level.lower()
+    reasons: list[str] = []
+    if evidence_level not in {"proxy-only", "calibrated-proxy", "causal"}:
+        reasons.append("value_evidence_level must be proxy-only, calibrated-proxy, or causal")
+    if evidence_level == "proxy-only":
+        reasons.append("proxy-only evidence cannot certify reusable abstraction capital")
+    if evidence_level == "calibrated-proxy" and not certificate.proxy_bridge_refs:
+        reasons.append("calibrated proxy value evidence requires proxy_bridge_refs")
+    if evidence_level == "causal" and not certificate.causal_effect_refs:
+        reasons.append("causal value evidence requires causal_effect_refs")
+    if evidence_level in {"calibrated-proxy", "causal"} and not certificate.common_estimand_refs:
+        reasons.append("value bridge requires common_estimand_refs")
+    instrumentation_refs = sorted(
+        {
+            *certificate.telemetry_refs,
+            *certificate.root_of_trust_refs,
+            *certificate.robustness_refs,
+        }
+    )
+    contamination_diagnostics: list[str] = []
+    if not instrumentation_refs:
+        contamination_diagnostics.append("instrumentation or contamination-control refs absent")
+    transportability_ready = certificate.transport_certificate is not None
+    if not transportability_ready:
+        contamination_diagnostics.append("transportability certificate absent from value bridge")
+    baseline_refresh_ready = bool(
+        certificate.opportunity_contract
+        or certificate.lifecycle_bounds
+        or certificate.telemetry_cost_certificate
+    )
+    portfolio_gaming_diagnostics: list[str] = []
+    if certificate.hazard_envelope_certificate is None:
+        portfolio_gaming_diagnostics.append("hazard envelope absent for portfolio-gaming screen")
+    foundry_capacity_label = (
+        "causal-reproduction-ready"
+        if evidence_level == "causal" and certificate.causal_effect_refs and transportability_ready
+        else "transport-limited"
+        if not transportability_ready
+        else "evidence-limited"
+        if evidence_level == "proxy-only"
+        else "capacity-limited"
+    )
+    accepted = not reasons
+    return ValueBridgeReport(
+        report_id=f"alt-value-bridge:{certificate.certificate_id}",
+        value_evidence_level=certificate.value_evidence_level,
+        proxy_only=evidence_level == "proxy-only",
+        calibrated_proxy_bridge_ready=bool(
+            evidence_level == "calibrated-proxy"
+            and certificate.proxy_bridge_refs
+            and certificate.common_estimand_refs
+        ),
+        causal_effect_ready=bool(evidence_level == "causal" and certificate.causal_effect_refs),
+        common_estimand_ready=bool(certificate.common_estimand_refs),
+        proxy_bridge_refs=sorted(certificate.proxy_bridge_refs),
+        causal_effect_refs=sorted(certificate.causal_effect_refs),
+        common_estimand_refs=sorted(certificate.common_estimand_refs),
+        instrumentation_refs=instrumentation_refs,
+        contamination_diagnostics=sorted(set(contamination_diagnostics)),
+        transportability_ready=transportability_ready,
+        causal_reproduction_ready=bool(
+            evidence_level == "causal" and certificate.causal_effect_refs and transportability_ready
+        ),
+        portfolio_gaming_diagnostics=sorted(set(portfolio_gaming_diagnostics)),
+        baseline_refresh_ready=baseline_refresh_ready,
+        negative_liquidity_preserved=True,
+        cara_residual_preserved=True,
+        foundry_capacity_label=foundry_capacity_label,
+        accepted=accepted,
+        operationally_usable=accepted,
+        settled=False,
+        reasons=sorted(set(reasons)),
+    )
+
+
 def check_liquidity_certificate(certificate: LiquidityCertificate) -> LiquidityCertificate:
     """Check ALT liquidity as a certified lower-bound surplus certificate."""
 
@@ -521,6 +598,8 @@ def check_liquidity_certificate(certificate: LiquidityCertificate) -> LiquidityC
         reasons.append("telemetry_refs are required")
     if not certificate.robustness_refs:
         reasons.append("robustness_refs are required")
+    value_bridge_report = _value_bridge_report(certificate)
+    reasons.extend(value_bridge_report.reasons)
     surplus = certified_surplus_lower_bound(certificate)
     if surplus <= 0.0:
         reasons.append("certified surplus lower bound is not positive")
@@ -549,6 +628,7 @@ def check_liquidity_certificate(certificate: LiquidityCertificate) -> LiquidityC
             "residual_ledger": residual,
             "reasons": sorted(set(reasons)),
             "transport_certificate": transport,
+            "value_bridge_report": value_bridge_report,
         }
     )
 

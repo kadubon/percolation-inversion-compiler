@@ -60,11 +60,37 @@ supplied.
 For ALT, checker coverage means the repository exposes finite interfaces for
 abstraction-token admission, signed lower-bound surplus, negative liquidity,
 deprecation/resurrection, baseline refresh, root/finality, telemetry, hazard,
-reproduction diagnostics, and ALT-CARA certificates. It does not mean that raw
-external intake, agent text, or problem-solving traces are capital. A token
-contributes to ECPT collective phase metrics only after the finite ALT checks
-and the existing semantic-edge, verifier-route, identity/Sybil, rollback, and
-residual-policy gates accept the scoped claim.
+reproduction diagnostics, and ALT-CARA certificates. v0.4.2 also separates
+proxy-only value evidence from calibrated proxy bridges and causal evidence
+refs. It does not mean that raw external intake, agent text, or problem-solving
+traces are capital. A token contributes to ECPT collective phase metrics only
+after the finite ALT checks and the existing semantic-edge, verifier-route,
+identity/Sybil, rollback, and residual-policy gates accept the scoped claim.
+
+Runtime outputs expose theory coverage in practical form. Prefer the typed
+v0.4.2 fields `phase_control_audit`, `frontier_debt_report`, and
+`bottleneck_witness_reports`; compatibility summaries remain available as
+`phase_control_summary`, `frontier_debt_summary`, and
+`bottleneck_witness_tasks`. These are derived convenience fields, not new
+settlement rules.
+
+For the ASI-proxy objective, these reports expose the finite conditions that a
+network of agents can repeatedly inspect: verified packet reuse, residual debt,
+queue reserve, bottleneck release, abstraction liquidity, and verifier routes.
+They are theory-fidelity instruments, not evidence that real ASI or external
+physical outcomes have been achieved.
+
+The current theory-fidelity layer adds finite diagnostics for ECPT
+split-certified quotient readiness, duplicate-mass exclusion, proxy grounding,
+baseline comparison, execution availability, and queue/capacity margin; BIT
+bottleneck witnesses as portable verifier tasks; TRC physical null-channel,
+hybrid propagation, telemetry resource-cost, progressive-fidelity, and
+trace-normal-form debt; SQOT distributed/adversarial transfer, sovereignty,
+privacy/rejoin, discharge, reserve, rollback, aggregation, and label-laundering
+signals; and ALT common-estimand, conditional proxy bridge, causal evidence,
+transportability, instrumentation/contamination, baseline refresh, negative
+liquidity, CARA residual, and foundry capacity labels. These diagnostics expose
+finite subclaims while preserving residual external obligations.
 
 Bundled snapshots expose the same coverage shape without TeX:
 
@@ -99,3 +125,17 @@ uv run pic sqot audit --source "$env:PIC_CANONICAL_TEX_DIR\\Salience-Queue Occup
 uv run pic alt audit --source "$env:PIC_CANONICAL_TEX_DIR\\Abstraction Liquidity Theory.tex" --strict-grammar
 uv run pic audit theory --source "$env:PIC_CANONICAL_TEX_DIR\\Typed Reality Compilation.tex" --fail-on projection
 ```
+
+For release and commercial-readiness checks, audit the full canonical suite in
+one command. This command only accepts the five canonical filenames and excludes
+unrelated TeX sources from SQOT/ALT snapshot comparisons.
+
+```powershell
+uv run pic audit canonical-suite --canonical-dir "$env:PIC_CANONICAL_TEX_DIR"
+uv run pic audit fidelity --canonical-dir "$env:PIC_CANONICAL_TEX_DIR"
+```
+
+`pic audit fidelity` is derived from the same canonical-suite audit. It reports
+strict grammar status, snapshot health, external-obligation totals, and finite
+upgrade candidates. It does not erase external obligations or claim real ASI
+evidence.

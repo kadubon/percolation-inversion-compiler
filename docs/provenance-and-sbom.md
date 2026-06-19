@@ -1,6 +1,6 @@
 # Provenance And SBOM
 
-v0.4.1 uses deterministic provenance artifacts for release and downstream agent
+v0.4.2 uses deterministic provenance artifacts for release and downstream agent
 deployment. The core uses SHA-256 manifests and does not store signing keys.
 GitHub artifact attestations can be required as an additional production check.
 These artifacts protect certificate schemas, snapshots, examples, SBOMs, and
@@ -28,7 +28,7 @@ verification fails and production doctor treats the provenance as invalid.
 Release builds can add distributable artifacts explicitly:
 
 ```powershell
-uv run pic provenance create --schema-dir schemas --sbom-ref dist\percolation-inversion-compiler-0.4.1.sbom.json --artifact-ref dist\percolation_inversion_compiler-0.4.1-py3-none-any.whl --artifact-ref dist\percolation_inversion_compiler-0.4.1.tar.gz --output provenance.json
+uv run pic provenance create --schema-dir schemas --sbom-ref dist\percolation-inversion-compiler-0.4.2.sbom.json --artifact-ref dist\percolation_inversion_compiler-0.4.2-py3-none-any.whl --artifact-ref dist\percolation_inversion_compiler-0.4.2.tar.gz --output provenance.json
 ```
 
 For GitHub-attested release assets:
@@ -47,12 +47,12 @@ workflow; the package core remains deterministic and keyless.
 Generate a deterministic dependency inventory:
 
 ```powershell
-uv run pic sbom create --format pic --output dist\percolation-inversion-compiler-0.4.1.sbom.json
-uv run pic sbom create --format cyclonedx --output dist\percolation-inversion-compiler-0.4.1.cyclonedx.json
+uv run pic sbom create --format pic --output dist\percolation-inversion-compiler-0.4.2.sbom.json
+uv run pic sbom create --format cyclonedx --output dist\percolation-inversion-compiler-0.4.2.cyclonedx.json
 ```
 
 The PIC-SBOM format is retained for backward compatibility. CycloneDX JSON is
-the standard release SBOM for v0.4.1. SBOM output is an audit input, not a
+the standard release SBOM for v0.4.2. SBOM output is an audit input, not a
 substitute for `pip-audit`, Bandit, Gitleaks, CodeQL, or Zizmor.
 
 ## Security Boundary

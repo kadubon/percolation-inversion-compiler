@@ -7,6 +7,10 @@ from enum import StrEnum
 from pydantic import BaseModel, Field
 
 from percolation_inversion_compiler.core.ledger import Ledger
+from percolation_inversion_compiler.core.live_policy import (
+    default_allow_live_connectors,
+    live_default_mode,
+)
 from percolation_inversion_compiler.core.status import ClaimStatus
 from percolation_inversion_compiler.identity.records import IdentityContributionStatus
 
@@ -49,9 +53,13 @@ class ExternalCandidateClassification(StrEnum):
 
 
 class WebFetchPolicy(BaseModel):
-    """Bounded policy for explicit opt-in web intake."""
+    """Bounded policy for explicit-source web intake."""
 
-    allow_live_connectors: bool = False
+    allow_live_connectors: bool = Field(default_factory=default_allow_live_connectors)
+    live_default_mode: str = Field(default_factory=live_default_mode)
+    explicit_source_required: bool = True
+    candidate_only_by_default: bool = True
+    background_crawling_allowed: bool = False
     prefer_https: bool = True
     allow_http: bool = False
     max_redirects: int = 3
@@ -82,7 +90,7 @@ class WebFetchPolicy(BaseModel):
     require_https_for_live: bool = True
     require_robots_decision: bool = False
     reject_private_networks: bool = True
-    user_agent: str = "percolation-inversion-compiler-agent-intake/0.4.1"
+    user_agent: str = "percolation-inversion-compiler-agent-intake/0.4.2"
     robots_uncertainty_is_diagnostic: bool = False
     diagnose_rate_limits: bool = True
 
@@ -144,7 +152,10 @@ class GeneralIntakePolicy(BaseModel):
 
     policy_id: str = "general-intake-policy"
     profile: str = "development"
-    allow_live_connectors: bool = False
+    allow_live_connectors: bool = Field(default_factory=default_allow_live_connectors)
+    live_default_mode: str = Field(default_factory=live_default_mode)
+    explicit_source_required: bool = True
+    candidate_only_by_default: bool = True
     allowed_source_kinds: list[PacketSourceKind] = Field(
         default_factory=lambda: [
             PacketSourceKind.LOCAL,
@@ -195,7 +206,7 @@ class GeneralIntakeSource(BaseModel):
     source: str
     kind: PacketSourceKind = PacketSourceKind.AUTO
     label: str | None = None
-    allow_live_connectors: bool = False
+    allow_live_connectors: bool = Field(default_factory=default_allow_live_connectors)
 
 
 class AgentMessageEnvelope(BaseModel):
@@ -723,6 +734,55 @@ class AgentPacketExchangeReport(BaseModel):
     residual_ledger: Ledger = Field(default_factory=Ledger)
     reasons: list[str] = Field(default_factory=list)
     settled: bool = False
+
+
+class AgentMessageDeliveryReport(BaseModel):
+    """Report for deterministic local send/receive/verify agent-message workflows."""
+
+    report_id: str
+    action: str = "send"
+    inbox_ref: str = ""
+    inbox_id: str = "agent-inbox"
+    profile: str = "development"
+    message_ids: list[str] = Field(default_factory=list)
+    delivered_message_ids: list[str] = Field(default_factory=list)
+    rejected_message_ids: list[str] = Field(default_factory=list)
+    exchange_reports: list[AgentPacketExchangeReport] = Field(default_factory=list)
+    nonce_ledger: AgentMessageNonceLedger = Field(default_factory=AgentMessageNonceLedger)
+    candidate_packet_ids: list[str] = Field(default_factory=list)
+    identity_context_accepted: bool = False
+    candidate_only: bool = True
+    accepted: bool = False
+    operationally_usable: bool = False
+    settled: bool = False
+    reasons: list[str] = Field(default_factory=list)
+    next_safe_commands: list[str] = Field(default_factory=list)
+
+
+class AgentRelayReadinessReport(BaseModel):
+    """Readiness report for local agent-to-agent inbox relay workflows."""
+
+    report_id: str = "agent-relay-readiness"
+    profile: str = "development"
+    allow_live_connectors: bool = Field(default_factory=default_allow_live_connectors)
+    live_default_mode: str = Field(default_factory=live_default_mode)
+    inbox_ref: str | None = None
+    inbox_exists: bool = False
+    message_count: int = 0
+    seen_nonce_count: int = 0
+    signature_required: bool = False
+    identity_context_required: bool = False
+    identity_context_accepted: bool = False
+    loopback_ready: bool = False
+    bounded_candidate_intake: bool = True
+    candidate_only: bool = True
+    accepted: bool = True
+    operationally_usable: bool = False
+    settled: bool = False
+    readiness: dict[str, str] = Field(default_factory=dict)
+    recommended_next_commands: list[str] = Field(default_factory=list)
+    safety_invariants: list[str] = Field(default_factory=list)
+    reasons: list[str] = Field(default_factory=list)
 
 
 class GeneralIntakeRuntimeBridgeReport(BaseModel):

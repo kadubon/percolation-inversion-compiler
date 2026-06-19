@@ -11,6 +11,9 @@ must be charged.
 Use these commands as integration boundaries:
 
 ```powershell
+pic agent check --compact --text "Candidate packet: preserve residuals." --profile development
+pic agent runbook --profile development
+pic agent check --text "Candidate packet: preserve residuals." --profile development
 uv run pic check --source tests\fixtures\minimal_claims.tex --strict-projection --derive-status
 uv run pic audit theory --source tests\fixtures\minimal_claims.tex --fail-on projection
 uv run pic schema --type AgentConnectorSpec
@@ -47,6 +50,8 @@ uv run pic evidence discharge --envelope examples\evidence_envelope.json --oblig
 uv run pic demo datacenter
 uv run pic explain external def:null-channel-routing
 uv run pic doctor --fail-on warn
+uv run pic portability verify --manifest examples\portability_conformance\manifest.json
+uv run pic audit fidelity --canonical-dir "$env:PIC_CANONICAL_TEX_DIR"
 ```
 
 The JSON outputs are designed for language-neutral consumers:
@@ -55,6 +60,15 @@ The JSON outputs are designed for language-neutral consumers:
 - finite sets and tuples are arrays at schema boundaries;
 - proof obligations and residual ledgers are explicit objects;
 - failure modes are strings intended for routing and policy checks.
+
+For installed-package use, `pic agent check --compact` is the preferred first
+command. It returns short practical JSON with checked outputs, unresolved
+obligations, residual summary, schema refs, next safe actions, and
+`workflow_usable`. Use full `pic agent check` when the agent needs the nested
+`AgentCheckReport`, and use `pic agent runbook` when the agent needs
+deterministic next commands, schemas, and fields to inspect. These fields
+preserve `operationally_usable` and `settled` semantics from the underlying
+runtime report.
 
 ## Connector Policy
 
@@ -76,10 +90,14 @@ An agent connector should implement this policy:
 9. For ECPT active planning, treat `PhaseControlPlan.selected_actions` as
    ranked finite recommendations and route every `missing_obligations` entry
    before main operational execution.
-10. For v0.3.4 active runtime, submit observations through `RuntimeStepInput`,
+10. For v0.4.2 active runtime, submit observations through `RuntimeStepInput`,
     let the runtime rebuild packet edges, update Psi, run SQOT scheduling,
     rank ECPT phase-control tasks, and preserve residual ledgers without
-    settling unresolved proof obligations.
+    settling unresolved proof obligations. Prefer typed
+    `phase_control_audit`, `frontier_debt_report`, and
+    `bottleneck_witness_reports`; keep reading `phase_control_summary`,
+    `frontier_debt_summary`, and `bottleneck_witness_tasks` for backward
+    compatibility.
 11. Resolve evidence envelopes, promote only verified packets, apply
     `RuntimeActionResult` records, and compare runtime runs before treating a
     candidate strategy as finite ASI-proxy acceleration.
@@ -88,9 +106,10 @@ An agent connector should implement this policy:
     no hidden packet injection, accepted closure witnesses, execution-available
     paths, and a resource-matched baseline.
 13. For external communication, run `pic agent communication-guide` and prefer
-    offline fixtures before enabling live connectors. Treat general web, feed,
-    and peer-agent messages as packet candidates until downstream checks accept
-    finite scope.
+    offline fixtures for first runs. Live connectors are bounded and candidate-only
+    by default when an explicit source is supplied; use `--no-allow-live-connectors`
+    for local-only dry runs. Treat general web, feed, and peer-agent messages as
+    packet candidates until downstream checks accept finite scope.
 
 ## Routing Recipe
 
@@ -167,12 +186,13 @@ can use the package to organize capability, bottleneck, and cyber-physical
 frontier evidence. They must not treat it as evidence for unobserved ASI,
 unconditional phase transition claims, or uncertified simulator output.
 
-In v0.3.4, the workflow is closed-loop at the runtime and population levels.
+In v0.4.2, the workflow is closed-loop at the runtime and population levels.
 `pic runtime step`
 converts agent output into packets, builds edge witnesses, updates Psi, ranks
 bottleneck and ECPT phase-control tasks, schedules work through SQOT, emits
 verifier route requests, resolves inline evidence, promotes verified packet
-capital, and returns `phase_acceleration_score`. `pic runtime apply-results`
+capital, and returns `phase_acceleration_score` plus theory-facing summaries for
+ECPT, BIT, and TRC. `pic runtime apply-results`
 feeds task outcomes back into the event log and registry. `pic runtime compare`
 and `pic runtime certify-acceleration` compare a candidate run to a
 resource-matched baseline. These outputs accelerate protocol-relative

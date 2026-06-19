@@ -29,8 +29,8 @@ portable and auditable for ECPT/SQOT scheduling.
 ## Safe First Commands
 
 ```powershell
-uv run pic agent communication-guide --profile development --no-allow-live-connectors
-uv run pic agent network-readiness --profile development --no-allow-live-connectors
+uv run pic agent communication-guide --profile development
+uv run pic agent network-readiness --profile development
 uv run pic ecology policy explain --profile controlled_web
 uv run pic ecology ingest-general --source examples/agent_network/feed.xml --kind rss
 uv run pic ecology bridge-runtime --report examples/agent_network/general_intake_report.example.json
@@ -42,18 +42,21 @@ uv run pic ecology ingest-general --source examples/agent_network/page.html --ki
 uv run pic agent message ingest --message examples/agent_network/agent_message.json
 ```
 
-Live web intake is explicit:
+Live web intake is bounded and explicit-source based:
 
 ```powershell
-uv run pic ecology ingest-general --source https://example.org --kind web-page --allow-live-connectors
-uv run pic ecology discover-web --source https://example.org --allow-live-connectors
+uv run pic ecology ingest-general --source https://example.org --kind web-page
+uv run pic ecology discover-web --source https://example.org
+uv run pic ecology ingest-general --source https://example.org --kind web-page --no-allow-live-connectors
 ```
 
 ## Policy Boundary
 
-- Network access is disabled by default.
-- Live intake requires three aligned opt-ins: the source descriptor, the request/CLI flag, and
-  the runtime or service policy must all set `allow_live_connectors=true`.
+- Network access is live-capable by default only when an explicit source is supplied.
+- `--no-allow-live-connectors` is the local-only opt-out.
+- Default-live mode does not grant background crawling, autonomous polling, arbitrary shell
+  execution, repository mutation, or status promotion.
+- Live intake requires an explicit source and live-enabled policy/runtime fields.
 - Private, loopback, and link-local hosts are rejected.
 - Discovery is bounded by depth, page count, byte count, redirects, timeout, and content type.
 - Local HTML/feed/NDJSON fixture intake uses the same byte limit, so agents can safely stage
@@ -128,7 +131,7 @@ and hazard envelope.
 
 | Failure | Repair path |
 | --- | --- |
-| live opt-in mismatch | rerun local-only or set source/request, policy, and runtime flags together |
+| live policy mismatch | rerun with `--no-allow-live-connectors` or align source, policy, and runtime flags |
 | host/path outside policy | choose a narrower approved source or update a reviewed policy file |
 | oversized source or feed | split the source and preserve the budget residual coordinate |
 | malformed feed/XML/JSON | quarantine the source and request a corrected evidence envelope |
@@ -148,6 +151,9 @@ uv run pic agent message contract --message message.json
 uv run pic agent message verify --message message.json --profile development
 uv run pic agent inbox init --inbox inbox.json
 uv run pic agent inbox append --inbox inbox.json --message message.json
+uv run pic agent message send --inbox inbox.json --sender agent:alice --text "Candidate packet: preserve residuals."
+uv run pic agent message receive --inbox inbox.json
+uv run pic agent inbox verify --inbox inbox.json
 uv run pic ecology ingest-general --source inbox.json --kind agent-inbox
 ```
 

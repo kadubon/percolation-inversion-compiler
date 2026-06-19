@@ -27,6 +27,7 @@
     "CollectivePhaseCertificate",
     "AgentIntakeRequest",
     "AgentIntakeReport",
+    "AgentCheckReport",
     "AgentWorkflowGuide",
     "AgentNextActionReport",
     "AgentFeatureReadinessReport",
@@ -66,7 +67,8 @@
     "ALTCARACertificate",
     "ALTKernelTransitionReport",
     "FoundryControlDashboard",
-    "CertifiedAbstractionCapital"
+    "CertifiedAbstractionCapital",
+    "PortabilityConformanceReport"
   ],
   "machine_contract": {
     "arbitrary_shell_execution": false,
@@ -94,10 +96,12 @@
       "mode": "pip",
       "command": "python -m pip install percolation-inversion-compiler",
       "intended_for": [
-        "curated installed demo",
+        "practical agent output checking",
+        "curated installed workflow",
         "bundled snapshots",
         "schema export",
-        "library and CLI runtime checks"
+        "library and CLI runtime checks",
+        "ALT admission smoke with bundled data"
       ],
       "does_not_include": [
         "root examples tree",
@@ -109,7 +113,6 @@
       "mode": "source-checkout",
       "command": "git clone https://github.com/kadubon/percolation-inversion-compiler.git",
       "intended_for": [
-        "full practical workflows",
         "examples-backed commands",
         "canonical TeX audits",
         "development tests",
@@ -127,7 +130,13 @@
     "alt-foundry"
   ],
   "clone_url": "https://github.com/kadubon/percolation-inversion-compiler.git",
-  "clone_recommended_for_full_use": true,
+  "clone_recommended_for_full_use": false,
+  "clone_recommended_for": [
+    "canonical TeX audits",
+    "development fixtures",
+    "release engineering",
+    "editing examples and docs"
+  ],
   "uv_install_commands": {
     "windows_powershell": "powershell -ExecutionPolicy ByPass -c \"irm https://astral.sh/uv/install.ps1 | iex\"",
     "macos_linux": "curl -LsSf https://astral.sh/uv/install.sh | sh",
@@ -136,6 +145,7 @@
   "pip_boundary": {
     "pip_supports": [
       "pic agent explain",
+      "pic agent check",
       "pic demo installed-smoke",
       "pic demo bootstrap",
       "pic runtime step with bootstrapped demo files",
@@ -146,7 +156,6 @@
     "clone_required_for": [
       "commands that reference examples/...",
       "canonical TeX/PDF audits through local source files",
-      "full fixture-backed runtime workflows",
       "release checks and provenance/SBOM asset generation"
     ]
   },
@@ -202,6 +211,7 @@
   "safe_cli_entrypoints": [
     "python -m pip install percolation-inversion-compiler",
     "pic agent explain",
+    "pic agent check --text \"Candidate packet: preserve residuals.\" --profile development",
     "pic demo installed-smoke --profile development",
     "pic demo bootstrap --output-dir pic-demo",
     "pic runtime step --state pic-demo/runtime_state.json --input pic-demo/runtime_step_input.json --profile development",
@@ -232,5 +242,5 @@
     "uv run pic identity explain-profile --profile research",
     "uv run pic identity derive-context --population examples/agent_population_signed.json --profile production --output identity-context.json"
   ],
-  "version": "0.4.1"
+  "version": "0.4.2"
 }

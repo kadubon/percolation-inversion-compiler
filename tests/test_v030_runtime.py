@@ -60,6 +60,24 @@ def test_runtime_step_is_deterministic_and_never_settles_from_planning() -> None
     assert not first.operationally_usable
     assert not first.settled
     assert all(not task.settled for task in first.agent_tasks)
+    assert first.phase_control_summary["target_id"] == first.phase_run_report.target_id
+    assert first.phase_control_summary["finite_proxy_gain_total"] == (
+        first.phase_run_report.plan.finite_proxy_gain_total
+    )
+    assert first.phase_control_audit.target_id == first.phase_run_report.target_id
+    assert first.phase_control_audit.duplicate_mass_excluded is True
+    assert first.phase_control_audit.queue_capacity_constraints_visible is True
+    assert first.frontier_debt_summary["missing_obligation_count"] == len(first.missing_obligations)
+    assert first.frontier_debt_report.missing_obligation_count == len(first.missing_obligations)
+    assert first.frontier_debt_report.residual_coordinate_count == len(
+        first.residual_ledger.coordinates
+    )
+    assert first.bottleneck_witness_tasks
+    assert first.bottleneck_witness_reports
+    assert first.bottleneck_witness_reports[0].next_verifier_routes
+    assert all(
+        task.task_type == "bottleneck-intervention" for task in first.bottleneck_witness_tasks
+    )
     assert any(
         "proxy-target-grounding-proof" in request.residual_external_obligations
         for request in first.route_execution_requests

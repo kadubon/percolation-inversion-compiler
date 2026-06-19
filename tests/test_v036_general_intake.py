@@ -16,6 +16,7 @@ from percolation_inversion_compiler.ecology import (
     GeneralIntakeSource,
     PacketSourceKind,
     WebFetchPolicy,
+    agent_relay_readiness_report,
     append_agent_message,
     audit_general_intake_report,
     bridge_general_intake_to_runtime,
@@ -24,6 +25,7 @@ from percolation_inversion_compiler.ecology import (
     check_agent_message_contract,
     classify_external_candidate_for_sqot,
     create_agent_message,
+    deliver_agent_message,
     discover_web_packets,
     fetch_http_resource,
     general_intake_policy_for_profile,
@@ -32,6 +34,7 @@ from percolation_inversion_compiler.ecology import (
     ingest_feed,
     ingest_general_source,
     read_agent_inbox,
+    receive_agent_inbox,
     sanitize_intake_source_ref,
     verify_agent_message,
 )
@@ -39,7 +42,10 @@ from percolation_inversion_compiler.ecology.algorithms import sha256_text
 
 
 def test_fetch_http_requires_opt_in_and_rejects_private_hosts() -> None:
-    disabled = fetch_http_resource("https://example.org")
+    disabled = fetch_http_resource(
+        "https://example.org",
+        WebFetchPolicy(allow_live_connectors=False),
+    )
     assert not disabled.accepted
     assert "allow_live_connectors=true" in disabled.reasons[0]
     assert disabled.web_fetch_reports[0].requested_url == "https://example.org/"
@@ -515,14 +521,16 @@ def test_general_auto_kind_web_crawl_and_live_connector_diagnostics(tmp_path, mo
     assert auto_web.source_kind == PacketSourceKind.WEB_PAGE
     assert auto_web.provenance
 
-    missing_source_opt_in = ingest_general_source(
+    default_source_live = ingest_general_source(
         "https://example.org/auto",
         GeneralIntakePolicy(allow_live_connectors=True),
     )
-    assert not missing_source_opt_in.accepted
-    assert "source/request" in missing_source_opt_in.reasons[0]
+    assert default_source_live.accepted
+    assert default_source_live.source_policy_decisions[0].allow_live_connectors is True
 
-    github_disabled = ingest_general_source("owner/repo")
+    github_disabled = ingest_general_source(
+        GeneralIntakeSource(source="owner/repo", allow_live_connectors=False)
+    )
     assert not github_disabled.accepted
     assert github_disabled.source_kind == PacketSourceKind.GITHUB
     assert "allow_live_connectors=true" in github_disabled.reasons[0]
@@ -664,7 +672,10 @@ def test_local_discovery_does_not_follow_paths_outside_seed_directory(tmp_path) 
 def test_feed_malformed_and_unsupported_inputs_return_residuals(tmp_path) -> None:  # type: ignore[no-untyped-def]
     live_disabled = ingest_feed(
         "https://example.org/feed.xml",
-        GeneralIntakePolicy(web_policy=WebFetchPolicy()),
+        GeneralIntakePolicy(
+            allow_live_connectors=False,
+            web_policy=WebFetchPolicy(allow_live_connectors=False),
+        ),
         kind=PacketSourceKind.RSS,
     )
     assert not live_disabled.accepted
@@ -885,6 +896,35 @@ def test_agent_message_digest_signature_and_inbox_round_trip(tmp_path) -> None: 
     jsonl_inbox = tmp_path / "inbox.jsonl"
     jsonl_inbox.write_text(signed_shape.model_dump_json() + "\n", encoding="utf-8")
     assert isinstance(read_agent_inbox(jsonl_inbox), AgentInboxRecord)
+
+
+def test_agent_message_delivery_receive_and_relay_readiness(tmp_path) -> None:  # type: ignore[no-untyped-def]
+    inbox_path = tmp_path / "relay-inbox.json"
+    message = create_agent_message(
+        "Relay packet: preserve residuals.",
+        sender_agent_id="agent:sender",
+        receiver_agent_id="agent:receiver",
+        nonce="nonce-relay-1",
+    )
+
+    readiness = agent_relay_readiness_report(inbox_path, GeneralIntakePolicy())
+    assert readiness.accepted
+    assert readiness.allow_live_connectors is True
+    assert readiness.readiness["local_inbox"] == "create-on-send"
+    assert not readiness.settled
+
+    sent = deliver_agent_message(inbox_path, message, GeneralIntakePolicy())
+    assert sent.accepted
+    assert sent.action == "send"
+    assert sent.delivered_message_ids == [message.message_id]
+    assert sent.candidate_packet_ids
+
+    received = receive_agent_inbox(inbox_path, GeneralIntakePolicy())
+    assert received.accepted
+    assert received.action == "receive"
+    assert received.message_ids == [message.message_id]
+    assert received.nonce_ledger.consumed_nonces == ["nonce-relay-1"]
+    assert not received.settled
 
 
 def test_agent_message_digest_mismatch_rejects() -> None:

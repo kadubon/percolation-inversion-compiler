@@ -3,7 +3,30 @@
 This tutorial uses local fixtures so it can run without vendoring the canonical
 TeX sources.
 
-## 1. Install
+## 0. Installed Practical Check
+
+Use this when no source checkout is available:
+
+```powershell
+python -m pip install percolation-inversion-compiler
+pic agent check --compact --text "Candidate packet: preserve residuals." --profile development
+pic agent runbook --profile development
+pic agent check --text "Candidate packet: preserve residuals." --profile development
+pic demo bootstrap --output-dir pic-demo
+pic runtime step --state pic-demo/runtime_state.json --input pic-demo/runtime_step_input.json --profile development
+pic agent message receive --inbox pic-demo/agent_inbox.json
+pic agent inbox verify --inbox pic-demo/agent_inbox.json
+```
+
+`AgentCheckReport.workflow_usable=true` means the output is useful for routing
+and onboarding even when `settled=false`. It does not change the stricter
+`operationally_usable` field.
+
+Installed demo communication is local-file based. Live HTTP/feed sources are
+bounded and candidate-only by default when an explicit source is supplied; use
+`--no-allow-live-connectors` for local-only tests.
+
+## 1. Install For Source Fixtures
 
 ```powershell
 uv sync --all-extras --dev

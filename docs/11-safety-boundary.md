@@ -13,19 +13,35 @@ This repository is intentionally useful for agents, but it is fail-closed. It he
 
 ## Execution Boundary
 
-The standard runtime executor is allowlist-based. It supports finite verification tasks such as evidence verification, schema validation, snapshot verification, parse audit, local packet ingestion, route execution, runtime step/apply/compare/certify, and store operations. Arbitrary shell commands, repository mutation, network access, and live connectors require explicit adapters and policy grants.
+The standard runtime executor is allowlist-based. It supports finite verification tasks such as evidence verification, schema validation, snapshot verification, parse audit, local packet ingestion, route execution, runtime step/apply/compare/certify, and store operations. Arbitrary shell commands and repository mutation are never granted by intake. Live connectors are bounded and candidate-only by default when an explicit source is supplied; use `--no-allow-live-connectors` for local-only runs.
 
 Production service defaults:
 
 - bind to loopback unless configured otherwise;
 - require bearer authentication;
-- reject live connector use unless explicitly requested;
+- allow bounded explicit-source live intake only as candidate packet input;
 - avoid returning stack traces, secrets, private keys, or local absolute paths;
 - preserve residual ledgers rather than hiding unresolved obligations.
 
+Default-live communication does not grant background crawling, autonomous polling, shell
+execution, repository mutation, unsafe tool use, or hidden promotion from `accepted` or
+`workflow_usable` to `settled`.
+
+ASI-proxy phase-control is an operational coordination target: agents can use
+PIC to exchange bounded candidate work, route verifier obligations, and build
+auditable reusable packets. The package does not certify that the network has
+produced real ASI, an unobserved physical transition, or oracle truth.
+
 ## Status Discipline
 
-Use `operationally_usable` for routing decisions. Use `settled` only for scoped finite obligations actually discharged by verifier rules. A useful recommendation may still have `settled=false`.
+Use `workflow_usable` for beginner/onboarding checks such as `pic agent check`.
+`pic agent check --compact` is a short routing contract for humans, CI, and
+agents; it intentionally omits nested runtime detail but does not loosen status
+semantics. `pic agent runbook` gives commands, schemas, and fields to inspect;
+it is not an execution grant.
+Use `operationally_usable` for stricter profile-aware routing decisions. Use
+`settled` only for scoped finite obligations actually discharged by verifier
+rules. A useful recommendation may still have `settled=false`.
 
 ## Identity Boundary
 

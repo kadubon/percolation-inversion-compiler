@@ -31,6 +31,13 @@ portable schemas, not as the normative wire format.
   rejected, or omitted IDs remain diagnostic.
 - Preserve external obligation category, verifier route, accepted evidence kind,
   residual policy, safe default, and failure modes as plain JSON fields.
+- Validate `examples/portability_conformance/manifest.json` and each referenced
+  output against its named schema before claiming conformance with the Python
+  reference implementation.
+- Run `pic portability verify --manifest examples/portability_conformance/manifest.json`
+  as the reference conformance check. The manifest includes schema names,
+  expected outputs, SHA-256 checksums, semantic invariants, and negative
+  examples that must fail with the declared status.
 
 ## Adapter Boundary
 
@@ -42,7 +49,8 @@ external obligation rather than a settled result.
 ## Agent Integration
 
 Agents should consume deterministic JSON outputs from `pic check`, `pic audit
-theory`, `pic compile`, and `pic demo datacenter`. The agent-facing invariant is
+theory`, `pic agent check`, `pic runtime step`, `pic compile`, and
+`pic demo datacenter`. The agent-facing invariant is
 that every accepted operational output has an explicit checker route, residual
 ledger, and failure mode.
 
@@ -62,6 +70,20 @@ Recommended connector behavior:
 - Treat `TheorySnapshot`, `SnapshotCatalog`, `AdapterRouteSpec`,
   `EvidenceArtifact`, `VerifierEvidenceEnvelope`, `VerifierResolution`, and
   `OperationalReadinessReport` as stable wire contracts.
+- Treat `AgentCheckReport`, `RuntimeStepReport`, `SalienceScheduleReport`,
+  `AgentMessageDeliveryReport`, `AgentRelayReadinessReport`,
+  `ALTAdmissionDecision`, `CollectivePhaseCertificate`,
+  `PhaseControlAuditSummary`, `FrontierDebtReport`,
+  `BottleneckWitnessReport`, `ValueBridgeReport`, and `TheoryFidelityReport`
+  as the minimum portability conformance pack for first ports.
+- For practical agent integrations, implement the compact `pic agent check`
+  payload shape even if the port stores the full nested `AgentCheckReport`
+  internally. The compact fields are the stable first-read fields for CI and
+  agents.
+- Preserve default-live communication semantics: explicit sources are live-capable by default,
+  `--no-allow-live-connectors` or `allow_live_connectors=false` is the opt-out, and external
+  intake remains candidate-only until downstream verifier, identity, nonce, rollback, semantic
+  edge, and residual policies pass.
 
 ## Provenance And SBOM Ports
 

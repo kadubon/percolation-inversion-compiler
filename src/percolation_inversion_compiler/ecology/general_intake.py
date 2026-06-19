@@ -21,10 +21,12 @@ from percolation_inversion_compiler.ecology.connectors import ingest_live_source
 from percolation_inversion_compiler.ecology.records import (
     AgentInboxRecord,
     AgentMessageContractReport,
+    AgentMessageDeliveryReport,
     AgentMessageEnvelope,
     AgentMessageNonceLedger,
     AgentMessageVerificationContext,
     AgentPacketExchangeReport,
+    AgentRelayReadinessReport,
     CapabilityPacketCandidate,
     ExternalCandidateClassification,
     GeneralIntakePolicy,
@@ -199,7 +201,7 @@ def general_intake_policy_for_profile(profile: str) -> GeneralIntakePolicy:
     if normalized == GeneralIntakeProfile.FEDERATED_AGENTS.value:
         return GeneralIntakePolicy(
             profile=GeneralIntakeProfile.FEDERATED_AGENTS.value,
-            allow_live_connectors=False,
+            allow_live_connectors=True,
             allowed_source_kinds=[
                 PacketSourceKind.AGENT_MESSAGE,
                 PacketSourceKind.AGENT_INBOX,
@@ -208,7 +210,7 @@ def general_intake_policy_for_profile(profile: str) -> GeneralIntakePolicy:
             ],
             require_signed_agent_messages=True,
             require_message_identity_context=True,
-            web_policy=WebFetchPolicy(max_total_packets_per_run=128),
+            web_policy=WebFetchPolicy(allow_live_connectors=True, max_total_packets_per_run=128),
         )
     if normalized == GeneralIntakeProfile.PRODUCTION_NETWORK.value:
         return GeneralIntakePolicy(
@@ -409,6 +411,7 @@ def discover_web_packets(
     reasons: list[str] = []
     residual = Ledger()
     queue: deque[tuple[str, int]] = deque([(seed, 0)])
+    seed_is_live = seed.startswith(("http://", "https://"))
     while queue and len(visited) < active_policy.max_pages:
         source, depth = queue.popleft()
         if source in visited_raw:
@@ -442,7 +445,9 @@ def discover_web_packets(
         for link in links:
             if link not in discovered:
                 discovered.append(sanitize_intake_source_ref(link))
-            if link.startswith(("http://", "https://")) and not active_policy.allow_live_connectors:
+            if link.startswith(("http://", "https://")) and (
+                not active_policy.allow_live_connectors or not seed_is_live
+            ):
                 continue
             if (
                 depth + 1 <= active_policy.max_depth
@@ -807,6 +812,231 @@ def append_agent_message(path: str | Path, message: AgentMessageEnvelope) -> Age
     return updated
 
 
+def deliver_agent_message(
+    path: str | Path,
+    message: AgentMessageEnvelope,
+    policy: GeneralIntakePolicy | None = None,
+    identity_context: AgentMessageVerificationContext | None = None,
+) -> AgentMessageDeliveryReport:
+    """Verify and append one agent message to a local inbox/outbox file."""
+
+    active_policy = policy or GeneralIntakePolicy()
+    target = Path(path)
+    report = verify_agent_message(message, active_policy, identity_context)
+    inbox = (
+        read_agent_inbox(target) if _path_exists(target) else AgentInboxRecord(inbox_id=target.stem)
+    )
+    delivered: list[str] = []
+    rejected: list[str] = []
+    reasons = list(report.reasons)
+    if report.accepted:
+        inbox = inbox.model_copy(update={"messages": [*inbox.messages, message]})
+        write_agent_inbox(target, inbox)
+        delivered.append(message.message_id)
+    else:
+        rejected.append(message.message_id)
+        reasons.append("message was not appended because verification failed")
+    return _delivery_report(
+        action="send",
+        inbox_ref=str(path),
+        inbox=inbox,
+        profile=active_policy.profile,
+        reports=[report],
+        delivered_message_ids=delivered,
+        rejected_message_ids=rejected,
+        identity_context=identity_context,
+        reasons=reasons,
+    )
+
+
+def receive_agent_inbox(
+    path: str | Path,
+    policy: GeneralIntakePolicy | None = None,
+    identity_context: AgentMessageVerificationContext | None = None,
+) -> AgentMessageDeliveryReport:
+    """Read and verify all messages in a local agent inbox."""
+
+    active_policy = policy or GeneralIntakePolicy()
+    try:
+        inbox = read_agent_inbox(path)
+    except ValueError as exc:
+        return _delivery_report(
+            action="receive",
+            inbox_ref=str(path),
+            inbox=AgentInboxRecord(inbox_id=Path(path).stem),
+            profile=active_policy.profile,
+            reports=[],
+            delivered_message_ids=[],
+            rejected_message_ids=[],
+            identity_context=identity_context,
+            reasons=[str(exc)],
+        )
+    seen_nonces = list(inbox.seen_nonces) + list(active_policy.seen_message_nonces)
+    reports: list[AgentPacketExchangeReport] = []
+    consumed: list[str] = []
+    for message in inbox.messages:
+        active_report = verify_agent_message(
+            message,
+            active_policy.model_copy(update={"seen_message_nonces": [*seen_nonces, *consumed]}),
+            identity_context,
+        )
+        reports.append(active_report)
+        consumed.extend(active_report.consumed_nonces)
+    delivered = [report.message_id or "" for report in reports if report.accepted]
+    rejected = [report.message_id or "" for report in reports if not report.accepted]
+    reasons = [reason for report in reports for reason in report.reasons]
+    if not inbox.messages:
+        reasons.append("inbox contains no messages")
+    return _delivery_report(
+        action="receive",
+        inbox_ref=str(path),
+        inbox=inbox,
+        profile=active_policy.profile,
+        reports=reports,
+        delivered_message_ids=[item for item in delivered if item],
+        rejected_message_ids=[item for item in rejected if item],
+        identity_context=identity_context,
+        reasons=reasons,
+    )
+
+
+def agent_relay_readiness_report(
+    path: str | Path | None = None,
+    policy: GeneralIntakePolicy | None = None,
+    identity_context: AgentMessageVerificationContext | None = None,
+) -> AgentRelayReadinessReport:
+    """Summarize local agent-message relay readiness without network calls."""
+
+    active_policy = policy or GeneralIntakePolicy()
+    inbox: AgentInboxRecord | None = None
+    inbox_exists = False
+    reasons: list[str] = []
+    if path is not None:
+        inbox_path = Path(path)
+        inbox_exists = _path_exists(inbox_path)
+        if inbox_exists:
+            try:
+                inbox = read_agent_inbox(inbox_path)
+            except ValueError as exc:
+                reasons.append(str(exc))
+        else:
+            reasons.append("inbox path does not exist yet; send will create a local JSON inbox")
+    signature_required = (
+        active_policy.require_signed_agent_messages
+        or active_policy.profile.lower() in {"production", "adversarial"}
+    )
+    identity_required = (
+        active_policy.require_message_identity_context
+        or active_policy.profile.lower() in {"production", "adversarial"}
+    )
+    identity_accepted = bool(identity_context and identity_context.accepted)
+    if identity_required and not identity_accepted:
+        reasons.append("accepted identity context required before production relay promotion")
+    loopback_ready = not reasons or all("does not exist yet" in reason for reason in reasons)
+    return AgentRelayReadinessReport(
+        report_id=f"agent-relay-readiness:{active_policy.profile}",
+        profile=active_policy.profile,
+        allow_live_connectors=active_policy.allow_live_connectors,
+        inbox_ref=None if path is None else sanitize_intake_source_ref(str(path)),
+        inbox_exists=inbox_exists,
+        message_count=0 if inbox is None else len(inbox.messages),
+        seen_nonce_count=0 if inbox is None else len(inbox.seen_nonces),
+        signature_required=signature_required,
+        identity_context_required=identity_required,
+        identity_context_accepted=identity_accepted,
+        loopback_ready=loopback_ready,
+        operationally_usable=loopback_ready and (not identity_required or identity_accepted),
+        readiness={
+            "local_inbox": "ready" if inbox_exists else "create-on-send",
+            "contract_check": "ready",
+            "nonce_replay_check": "ready",
+            "signature_policy": "required" if signature_required else "diagnostic",
+            "identity_context": (
+                "ready"
+                if identity_accepted
+                else "required"
+                if identity_required
+                else "not-required"
+            ),
+            "live_default_mode": "bounded-explicit-source",
+        },
+        recommended_next_commands=[
+            "pic agent message send --inbox inbox.json --sender agent:alice --text <text>",
+            "pic agent message receive --inbox inbox.json",
+            "pic agent inbox verify --inbox inbox.json",
+            "pic ecology bridge-runtime --report <general-intake-report.json>",
+        ],
+        safety_invariants=[
+            "agent-message relay is local-file based unless an explicit live source is supplied",
+            "agent messages remain packet candidates until verifier and identity policies pass",
+            "nonce, signature, identity, and residual checks fail closed",
+            "relay readiness does not prove external-world truth or real ASI",
+        ],
+        reasons=sorted(set(reasons)),
+    )
+
+
+def _delivery_report(
+    *,
+    action: str,
+    inbox_ref: str,
+    inbox: AgentInboxRecord,
+    profile: str,
+    reports: list[AgentPacketExchangeReport],
+    delivered_message_ids: list[str],
+    rejected_message_ids: list[str],
+    identity_context: AgentMessageVerificationContext | None,
+    reasons: list[str],
+) -> AgentMessageDeliveryReport:
+    aggregate_nonce_ledger = AgentMessageNonceLedger(
+        consumed_nonces=sorted(
+            {nonce for report in reports for nonce in report.nonce_ledger.consumed_nonces}
+        ),
+        replayed_nonces=sorted(
+            {nonce for report in reports for nonce in report.nonce_ledger.replayed_nonces}
+        ),
+        rejected_message_ids=sorted(
+            {
+                message_id
+                for report in reports
+                for message_id in report.nonce_ledger.rejected_message_ids
+            }
+        ),
+        accepted=bool(reports) and all(report.nonce_ledger.accepted for report in reports),
+        reasons=sorted({reason for report in reports for reason in report.nonce_ledger.reasons}),
+    )
+    message_ids = sorted({report.message_id or "" for report in reports if report.message_id})
+    candidate_packet_ids = sorted(
+        {packet_id for report in reports for packet_id in report.candidate_packet_ids}
+    )
+    accepted = bool(reports) and all(report.accepted for report in reports) and not reasons
+    if delivered_message_ids:
+        accepted = accepted and not rejected_message_ids
+    return AgentMessageDeliveryReport(
+        report_id=f"agent-message-delivery:{action}:{sha256_text(inbox_ref)[:12]}",
+        action=action,
+        inbox_ref=sanitize_intake_source_ref(inbox_ref),
+        inbox_id=inbox.inbox_id,
+        profile=profile,
+        message_ids=message_ids,
+        delivered_message_ids=sorted(set(delivered_message_ids)),
+        rejected_message_ids=sorted(set(rejected_message_ids)),
+        exchange_reports=sorted(reports, key=lambda report: report.report_id),
+        nonce_ledger=aggregate_nonce_ledger,
+        candidate_packet_ids=candidate_packet_ids,
+        identity_context_accepted=bool(identity_context and identity_context.accepted),
+        accepted=accepted,
+        operationally_usable=accepted,
+        settled=False,
+        reasons=sorted(set(reasons)),
+        next_safe_commands=[
+            "pic agent message contract --message <message.json>",
+            "pic agent inbox verify --inbox <inbox.json>",
+            "pic ecology bridge-runtime --report <general-intake-report.json>",
+        ],
+    )
+
+
 def _policy_for_descriptor(
     policy: GeneralIntakePolicy, descriptor: GeneralIntakeSource
 ) -> GeneralIntakePolicy:
@@ -920,13 +1150,21 @@ def _fetch_http_text(
             robots_decision=robots_decision,
         )
     try:
-        response = httpx.get(
-            source,
-            follow_redirects=True,
-            max_redirects=policy.max_redirects,
-            timeout=policy.timeout_seconds,
-            headers={"User-Agent": policy.user_agent},
-        )
+        if hasattr(httpx, "Client"):
+            with httpx.Client(
+                follow_redirects=True,
+                max_redirects=policy.max_redirects,
+                timeout=policy.timeout_seconds,
+                headers={"User-Agent": policy.user_agent},
+            ) as client:
+                response = client.get(source)
+        else:
+            response = httpx.get(
+                source,
+                follow_redirects=True,
+                timeout=policy.timeout_seconds,
+                headers={"User-Agent": policy.user_agent},
+            )
     except httpx.HTTPError as exc:
         return None, _http_diagnostic_report(
             source,

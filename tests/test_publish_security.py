@@ -23,7 +23,7 @@ def _publish_safety_main() -> int:
 def test_citation_cff_references_all_papers() -> None:
     data = yaml.safe_load((ROOT / "CITATION.cff").read_text(encoding="utf-8"))
     dois = {reference["doi"] for reference in data["references"]}
-    assert data["version"] == "0.4.1"
+    assert data["version"] == "0.4.2"
     assert data["doi"] == "10.5281/zenodo.20569166"
     assert data["repository-code"] == "https://github.com/kadubon/percolation-inversion-compiler"
     assert "OWNER/" not in data["repository-code"]
@@ -34,10 +34,26 @@ def test_citation_cff_references_all_papers() -> None:
     assert "10.5281/zenodo.20476200" in dois
 
 
+def test_release_version_metadata_is_consistent() -> None:
+    citation = yaml.safe_load((ROOT / "CITATION.cff").read_text(encoding="utf-8"))
+    pyproject = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
+    init_text = (ROOT / "src" / "percolation_inversion_compiler" / "__init__.py").read_text(
+        encoding="utf-8"
+    )
+    changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
+
+    assert pyproject["project"]["version"] == "0.4.2"
+    assert citation["version"] == "0.4.2"
+    assert citation["date-released"] == "2026-06-19"
+    assert re.search(r"^__version__\s*=\s*[\"']0\.4\.2[\"']", init_text, re.MULTILINE)
+    assert re.search(r"^## v0\.4\.2 - 2026-06-19$", changelog, re.MULTILINE)
+    assert changelog.index("## v0.4.2 - 2026-06-19") < changelog.index("## v0.4.1")
+
+
 def test_pyproject_has_pypi_distribution_metadata() -> None:
     data = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
     project = data["project"]
-    assert project["version"] == "0.4.1"
+    assert project["version"] == "0.4.2"
     urls = project["urls"]
     assert urls["Repository"] == "https://github.com/kadubon/percolation-inversion-compiler"
     assert urls["DOI"] == "https://doi.org/10.5281/zenodo.20569166"
@@ -123,8 +139,17 @@ def test_docs_explain_pip_clone_boundary_and_uv_install() -> None:
         for phrase in required:
             assert phrase in text
     readme = (ROOT / "README.md").read_text(encoding="utf-8")
-    assert "The PyPI package is intended for curated demo smoke checks" in readme
-    assert "Clone the repository for full practical use" in readme
+    assert "The PyPI package is intended for practical agent output checking" in readme
+    assert "Clone the repository for canonical TeX audits" in readme
+
+
+def test_release_checklist_warns_against_local_dist_star_publish() -> None:
+    text = (ROOT / "docs" / "release-checklist.md").read_text(encoding="utf-8")
+    assert "dist\\percolation_inversion_compiler-0.4.2-py3-none-any.whl" in text
+    assert "dist\\percolation_inversion_compiler-0.4.2.tar.gz" in text
+    assert "do not publish\n  local `dist/*`" in text
+    assert "clean GitHub Trusted Publishing workflow" in text
+    assert "production doctor\n  run without provenance is expected to fail closed" in text
 
 
 def test_readme_frontmatter_explains_scientific_agent_contract() -> None:

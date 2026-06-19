@@ -1,7 +1,7 @@
 {
   "bundle_id": "percolation-inversion-compiler-installed-demo",
   "candidate_only": true,
-  "description": "Minimal install-time demo assets for PyPI users. These files support residual-preserving runtime smoke checks without cloning the repository.",
+  "description": "Practical install-time demo assets for PyPI users. These files support residual-preserving agent checking, runtime steps, schema validation, and ALT admission without cloning the repository.",
   "files": [
     {
       "media_type": "application/json",
@@ -11,7 +11,7 @@
     {
       "media_type": "application/json",
       "path": "runtime_step_input.json",
-      "purpose": "Minimal RuntimeStepInput with no live connectors."
+      "purpose": "Minimal RuntimeStepInput with bounded live connectors enabled for explicit sources."
     },
     {
       "media_type": "text/plain",
@@ -21,7 +21,17 @@
     {
       "media_type": "application/json",
       "path": "general_intake_policy.json",
-      "purpose": "Controlled-web GeneralIntakePolicy with live network disabled."
+      "purpose": "Controlled-web GeneralIntakePolicy with bounded live source intake enabled."
+    },
+    {
+      "media_type": "application/json",
+      "path": "agent_message.json",
+      "purpose": "Local AgentMessageEnvelope fixture for pic agent message send/receive/verify workflows."
+    },
+    {
+      "media_type": "application/json",
+      "path": "agent_inbox.json",
+      "purpose": "Local AgentInboxRecord fixture for installed-package relay verification."
     },
     {
       "media_type": "application/json",
@@ -30,12 +40,12 @@
     }
   ],
   "license": "Apache-2.0 for repository demo JSON and text files",
-  "provenance": "Derived from repository examples for v0.4.1 packaging smoke tests; no canonical TeX or PDF is vendored.",
+  "provenance": "Derived from repository examples for v0.4.2 practical installed-package workflows; no canonical TeX or PDF is vendored.",
   "safety_invariants": [
     "demo output does not prove real ASI, physical outcomes, oracle truth, legal identity, or global Sybil uniqueness",
     "external content and ALT tokens remain candidate-only until finite verifier and residual-policy checks pass",
-    "live connectors are disabled by default",
+    "live connectors are bounded and candidate-only by default when an explicit source is supplied",
     "settled=false is expected when residual obligations remain"
   ],
-  "version": "0.4.1"
+  "version": "0.4.2"
 }

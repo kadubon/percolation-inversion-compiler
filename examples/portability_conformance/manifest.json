@@ -1,0 +1,101 @@
+{
+  "description": "Stable JSON outputs for cross-language schema and behavior conformance.",
+  "examples": [
+    {
+      "file": "agent_check_report.json",
+      "schema": "AgentCheckReport",
+      "sha256": "e06c0ffbcc1edeab54e8d9ab6e4d83d94baa0f283ab2762b62f30f7659b79bbd"
+    },
+    {
+      "file": "agent_intake_report.json",
+      "schema": "AgentIntakeReport",
+      "sha256": "50aee9a02a113f447d21199313c2cf52084bb4ae5332d45aa3b833506a954eb9"
+    },
+    {
+      "file": "agent_message_delivery_report.json",
+      "schema": "AgentMessageDeliveryReport",
+      "sha256": "b0acb5375f1cc6464af0e3dd345b6e1d1f37e4f08cf48fdd2c4f22e1ee60cb76"
+    },
+    {
+      "file": "agent_relay_readiness_report.json",
+      "schema": "AgentRelayReadinessReport",
+      "sha256": "b66174340306551c1055825b9cca7ec3e261c8910c8d5e56f08a9cb02675f2f6"
+    },
+    {
+      "file": "runtime_step_report.json",
+      "schema": "RuntimeStepReport",
+      "sha256": "10736603a2dbcd88c0a606a5c34383490d0bf9769316c3b49aea601450af9fc4"
+    },
+    {
+      "file": "salience_schedule_report.json",
+      "schema": "SalienceScheduleReport",
+      "sha256": "5ac9baa3c62556202c299c4a2e2a6b316383f0e3ef8015d615ce2478750a5dc0"
+    },
+    {
+      "file": "alt_admission_decision.json",
+      "schema": "ALTAdmissionDecision",
+      "sha256": "3ca9f5733a4e55767a59333a2ddbc1b3670fba9f618cdd1f4f51dd2357671693"
+    },
+    {
+      "file": "bottleneck_witness_report.json",
+      "schema": "BottleneckWitnessReport",
+      "sha256": "b6dde5aa933e4910d8574efb77623b42249ee05c35ca8722357dea39d78cd670"
+    },
+    {
+      "file": "collective_phase_certificate.json",
+      "schema": "CollectivePhaseCertificate",
+      "sha256": "ed15c5ed623ed25d7e0e806a2eed179c30374f4baa6bc2310f53d0d1e23697b5"
+    },
+    {
+      "file": "frontier_debt_report.json",
+      "schema": "FrontierDebtReport",
+      "sha256": "5bd4f3afc5f0274407740c5b26469aa2842ce9d8ad95cfa66d35e5dc47f3f256"
+    },
+    {
+      "file": "phase_control_audit_summary.json",
+      "schema": "PhaseControlAuditSummary",
+      "sha256": "cc15fcbdd9c13461f73a8c9fa84a34912aceefebd4113865e58c14e25b471b2c"
+    },
+    {
+      "file": "theory_fidelity_report.json",
+      "schema": "TheoryFidelityReport",
+      "sha256": "ac4d3fdc062436cb9bf4c21fba42ff2cc6acb682e159afdcf4505d57688857a8"
+    },
+    {
+      "file": "value_bridge_report.json",
+      "schema": "ValueBridgeReport",
+      "sha256": "303264814bd9b70f7204f171a40f5b41eb8a751a87ff59d7867e47014d2032e2"
+    }
+  ],
+  "negative_examples": [
+    {
+      "expected_status": "schema-invalid",
+      "file": "negative/schema_invalid_agent_check.json",
+      "schema": "AgentCheckReport"
+    },
+    {
+      "expected_status": "unknown-schema",
+      "file": "negative/unknown_schema.json",
+      "schema": "UnknownPortSchema"
+    },
+    {
+      "expected_status": "sha256-mismatch",
+      "file": "negative/checksum_mismatch.json",
+      "schema": "AgentRunbookReport",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+    },
+    {
+      "expected_status": "missing",
+      "file": "negative/missing.json",
+      "schema": "AgentCheckReport"
+    }
+  ],
+  "invariants": [
+    "accepted and settled remain separate booleans",
+    "residual ledgers are preserved in nested reports",
+    "candidate and certificate outputs remain protocol-relative",
+    "live communication defaults remain bounded and candidate-only for explicit sources"
+  ],
+  "manifest_id": "pic-portability-conformance-v1",
+  "schema_version": "portability-conformance-1.0"
+}

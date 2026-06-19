@@ -1,9 +1,10 @@
 # PyPI Distribution
 
-v0.4.1 is the distribution-stability patch for
-`percolation-inversion-compiler` on PyPI. It keeps the v0.4.0 ALT and ECPT
-runtime behavior intact while hardening package metadata, install-time
-expectations, curated installed demos, and upload provenance.
+v0.4.2 is the practical-readiness patch for
+`percolation-inversion-compiler` on PyPI. It keeps existing schemas and
+commands stable while making the wheel useful as an installed agent-output and
+workflow checker, with bundled demo data, snapshots, schema export, and
+residual-preserving runtime commands.
 
 ## Install Modes
 
@@ -12,9 +13,14 @@ Core runtime and CLI:
 ```powershell
 python -m pip install percolation-inversion-compiler
 pic agent explain
+pic agent check --compact --text "Candidate packet: preserve residuals." --profile development
+pic agent runbook --profile development
+pic agent check --text "Candidate packet: preserve residuals." --profile development
 pic demo installed-smoke --profile development
 pic demo bootstrap --output-dir pic-demo
 pic runtime step --state pic-demo/runtime_state.json --input pic-demo/runtime_step_input.json --profile development
+pic agent message receive --inbox pic-demo/agent_inbox.json
+pic agent inbox verify --inbox pic-demo/agent_inbox.json
 pic agent intake --text "Candidate packet: preserve residuals." --profile development
 pic snapshot list
 pic schema --type AgentIntakeReport
@@ -32,19 +38,25 @@ Full research/development extras:
 python -m pip install "percolation-inversion-compiler[all]"
 ```
 
-The wheel includes only a curated installed-demo bundle under package data.
-`pic demo bootstrap` exports that bundle to a directory the user controls. The
-full root `examples/...` tree, canonical TeX audits, and release engineering
-checks require a source checkout. The wheel is intended for runtime, schema,
-snapshot, curated-demo, and CLI use; the repository is the full fixture and
-development workspace.
+The wheel includes a curated installed workflow bundle under package data.
+`pic agent check` works directly on inline text or user files. `pic demo
+bootstrap` exports runtime, agent-output, policy, local agent-message relay, and ALT example JSON to a
+directory the user controls. The full root `examples/...` tree, canonical TeX
+audits, and release engineering checks require a source checkout. The wheel is
+intended for practical runtime, schema, snapshot, curated workflow, and CLI use;
+the repository is the full fixture and development workspace.
+
+Live HTTP/feed intake is bounded and candidate-only by default when an explicit source is
+supplied. Use `--no-allow-live-connectors` for local-only smoke tests. Default-live mode does
+not grant background crawling, shell execution, repository mutation, or hidden promotion to
+`settled`.
 
 ## Clone Boundary
 
-Full practical use is source-checkout recommended. Clone when an agent needs
-the full `examples/...` tree, canonical TeX audits, fixture-backed collective
-phase workflows, local service tests, release provenance, SBOM generation, or
-development checks.
+Clone when an agent needs the full `examples/...` tree, canonical TeX audits,
+fixture-backed collective phase workflows, local service tests, release
+provenance, SBOM generation, or development checks. Basic real use does not
+require a checkout.
 
 Install `uv` on Windows PowerShell:
 
@@ -94,7 +106,7 @@ the publication workflow instead of falling back to token upload.
 
 ## Pre-Publish Checks
 
-Run these before publishing or republishing the v0.4.1 distributions:
+Run these before publishing or republishing the v0.4.2 distributions:
 
 ```powershell
 uv run pytest

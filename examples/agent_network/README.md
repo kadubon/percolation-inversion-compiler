@@ -1,7 +1,8 @@
 # Agent Network Intake Walkthrough
 
 This directory contains offline fixtures for broad intake and agent-to-agent exchange.
-The commands do not contact the network unless `--allow-live-connectors` is explicitly set.
+The commands are live-capable by default for explicit sources. Local fixture commands do not
+contact the network; use `--no-allow-live-connectors` for a local-only dry run.
 
 ```powershell
 uv run pic ecology ingest-general --source examples/agent_network/feed.xml --kind rss
@@ -14,10 +15,11 @@ uv run pic agent message ingest --message examples/agent_network/agent_message.j
 uv run pic agent inbox export --inbox examples/agent_network/inbox.json
 ```
 
-Optional live metadata intake remains explicit:
+Optional live metadata intake uses explicit sources:
 
 ```powershell
-uv run pic ecology ingest-general --source https://example.org --kind web-page --allow-live-connectors
+uv run pic ecology ingest-general --source https://example.org --kind web-page
+uv run pic ecology ingest-general --source https://example.org --kind web-page --no-allow-live-connectors
 ```
 
 Failure fixtures are included for fail-closed checks:
@@ -36,12 +38,12 @@ Policy and bridge fixtures:
 - `runtime_bridge_report.example.json`: SQOT/runtime classification for that report.
 - `agent_message_signed_shape.json`: signed-field shape with no private key material.
 
-For live HTTP(S), the CLI must set `--allow-live-connectors`, the intake policy must allow
-live connectors, and the runtime or service config must also allow them. Reports include
+For live HTTP(S), the source must be explicit and the intake/runtime policy must allow
+live connectors. Reports include
 sanitized provenance, `web_fetch_reports`, and residual coordinates, not query secrets or local
 absolute paths. HTTP(S) redirect chains are validated URL-by-URL, and live discovery fetches each
 visited resource once. Local HTML discovery follows relative links only inside the seed file
-directory.
+directory and does not fetch external links found in a local fixture.
 
 External content becomes packet candidates only. It is not verified packet capital and does not
 settle physical, oracle, policy, legal identity, or real ASI claims.

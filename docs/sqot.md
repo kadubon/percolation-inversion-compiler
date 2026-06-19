@@ -14,13 +14,24 @@ Core records:
 
 - `SalienceQueueRecord`: packet, obligation, or verifier task with expected
   downstream gain, residual reduction, verification cost, freshness, hazard,
-  authority, rollback, and route safety fields.
+  authority, rollback, audit-recursion, latency/deadline, aggregation, and
+  route safety fields.
 - `OccupationLedger`: finite attention budget and class-level occupation.
 - `DiagnosticReservePolicy`: reserve that protects diagnostic work from being
   consumed by attractive but unsafe packets.
 - `QuarantineLedger`: stale, hash-invalid, authority-invalid, unsafe-route, or
   rollback-required records.
 - `SalienceScheduleReport`: deterministic scheduling output for agents.
+  v0.4.2 adds effective diagnostic reserve, audit recursion violations,
+  latency/deadline loss, rollback-class summary, aggregation occupation, and
+  label-laundering suspicions. It also exposes distributed-origin count,
+  protocol-integrity refs, privacy/rejoin refs, sovereignty-kernel refs,
+  adversarial-transfer charge, and thermodynamic-discharge charge.
+
+In common terms, SQOT is the finite task scheduler. These diagnostics tell an
+agent whether attention is being consumed safely, whether labels are hiding
+underlying signals, and whether rollback or deadline pressure should route work
+to diagnostic repair instead of promotion.
 
 Decision meanings:
 
@@ -37,7 +48,10 @@ expected downstream gain
 + residual reduction
 - verification cost
 - hazard charge
+- latency and deadline loss
 - residual ledger burden
+- adversarial transfer risk
+- thermodynamic discharge cost
 ```
 
 Freshness scales positive value. Queue priority never promotes a claim to

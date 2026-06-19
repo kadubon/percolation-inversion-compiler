@@ -14,6 +14,7 @@ from percolation_inversion_compiler.alt import (
     ALTKernelTransitionReport,
     BaselineRefreshCertificate,
     ExecutableALTCertificatePacket,
+    FoundryBottleneck,
     FoundryState,
     HazardEnvelopeCertificate,
     LiquidityCertificate,
@@ -90,9 +91,33 @@ def test_alt_liquidity_certificate_accepts_only_positive_certified_surplus() -> 
     )
     checked = check_liquidity_certificate(certificate)
     assert checked.accepted
+    assert checked.value_evidence_level == "calibrated-proxy"
+    assert checked.proxy_bridge_refs
+    assert checked.value_bridge_report.accepted
+    assert checked.value_bridge_report.calibrated_proxy_bridge_ready
+    assert checked.value_bridge_report.common_estimand_ready
     assert checked.signed_surplus_lower_bound > 0.0
     assert checked.operationally_usable
     assert not checked.settled
+
+    proxy_only = certificate.model_copy(update={"value_evidence_level": "proxy-only"})
+    proxy_only_report = check_liquidity_certificate(proxy_only)
+    assert not proxy_only_report.accepted
+    assert "proxy-only evidence cannot certify reusable abstraction capital" in (
+        proxy_only_report.reasons
+    )
+    assert proxy_only_report.value_bridge_report.proxy_only
+    assert "proxy-only evidence cannot certify reusable abstraction capital" in (
+        proxy_only_report.value_bridge_report.reasons
+    )
+
+    causal_without_evidence = certificate.model_copy(
+        update={"value_evidence_level": "causal", "causal_effect_refs": []}
+    )
+    causal_report = check_liquidity_certificate(causal_without_evidence)
+    assert not causal_report.accepted
+    assert "causal value evidence requires causal_effect_refs" in causal_report.reasons
+    assert not causal_report.value_bridge_report.causal_effect_ready
 
     negative = LiquidityCertificate.model_validate(
         load_data("examples/alt/negative_hazard_token.json")
@@ -279,6 +304,10 @@ def test_alt_foundry_actions_explain_bottlenecks() -> None:
     dashboard = compute_foundry_dashboard(state)
     actions = recommend_foundry_actions(dashboard)
     assert not dashboard.accepted
+    assert FoundryBottleneck.EVIDENCE_LIMITED in dashboard.bottlenecks
+    assert FoundryBottleneck.TRANSPORT_LIMITED in dashboard.bottlenecks
+    assert FoundryBottleneck.RISK_LIMITED in dashboard.bottlenecks
+    assert FoundryBottleneck.CAPACITY_LIMITED in dashboard.bottlenecks
     assert "suspend-risky-token-admission" in actions
     assert "increase-receiver-absorption-or-settlement-capacity" in actions
     assert "collect-transport-support-and-density-ratio-evidence" in actions

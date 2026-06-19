@@ -91,6 +91,13 @@
   "robustness_refs": [
     "robustness:example"
   ],
+  "value_evidence_level": "calibrated-proxy",
+  "proxy_bridge_refs": [
+    "proxy-bridge:example"
+  ],
+  "common_estimand_refs": [
+    "estimand:mission-valid-search-cost"
+  ],
   "root_finality_certificate": {
     "byzantine_budget_upper_bound": 0.1,
     "certificate_id": "root-finality:example",

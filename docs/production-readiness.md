@@ -4,6 +4,9 @@
 autonomous agents. It reports whether the installed package or source checkout
 has the schema registry, snapshots, route bindings, optional adapters,
 provenance, security metadata, and status policy needed for fail-closed use.
+The report also includes `commercial_readiness`, an additive onboarding summary
+for install mode, schema and snapshot availability, curated demo resources,
+provenance, identity readiness, security metadata, and live-connector defaults.
 
 For a PyPI-installed package, start with commands that do not require repository
 fixtures:
@@ -11,17 +14,22 @@ fixtures:
 ```powershell
 python -m pip install percolation-inversion-compiler
 pic agent explain
+pic agent check --compact --text "Candidate packet: preserve residuals." --profile development
+pic agent runbook --profile development
+pic agent check --text "Candidate packet: preserve residuals." --profile development
 pic demo installed-smoke --profile development
 pic demo bootstrap --output-dir pic-demo
 pic runtime step --state pic-demo/runtime_state.json --input pic-demo/runtime_step_input.json --profile development
+pic agent message receive --inbox pic-demo/agent_inbox.json
+pic agent inbox verify --inbox pic-demo/agent_inbox.json
 pic agent intake --text "Candidate packet: preserve residuals." --profile development
 pic snapshot list
 pic schema --type AgentIntakeReport
 ```
 
-Commands that read `examples/...`, canonical TeX files, or release artifacts
-require a source checkout. For full practical use, install `uv`, clone the
-repository, and sync all extras:
+Commands that read the root `examples/...` tree, canonical TeX files, or
+release artifacts require a source checkout. For those workflows, install `uv`,
+clone the repository, and sync all extras:
 
 ```powershell
 powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
@@ -52,6 +60,13 @@ actually about to use. Missing optional dependencies for unused routes are
 reported but do not fail the route-scoped readiness decision. The doctor summary
 also returns `external_domain_required_routes`, `contract_enforced_routes`,
 `replay_residual_routes`, and `residual_external_obligation_count`.
+
+`commercial_readiness` reports `live_connectors_default_enabled=true`,
+`live_connector_opt_out_available=true`, and `bounded_intake_default=true` for v0.4.2.
+This means explicit-source communication is usable by default, not that external packet volume
+can promote runtime state. Production/adversarial profiles still require accepted identity
+context before signed peer-agent messages or packet issuers become more than diagnostic
+candidates.
 
 ## Provenance-Backed Production
 
@@ -87,6 +102,13 @@ obligation ledger compiler. It does not mean external physical, oracle,
 simulator, or ASI-proxy claims are settled. Routes with
 `external_domain_required` remain explicit `ExternalProofObligation` boundaries
 until a domain verifier supplies accepted replayable evidence.
+
+For a networked agent deployment, PIC can help make ASI-proxy phase-control
+observable as bounded message exchange, reusable packet verification,
+residual-ledger preservation, SQOT queue routing, and ALT abstraction-capital
+checks. Production readiness only says those protocol-relative surfaces are
+available and fail closed; it does not prove a real ASI event or physical
+transition.
 
 ## Identity Readiness
 

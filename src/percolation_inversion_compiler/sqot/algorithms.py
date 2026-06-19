@@ -26,6 +26,10 @@ def salience_priority(record: SalienceQueueRecord) -> float:
     negative = (
         max(0.0, record.verification_cost)
         + max(0.0, record.hazard_charge)
+        + max(0.0, record.latency_cost)
+        + max(0.0, record.deadline_loss)
+        + max(0.0, record.adversarial_transfer_risk)
+        + max(0.0, record.thermodynamic_discharge_cost)
         + record.residual_ledger.burden_sum()
     )
     freshness = min(1.0, max(0.0, record.freshness))
@@ -44,6 +48,16 @@ def check_salience_record(record: SalienceQueueRecord) -> CheckResult:
         reasons.append("residual reduction is negative")
     if record.hazard_charge < 0:
         reasons.append("hazard charge is negative")
+    if record.latency_cost < 0:
+        reasons.append("latency cost is negative")
+    if record.deadline_loss < 0:
+        reasons.append("deadline loss is negative")
+    if record.adversarial_transfer_risk < 0:
+        reasons.append("adversarial transfer risk is negative")
+    if record.thermodynamic_discharge_cost < 0:
+        reasons.append("thermodynamic discharge cost is negative")
+    if record.audit_recursion_depth < 0:
+        reasons.append("audit recursion depth is negative")
     if record.stale:
         reasons.append("queue record is stale")
     if not record.evidence_hash_valid:
@@ -72,6 +86,7 @@ def _decision_for_record(
     remaining_attention: float,
     reserve_remaining: float,
     risk_remaining: float,
+    audit_depth_limit: int,
 ) -> SalienceSchedulingDecision:
     check = check_salience_record(record)
     score = salience_priority(record)
@@ -81,6 +96,9 @@ def _decision_for_record(
         decision = (
             SalienceDecision.ROLLBACK if record.rollback_available else SalienceDecision.QUARANTINE
         )
+    elif record.audit_recursion_depth > audit_depth_limit:
+        decision = SalienceDecision.DEFER
+        reasons.append("audit recursion budget would be exceeded")
     elif score <= 0.0:
         decision = SalienceDecision.DEFER
         reasons.append("priority score is not positive")
@@ -134,8 +152,21 @@ def build_salience_schedule(
     quarantine_reasons: dict[str, list[str]] = {}
     remaining_attention = max(0.0, attention_budget)
     diagnostic_spent = 0.0
+    effective_diagnostic_spent = 0.0
     risk_remaining = max(0.0, risk_budget)
     required_reserve = reserve.required_reserve(max(0.0, attention_budget))
+    audit_recursion_violations: list[str] = []
+    rollback_class_summary: dict[str, int] = {}
+    aggregation_group_counts: dict[str, int] = {}
+    aggregation_group_occupation: dict[str, float] = {}
+    aggregation_group_classes: dict[str, set[str]] = {}
+    label_suspicions: list[str] = []
+    protocol_integrity_refs: list[str] = []
+    privacy_rejoin_refs: list[str] = []
+    sovereignty_kernel_refs: list[str] = []
+    distributed_origin_count = 0
+    adversarial_transfer_charge = 0.0
+    thermodynamic_discharge_charge = 0.0
     for record in sorted_records:
         reserve_remaining = remaining_attention - required_reserve
         decision = _decision_for_record(
@@ -143,12 +174,39 @@ def build_salience_schedule(
             remaining_attention=remaining_attention,
             reserve_remaining=reserve_remaining,
             risk_remaining=risk_remaining,
+            audit_depth_limit=reserve.audit_depth,
         )
         decisions.append(decision)
+        if record.audit_recursion_depth > reserve.audit_depth:
+            audit_recursion_violations.append(record.record_id)
+        rollback_class_summary[record.rollback_class] = (
+            rollback_class_summary.get(record.rollback_class, 0) + 1
+        )
+        group = record.aggregation_group or record.underlying_signal_ref
+        if group:
+            aggregation_group_counts[group] = aggregation_group_counts.get(group, 0) + 1
+            aggregation_group_occupation[group] = aggregation_group_occupation.get(
+                group, 0.0
+            ) + max(0.0, record.verification_cost)
+            aggregation_group_classes.setdefault(group, set()).add(record.salience_class)
+        if record.label_laundering_suspected:
+            label_suspicions.append(record.record_id)
+        if record.protocol_integrity_ref:
+            protocol_integrity_refs.append(record.protocol_integrity_ref)
+        if record.privacy_rejoin_ref:
+            privacy_rejoin_refs.append(record.privacy_rejoin_ref)
+        if record.sovereignty_kernel_ref:
+            sovereignty_kernel_refs.append(record.sovereignty_kernel_ref)
+        if record.distributed_origin_ref:
+            distributed_origin_count += 1
+        adversarial_transfer_charge += max(0.0, record.adversarial_transfer_risk)
+        thermodynamic_discharge_charge += max(0.0, record.thermodynamic_discharge_cost)
         if decision.decision == SalienceDecision.RUN:
             remaining_attention -= max(0.0, record.verification_cost)
             if record.item_type == "diagnostic":
                 diagnostic_spent += max(0.0, record.verification_cost)
+                if record.effective_reserve_eligible:
+                    effective_diagnostic_spent += max(0.0, record.verification_cost)
             risk_remaining -= max(0.0, record.hazard_charge)
             occupied_by_class[record.salience_class] = occupied_by_class.get(
                 record.salience_class, 0.0
@@ -173,6 +231,12 @@ def build_salience_schedule(
         if salience_priority(record) <= 0.0
     )
     unresolved = sum(len(record.obligation_ids) for record in sorted_records)
+    latency_deadline_loss = sum(
+        max(0.0, record.latency_cost) + max(0.0, record.deadline_loss) for record in sorted_records
+    )
+    for group, classes in aggregation_group_classes.items():
+        if len(classes) > 1:
+            label_suspicions.append(f"aggregation-group:{group}")
     residual_debt = sum(decision.residual_ledger.burden_sum() for decision in decisions)
     accepted = any(decision.decision == SalienceDecision.RUN for decision in decisions)
     occupied = max(0.0, attention_budget) - remaining_attention
@@ -196,6 +260,19 @@ def build_salience_schedule(
         low_contribution_occupation=low_contribution,
         unresolved_obligation_backlog=unresolved,
         verifier_latency_proxy=occupied / max(1, len(decisions)),
+        effective_diagnostic_reserve=effective_diagnostic_spent,
+        audit_recursion_violations=sorted(set(audit_recursion_violations)),
+        latency_deadline_loss=latency_deadline_loss,
+        rollback_class_summary=dict(sorted(rollback_class_summary.items())),
+        aggregation_group_counts=dict(sorted(aggregation_group_counts.items())),
+        aggregation_group_occupation=dict(sorted(aggregation_group_occupation.items())),
+        label_laundering_suspicions=sorted(set(label_suspicions)),
+        protocol_integrity_refs=sorted(set(protocol_integrity_refs)),
+        privacy_rejoin_refs=sorted(set(privacy_rejoin_refs)),
+        sovereignty_kernel_refs=sorted(set(sovereignty_kernel_refs)),
+        distributed_origin_count=distributed_origin_count,
+        adversarial_transfer_charge=adversarial_transfer_charge,
+        thermodynamic_discharge_charge=thermodynamic_discharge_charge,
         stale_packet_ratio=0.0 if total_records == 0 else stale_count / total_records,
         false_liquidity_rate=0.0 if total_records == 0 else unsafe_count / total_records,
         residual_debt_growth=residual_debt,
@@ -209,5 +286,4 @@ def reserve_is_adequate(report: SalienceScheduleReport) -> bool:
         report.occupation_ledger.attention_budget
     )
     free_attention = report.occupation_ledger.attention_budget - report.occupation_ledger.occupied
-    diagnostic_occupied = report.occupation_ledger.occupied_by_class.get("diagnostic", 0.0)
-    return free_attention + diagnostic_occupied >= reserve_required
+    return free_attention + report.effective_diagnostic_reserve >= reserve_required

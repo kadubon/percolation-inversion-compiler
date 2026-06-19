@@ -21,6 +21,7 @@ from percolation_inversion_compiler.core.operations import (
     OperationalReadinessReport,
     ProductionReadinessProfile,
 )
+from percolation_inversion_compiler.io.commercial import build_commercial_readiness_summary
 from percolation_inversion_compiler.io.provenance import (
     ProvenanceManifest,
     verify_provenance_manifest,
@@ -347,11 +348,19 @@ def build_operational_readiness_report(
         )
     )
 
+    commercial_readiness = build_commercial_readiness_summary(
+        profile=policy.profile,
+        schema_count=len(schemas),
+        snapshot_count=len(snapshots),
+        provenance_verified=provenance_valid,
+        security_metadata_present=security_ok,
+    )
     return OperationalReadinessReport(
         package_version=__version__,
         python_version=sys.version.split()[0],
         overall_status=_overall_status(checks),
         checks=checks,
+        commercial_readiness=commercial_readiness,
         summary={
             "profile": policy.profile,
             "required_routes": required_route_ids,

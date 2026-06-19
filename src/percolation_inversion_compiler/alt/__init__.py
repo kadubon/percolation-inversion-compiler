@@ -59,6 +59,7 @@ from percolation_inversion_compiler.alt.records import (
     TokenLineage,
     TraceSufficiencyCertificate,
     TransportCertificate,
+    ValueBridgeReport,
 )
 
 __all__ = [
@@ -91,6 +92,7 @@ __all__ = [
     "TokenLineage",
     "TraceSufficiencyCertificate",
     "TransportCertificate",
+    "ValueBridgeReport",
     "admit_alt_packet",
     "bridge_alt_to_runtime",
     "build_abstraction_token_from_packet",

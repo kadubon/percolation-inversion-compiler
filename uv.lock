@@ -1180,7 +1180,7 @@ wheels = [
 
 [[package]]
 name = "percolation-inversion-compiler"
-version = "0.4.1"
+version = "0.4.2"
 source = { editable = "." }
 dependencies = [
     { name = "defusedxml" },

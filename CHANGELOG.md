@@ -1,5 +1,25 @@
 # Changelog
 
+## v0.4.2 - 2026-06-19
+
+- Makes explicit-source live communication bounded and candidate-only by
+  default, with `--no-allow-live-connectors` retained for local-only runs.
+- Adds the practical installed-package workflow around `pic agent check
+  --compact`, installed demo bootstrap resources, and beginner-readable
+  workflow usability fields without changing `settled` semantics.
+- Adds local agent-to-agent relay commands for message send, receive, inbox
+  verification, and relay readiness while preserving nonce, identity, signature,
+  provenance, and residual-ledger checks.
+- Extends ECPT, BIT, TRC, SQOT, and ALT theory-fidelity reports with finite
+  phase-control, bottleneck witness, frontier debt, scheduler diagnostic, and
+  value-bridge summaries.
+- Expands portability conformance examples, schema exports, and bundled demo
+  data for installed-package agent checks, runtime steps, ALT admission, schema
+  validation, and local relay workflows.
+- Preserves the public safety boundary: PIC does not prove real ASI,
+  physical/oracle truth, or hidden promotion from `accepted` or
+  `workflow_usable` to `settled`.
+
 ## v0.4.1 - 2026-06-11
 
 - Adds PyPI distribution metadata with project URLs, concept DOI, repository,
