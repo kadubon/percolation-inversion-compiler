@@ -2,7 +2,8 @@
 
 This directory contains stable JSON outputs for cross-language implementations.
 Each file is intended to validate against the public schema named in
-`manifest.json`.
+`manifest.json`. Manifest SHA-256 values are computed over LF-normalized bytes
+so Windows and Unix checkouts validate the same examples.
 
 The examples are protocol-relative and intentionally keep `settled=false` where
 external or route-level obligations remain. Ports should preserve the separate
