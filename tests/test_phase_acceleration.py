@@ -3,7 +3,9 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import pytest
 from jsonschema import Draft202012Validator
+from typer import BadParameter
 from typer.testing import CliRunner
 
 from percolation_inversion_compiler.acceleration import (
@@ -21,7 +23,7 @@ from percolation_inversion_compiler.agent import (
     minimal_runtime_step_input,
 )
 from percolation_inversion_compiler.alt import ALTAdmissionDecision
-from percolation_inversion_compiler.cli import app
+from percolation_inversion_compiler.cli import _load_phase_acceleration_request, app
 from percolation_inversion_compiler.ecology import (
     GeneralIntakeRuntimeBridgeReport,
     PacketIngestionReport,
@@ -224,20 +226,34 @@ def test_phase_request_example_is_executable_and_compact() -> None:
 
 
 def test_phase_request_rejects_runtime_input_mixing() -> None:
+    request_path = Path("examples/phase_acceleration/phase_acceleration_request.json")
     result = runner.invoke(
         app,
         [
             "phase",
             "plan",
             "--request",
-            "examples/phase_acceleration/phase_acceleration_request.json",
+            str(request_path),
             "--text",
             "Candidate packet: preserve residuals.",
         ],
     )
 
     assert result.exit_code != 0
-    assert "Use --request by itself" in result.output
+    assert "phase plan" in result.output
+    with pytest.raises(BadParameter, match="Use --request by itself"):
+        _load_phase_acceleration_request(
+            request_path=request_path,
+            runtime_report_path=None,
+            state_path=None,
+            step_input_path=None,
+            text="Candidate packet: preserve residuals.",
+            text_file=None,
+            profile=None,
+            identity_context_path=None,
+            allow_live_connectors=None,
+            compact=True,
+        )
 
 
 def test_phase_request_identity_context_override_removes_identity_blocker() -> None:
