@@ -35,9 +35,7 @@ _COMMAND_MARKERS = (
 def stable_json_digest(data: dict[str, Any]) -> str:
     """Return a deterministic SHA-256 digest for JSON-like data."""
 
-    encoded = json.dumps(data, sort_keys=True, separators=(",", ":"), default=str).encode(
-        "utf-8"
-    )
+    encoded = json.dumps(data, sort_keys=True, separators=(",", ":"), default=str).encode("utf-8")
     return hashlib.sha256(encoded).hexdigest()
 
 

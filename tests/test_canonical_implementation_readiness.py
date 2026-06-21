@@ -37,7 +37,8 @@ def test_canonical_readiness_uses_bundled_snapshots_without_gating() -> None:
     assert report.automatic_execution_present is False
     assert any(
         item["invocation_id"] == "canonical-readiness"
-        and item["argv"] == [
+        and item["argv"]
+        == [
             "pic",
             "audit",
             "canonical-readiness",
@@ -94,4 +95,3 @@ def test_canonical_readiness_markdown_rejects_unknown_language() -> None:
         assert "language must be one of" in str(exc)
     else:
         raise AssertionError("unknown language should fail")
-

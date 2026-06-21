@@ -1231,9 +1231,7 @@ def audit_canonical_readiness_command(
         str,
         typer.Option("--language", help="Markdown language: en or ja."),
     ] = "en",
-    output: Annotated[
-        Path | None, typer.Option("--output", "-o", help="Write output.")
-    ] = None,
+    output: Annotated[Path | None, typer.Option("--output", "-o", help="Write output.")] = None,
 ) -> None:
     """Report pip-safe canonical readiness from bundled derived snapshots."""
 
@@ -2891,9 +2889,7 @@ def adoption_packet_command(
         str,
         typer.Option("--language", help="Markdown language: en or ja."),
     ] = "en",
-    output: Annotated[
-        Path | None, typer.Option("--output", "-o", help="Write output.")
-    ] = None,
+    output: Annotated[Path | None, typer.Option("--output", "-o", help="Write output.")] = None,
 ) -> None:
     """Generate an optional operator-facing adoption packet."""
 
@@ -2918,9 +2914,7 @@ def adoption_request_command(
         str,
         typer.Option("--language", help="Markdown language: en or ja."),
     ] = "en",
-    output: Annotated[
-        Path | None, typer.Option("--output", "-o", help="Write output.")
-    ] = None,
+    output: Annotated[Path | None, typer.Option("--output", "-o", help="Write output.")] = None,
 ) -> None:
     """Generate a short agent-to-operator adoption request."""
 
@@ -3179,9 +3173,7 @@ def phase_benchmark_suite_command(
         str,
         typer.Option("--format", help="Output format: json or markdown."),
     ] = "json",
-    output: Annotated[
-        Path | None, typer.Option("--output", "-o", help="Write output.")
-    ] = None,
+    output: Annotated[Path | None, typer.Option("--output", "-o", help="Write output.")] = None,
 ) -> None:
     """Run the diagnostic protocol-relative phase benchmark suite."""
 
@@ -3203,9 +3195,7 @@ def phase_dashboard_command(
         str,
         typer.Option("--format", help="Output format: json or markdown."),
     ] = "json",
-    output: Annotated[
-        Path | None, typer.Option("--output", "-o", help="Write output.")
-    ] = None,
+    output: Annotated[Path | None, typer.Option("--output", "-o", help="Write output.")] = None,
 ) -> None:
     """Emit an observation-only phase dashboard."""
 
@@ -3276,9 +3266,9 @@ def packet_inspect_command(
     """Inspect a data-only packet envelope without executing content."""
 
     _dump(
-        inspect_packet_exchange_envelope(
-            _load_packet_exchange_envelope(packet)
-        ).model_dump(mode="json"),
+        inspect_packet_exchange_envelope(_load_packet_exchange_envelope(packet)).model_dump(
+            mode="json"
+        ),
         output,
     )
 
@@ -3412,9 +3402,7 @@ def agent_autonomy_audit_command(
         str,
         typer.Option("--language", help="Markdown language: en or ja."),
     ] = "en",
-    output: Annotated[
-        Path | None, typer.Option("--output", "-o", help="Write output.")
-    ] = None,
+    output: Annotated[Path | None, typer.Option("--output", "-o", help="Write output.")] = None,
 ) -> None:
     """Audit whether agent activity is blocked by approval or adoption state."""
 

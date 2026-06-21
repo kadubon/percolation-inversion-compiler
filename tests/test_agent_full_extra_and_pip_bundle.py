@@ -17,12 +17,10 @@ def test_agent_full_extra_is_declared_and_documented() -> None:
     pyproject = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
     extras = pyproject["project"]["optional-dependencies"]
 
-    assert extras["agent-full"] == [
-        "percolation-inversion-compiler[connectors,server,identity]"
-    ]
-    assert "percolation-inversion-compiler[agent-full]" in (
-        ROOT / "README.md"
-    ).read_text(encoding="utf-8")
+    assert extras["agent-full"] == ["percolation-inversion-compiler[connectors,server,identity]"]
+    assert "percolation-inversion-compiler[agent-full]" in (ROOT / "README.md").read_text(
+        encoding="utf-8"
+    )
     assert "percolation-inversion-compiler[agent-full]" in (
         ROOT / "docs" / "pypi-distribution.md"
     ).read_text(encoding="utf-8")
@@ -41,9 +39,7 @@ def test_installed_demo_bundle_contains_sidecar_assets() -> None:
     paths = {item["path"] for item in manifest["files"]}
     assert {"runtime_step_report.json", "phase_dashboard.json", "packet_envelope.json"} <= paths
     assert any("packet merge" in item for item in manifest["recommended_phase_commands"])
-    assert any(
-        "canonical-readiness" in item for item in manifest["recommended_phase_commands"]
-    )
+    assert any("canonical-readiness" in item for item in manifest["recommended_phase_commands"])
 
 
 def test_demo_bootstrap_exports_sidecars_and_argv_invocations(tmp_path: Path) -> None:

@@ -24,8 +24,7 @@ def test_phase_benchmark_suite_cli_is_diagnostic_only() -> None:
     assert data["settled"] is False
     assert data["workflow_usable"] is True
     assert any(
-        "benchmark scores do not set settled=true" in item
-        for item in data["safety_invariants"]
+        "benchmark scores do not set settled=true" in item for item in data["safety_invariants"]
     )
     assert all(case["settled"] is False for case in data["cases"])
 

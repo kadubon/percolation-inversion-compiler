@@ -416,7 +416,7 @@ def agent_manifest_payload() -> dict[str, object]:
             "pypi_fallback": "python -m pip install uv",
         },
         "pip_boundary": {
-            "agent_full_extra": 'percolation-inversion-compiler[agent-full]',
+            "agent_full_extra": "percolation-inversion-compiler[agent-full]",
             "pip_core_commands": pip_core_commands(),
             "pip_agent_full_commands": pip_agent_full_commands(),
             "source_checkout_commands": source_checkout_commands(),

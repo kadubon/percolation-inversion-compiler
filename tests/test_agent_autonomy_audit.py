@@ -29,7 +29,8 @@ def test_agent_autonomy_audit_is_non_gating_and_argv_safe() -> None:
     assert any(item.argv for item in report.recommended_next_invocations)
     assert any(
         item.invocation_id == "sidecar-packet-merge"
-        and item.argv == [
+        and item.argv
+        == [
             "pic",
             "packet",
             "merge",
@@ -42,7 +43,8 @@ def test_agent_autonomy_audit_is_non_gating_and_argv_safe() -> None:
     )
     assert any(
         item.invocation_id == "canonical-readiness"
-        and item.argv == [
+        and item.argv
+        == [
             "pic",
             "audit",
             "canonical-readiness",
@@ -54,8 +56,7 @@ def test_agent_autonomy_audit_is_non_gating_and_argv_safe() -> None:
         for item in report.recommended_next_invocations
     )
     assert any(
-        "canonical readiness is available from pip" in item
-        for item in report.autonomy_enablers
+        "canonical readiness is available from pip" in item for item in report.autonomy_enablers
     )
 
 

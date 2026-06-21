@@ -318,11 +318,7 @@ def build_phase_benchmark_suite(
         case_results.append(_benchmark_case_result(task, plan))
 
     metric_ids = sorted(
-        {
-            metric.metric_id
-            for case in case_results
-            for metric in case.metric_results
-        }
+        {metric.metric_id for case in case_results for metric in case.metric_results}
     )
     aggregate_metrics = []
     for metric_id in metric_ids:
@@ -500,9 +496,7 @@ def build_phase_observation(
         "unsettled_candidate_count": sum(item.unsettled_candidate_count for item in dashboards),
         "missing_obligation_count": sum(item.missing_obligation_count for item in dashboards),
         "settled_blocker_count": sum(item.settled_blocker_count for item in dashboards),
-        "candidate_only_reason_count": sum(
-            item.candidate_only_reason_count for item in dashboards
-        ),
+        "candidate_only_reason_count": sum(item.candidate_only_reason_count for item in dashboards),
         "safe_command_count": sum(item.safe_command_count for item in dashboards),
     }
     return PhaseObservationReport(
@@ -539,9 +533,7 @@ def phase_dashboard_markdown(report: PhaseDashboardReport) -> str:
         "",
         "## Bottlenecks",
     ]
-    lines.extend(
-        f"- `{kind}`: {count}" for kind, count in report.bottleneck_count_by_type.items()
-    )
+    lines.extend(f"- `{kind}`: {count}" for kind, count in report.bottleneck_count_by_type.items())
     lines.extend(["", "## Safety Boundary"])
     lines.extend(f"- {item}" for item in report.dashboard_safety_boundary)
     return "\n".join(lines) + "\n"
