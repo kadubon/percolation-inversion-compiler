@@ -25,7 +25,7 @@ lifecycle/finality, hazard bounds, and certified lower-bound surplus.
 - `ValueBridgeReport`: a typed diagnostic inside liquidity output. It states
   whether the value claim is only a proxy, whether a calibrated proxy is bridged
   to a common estimand, whether causal effect evidence is present, and which
-  refs support each step. v0.4.3 also reports instrumentation/contamination,
+  refs support each step. v0.4.4 also reports instrumentation/contamination,
   transportability, baseline refresh, negative-liquidity preservation,
   CARA-residual preservation, and foundry capacity labels. In common terms, it
   separates "this metric moved" from "this reusable abstraction has checked

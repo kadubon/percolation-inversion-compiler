@@ -60,7 +60,7 @@ supplied.
 For ALT, checker coverage means the repository exposes finite interfaces for
 abstraction-token admission, signed lower-bound surplus, negative liquidity,
 deprecation/resurrection, baseline refresh, root/finality, telemetry, hazard,
-reproduction diagnostics, and ALT-CARA certificates. v0.4.3 also separates
+reproduction diagnostics, and ALT-CARA certificates. v0.4.4 also separates
 proxy-only value evidence from calibrated proxy bridges and causal evidence
 refs. It does not mean that raw external intake, agent text, or problem-solving
 traces are capital. A token contributes to ECPT collective phase metrics only
@@ -68,7 +68,7 @@ after the finite ALT checks and the existing semantic-edge, verifier-route,
 identity/Sybil, rollback, and residual-policy gates accept the scoped claim.
 
 Runtime outputs expose theory coverage in practical form. Prefer the typed
-v0.4.3 fields `phase_control_audit`, `frontier_debt_report`, and
+v0.4.4 fields `phase_control_audit`, `frontier_debt_report`, and
 `bottleneck_witness_reports`; compatibility summaries remain available as
 `phase_control_summary`, `frontier_debt_summary`, and
 `bottleneck_witness_tasks`. These are derived convenience fields, not new
@@ -149,3 +149,16 @@ uv run pic audit fidelity --canonical-dir "$env:PIC_CANONICAL_TEX_DIR"
 strict grammar status, snapshot health, external-obligation totals, and finite
 upgrade candidates. It does not erase external obligations or claim real ASI
 evidence.
+
+For installed agents without local canonical TeX files, use the snapshot-derived
+canonical readiness sidecar:
+
+```powershell
+pic audit canonical-readiness --profile development --format json
+pic schema --type CanonicalImplementationReadinessReport
+```
+
+This report exposes the bundled ECPT/BIT/TRC/SQOT/ALT implementation coverage,
+residual categories, finite upgrade candidates, and argv-safe next actions. It
+does not vendor TeX/PDF sources, replace source-level fidelity audits, or set
+`settled=true`.

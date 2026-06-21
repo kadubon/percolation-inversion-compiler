@@ -58,6 +58,8 @@ repository to run the full bundled fixtures.
 ```powershell
 uv run pic agent explain
 uv run pic agent manifest
+uv run pic agent autonomy-audit --profile development --format json
+uv run pic agent autonomy-audit --profile development --format markdown --language ja
 uv run pic agent check --compact --text "Candidate packet: route evidence and preserve residuals." --profile development
 uv run pic agent runbook --profile development
 uv run pic phase plan --compact --text "Candidate packet: route evidence and preserve residuals." --profile development
@@ -145,6 +147,7 @@ uv run pic check --source "$env:PIC_CANONICAL_TEX_DIR\Executable Capability Perc
 uv run pic audit theory --source "$env:PIC_CANONICAL_TEX_DIR\Executable Capability Percolation Theory.tex" --canonical-key ecpt --strict-grammar
 uv run pic audit canonical-suite --canonical-dir "$env:PIC_CANONICAL_TEX_DIR"
 uv run pic audit fidelity --canonical-dir "$env:PIC_CANONICAL_TEX_DIR"
+uv run pic audit canonical-readiness --profile development --format json
 uv run pic coverage --source "$env:PIC_CANONICAL_TEX_DIR\Typed Reality Compilation.tex"
 uv run pic parse audit --source "$env:PIC_CANONICAL_TEX_DIR\Typed Reality Compilation.tex" --strict-grammar
 uv run pic sqot audit --source "$env:PIC_CANONICAL_TEX_DIR\Salience-Queue Occupation Theory.tex" --strict-grammar

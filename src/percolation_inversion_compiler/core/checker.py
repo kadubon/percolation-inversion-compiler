@@ -189,7 +189,7 @@ class TheoryAuditSuiteReport(BaseModel):
 
 
 class TheoryFidelityReport(BaseModel):
-    """Canonical-suite-derived theory-fidelity summary for v0.4.3 hardening."""
+    """Canonical-suite-derived theory-fidelity summary for v0.4.4 hardening."""
 
     report_id: str = "pic-theory-fidelity"
     canonical_dir: str = ""
@@ -212,6 +212,95 @@ class TheoryFidelityReport(BaseModel):
             "finite upgrade candidates are implementation targets, not proof of real ASI",
         ]
     )
+
+
+class CanonicalTheorySnapshotSummary(BaseModel):
+    """Portable summary for one bundled canonical-theory snapshot."""
+
+    artifact_key: str
+    artifact: str
+    doi: str | None = None
+    source_tex_sha256: str | None = None
+    definitions: int = 0
+    claims: int = 0
+    mr_records: int = 0
+    coverage_counts: dict[str, int] = Field(default_factory=dict)
+    external_obligation_category_summary: dict[str, int] = Field(default_factory=dict)
+    implemented_total: int = 0
+    external_obligation_total: int = 0
+    unsupported_total: int = 0
+    partial_total: int = 0
+    finite_upgrade_candidate_count: int = 0
+    portability_status: str = "schema-first"
+
+
+class CanonicalImplementationReadinessReport(BaseModel):
+    """Pip-safe canonical readiness report derived from bundled snapshots."""
+
+    report_id: str = "pic-canonical-implementation-readiness"
+    profile: str = "development"
+    source: str = "bundled-derived-snapshots"
+    snapshot_count: int = 0
+    expected_theory_keys: list[str] = Field(
+        default_factory=lambda: ["ecpt", "bit", "trc", "sqot", "alt"]
+    )
+    theory_summaries: dict[str, CanonicalTheorySnapshotSummary] = Field(default_factory=dict)
+    total_implemented_items: int = 0
+    total_external_obligations: int = 0
+    unsupported_total: int = 0
+    partial_total: int = 0
+    finite_upgrade_candidates: dict[str, list[str]] = Field(default_factory=dict)
+    residual_category_totals: dict[str, int] = Field(default_factory=dict)
+    pip_installable: bool = True
+    source_checkout_required: bool = False
+    canonical_tex_required_for_this_report: bool = False
+    source_tex_vendored: bool = False
+    portable_schema_first_contract: bool = True
+    cross_language_portability_ready: bool = True
+    compact_mode_available: bool = True
+    adoption_required_for_core: bool = False
+    approval_gate_present: bool = False
+    safe_commands_executable_by_pic: bool = False
+    automatic_execution_present: bool = False
+    settled: bool = False
+    accepted: bool = False
+    workflow_usable: bool = False
+    operationally_usable: bool = False
+    asi_proxy_acceleration_objective: str = (
+        "protocol-relative ASI-proxy acceleration through packet percolation, "
+        "verifier throughput, residual preservation, SQOT queue visibility, and ALT "
+        "abstraction-liquidity reuse"
+    )
+    acceleration_levers: list[str] = Field(
+        default_factory=lambda: [
+            "machine-readable packet candidate handling",
+            "finite verifier route and residual exposure",
+            "SQOT queue diagnostics without queue mutation",
+            "BIT bottleneck visibility for finite upgrade candidates",
+            "ALT abstraction-liquidity and translation-friction visibility",
+            "argv-safe commands for OS-independent agent orchestration",
+        ]
+    )
+    portability_invariants: list[str] = Field(
+        default_factory=lambda: [
+            "JSON schema names and field names remain English and stable",
+            "localized Markdown is display text only and is not parser input",
+            "ports must preserve accepted, workflow_usable, and settled as distinct booleans",
+            "safe_commands and recommended invocations are inert data",
+        ]
+    )
+    recommended_invocations: list[dict[str, object]] = Field(default_factory=list)
+    safety_invariants: list[str] = Field(
+        default_factory=lambda: [
+            "bundled snapshots are derived metadata and do not vendor TeX/PDF sources",
+            "canonical readiness does not prove real ASI, physical truth, simulator truth, "
+            "or oracle truth",
+            "external obligations remain explicit residual work",
+            "accepted readiness does not imply settled=true",
+            "PIC does not execute recommended invocations or safe_commands",
+        ]
+    )
+    reasons: list[str] = Field(default_factory=list)
 
 
 @runtime_checkable

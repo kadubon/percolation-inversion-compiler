@@ -15,7 +15,14 @@ PIC uses theory-specific terms, but each term has a practical software meaning.
 | TRC | typed trace and real-world frontier compiler |
 | agent check compact mode | short CI/agent JSON for first-pass output checking |
 | agent runbook | deterministic list of next commands, schemas, and fields to inspect |
+| agent autonomy audit | diagnostic report proving adoption and approval are not core workflow gates |
+| command invocation | OS-independent `argv` array plus display command text for agents |
+| canonical implementation readiness | pip-safe snapshot-derived report for ECPT/BIT/TRC/SQOT/ALT implementation coverage |
 | phase acceleration planner | ranked safe-next-step planner for verified work reuse and bottleneck removal |
+| adoption sidecar | optional operator-facing documentation that does not gate the main workflow |
+| benchmark suite | diagnostic-only protocol-relative benchmark for visibility and non-promotion checks |
+| packet exchange envelope | data-only candidate packet handoff record with residual carry-forward |
+| phase dashboard | observation-only metric report that does not alter runtime state |
 | phase gap vector | finite workflow-health gaps between current Psi components and declared thresholds |
 | bottleneck candidate | repair target such as verifier work, packet repair, SQOT queue work, ALT certification, identity readiness, or residual debt |
 | safe phase action | recommendation-only action with commands, schemas, fields, and no execution authority |

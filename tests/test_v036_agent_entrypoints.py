@@ -36,7 +36,7 @@ def test_agents_md_exists_and_states_safety_contract() -> None:
 def test_agent_manifest_json_is_machine_readable() -> None:
     data = json.loads((ROOT / "agent-manifest.json").read_text(encoding="utf-8"))
     assert data["name"] == "percolation-inversion-compiler"
-    assert data["version"] == "0.4.3"
+    assert data["version"] == "0.4.4"
     assert "non_goals" in data
     assert "safe_cli_entrypoints" in data
     assert "important_schemas" in data
@@ -65,6 +65,8 @@ def test_schema_index_json_points_to_schema_bundle_command() -> None:
     data = json.loads((ROOT / "schemas" / "index.json").read_text(encoding="utf-8"))
     assert data["schema_bundle_command"] == "uv run pic schema --all --output-dir schemas/generated"
     assert "RuntimeStepReport" in data["important_schema_names"]
+    assert "AgentAutonomyAuditReport" in data["important_schema_names"]
+    assert "AgentCommandInvocation" in data["important_schema_names"]
     assert "AgentNextActionReport" in data["important_schema_names"]
     assert "GeneralIntakeReport" in data["important_schema_names"]
     assert "AgentPacketExchangeReport" in data["important_schema_names"]
@@ -75,7 +77,9 @@ def test_schema_index_json_points_to_schema_bundle_command() -> None:
     assert data["clone_url"] == "https://github.com/kadubon/percolation-inversion-compiler.git"
     assert data["clone_recommended_for_full_use"] is False
     assert data["install_modes"][0]["mode"] == "pip"
-    assert data["install_modes"][1]["mode"] == "source-checkout"
+    install_modes = {item["mode"] for item in data["install_modes"]}
+    assert "pip-agent-full-extra" in install_modes
+    assert "source-checkout" in install_modes
     assert "astral.sh/uv/install.ps1" in data["uv_install_commands"]["windows_powershell"]
 
 

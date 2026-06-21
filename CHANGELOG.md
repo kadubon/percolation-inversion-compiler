@@ -1,5 +1,32 @@
 # Changelog
 
+## v0.4.4 - 2026-06-20
+
+- Adds optional adoption sidecars for operator-facing packets and agent-to-operator
+  requests without gating `pic agent check`, `pic phase plan`, or
+  `pic agent accelerate`.
+- Adds sidecar contract documentation for compact agent output, phase plans, and
+  adoption handoff semantics.
+- Adds protocol-relative diagnostic benchmark reporting for obligation
+  visibility, residual preservation, false-promotion prevention, and next-action
+  specificity.
+- Adds packet exchange sidecar utilities for candidate packet inspection, merge,
+  lineage, duplicate diagnostics, and residual carry-forward.
+- Adds diagnostic phase dashboard reports for candidate, accepted,
+  workflow-usable, settled, residual, blocker, queue, and phase-gap metrics.
+- Adds `pic agent autonomy-audit`, argv-safe invocation records,
+  OS-independent sidecar glob expansion, bundled sidecar demo assets,
+  `agent-full` pip extra, and localized Markdown renderers for Japanese
+  operator-facing output.
+- Adds `pic audit canonical-readiness` and schema-exported readiness records so
+  pip-installed agents can inspect bundled ECPT/BIT/TRC/SQOT/ALT implementation
+  coverage, residual categories, finite upgrade candidates, and argv-safe next
+  actions without local TeX sources.
+- Preserves the safety boundary: sidecars, adoption status, benchmark scores,
+  dashboard metrics, packet exchange, canonical readiness, identity readiness,
+  external volume, `accepted`, and `workflow_usable` do not imply `settled=true`
+  or real ASI/physical/oracle truth.
+
 ## v0.4.3 - 2026-06-20
 
 - Adds the public v0.4.3 hardening pass for the recommendation-only phase

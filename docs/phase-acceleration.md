@@ -49,6 +49,8 @@ uv run pic phase plan --request examples/phase_acceleration/phase_acceleration_r
 uv run pic phase plan --runtime-report runtime-step.json --compact
 uv run pic phase trajectory --report runtime-step-1.json --report runtime-step-2.json
 uv run pic phase benchmark --profile development
+uv run pic phase benchmark-suite --profile development --format json
+uv run pic phase dashboard --profile development --format json
 ```
 
 When `--request` is supplied, the request file is the source of runtime input.
@@ -64,6 +66,10 @@ are deterministic instructions to inspect or run under operator control. Raw
 external packet volume, unsigned peer messages, proxy-only ALT value evidence,
 and missing production identity context do not reduce phase gaps or clear
 settlement blockers.
+
+`pic phase benchmark-suite` and `pic phase dashboard` are sidecars. They report
+diagnostic benchmark and observation metrics only. They do not change phase-gap
+computation, approve execution, promote packets, or set `settled=true`.
 
 In `production` and `adversarial` profiles, missing or rejected identity context
 appears in `cannot_promote_because` and `settled_blockers`. Passing an accepted

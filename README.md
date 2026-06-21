@@ -8,7 +8,7 @@ Search terms: ECPT, BIT, TRC, SQOT, ALT, abstraction liquidity, reusable abstrac
 
 New to PIC? Start with the [GitHub Wiki](https://github.com/kadubon/percolation-inversion-compiler/wiki) for a plain-language guide to what PIC does, why AI agent output is treated as candidate work, getting started, use cases, core concepts, and agent-safe interpretation of `accepted=true` and `settled=false`.
 
-Distribution status: v0.4.3 is a practical runtime snapshot with a beta API
+Distribution status: v0.4.4 is a practical runtime snapshot with a beta API
 surface. Install the core package from PyPI with `pip install
 percolation-inversion-compiler`; use `pip install
 "percolation-inversion-compiler[identity,connectors,server]"` when you need
@@ -55,7 +55,7 @@ safe next-step planner for verified work reuse and bottleneck removal. See
 
 The runtime is fail-closed: planning can recommend finite ASI-proxy actions, but `settled` remains false unless scoped verifier rules discharge the required finite obligations. In production, signed identities and Sybil-resistance ledgers can prevent duplicate-key, clone-fanout, revoked, expired, or unsigned agent populations from producing accepted collective certificates. Residual external obligations remain explicit.
 
-v0.4.3 keeps ALT abstraction-liquidity foundry support so external knowledge and agent traces can become reusable abstraction-token candidates, then certified abstraction capital only after lower-bound surplus, calibrated proxy or causal value evidence, transport, root-of-trust, telemetry, lifecycle, and hazard checks pass. ALT also adds negative-liquidity, deprecation/resurrection, baseline refresh, reproduction diagnostics, and ALT-CARA acceleration certificates so stale or unsafe abstraction claims remain repairable residual work rather than silent capital. Use `development`, `research`, `controlled`, `federated`, `production`, or `adversarial` profiles to choose how communication policy, cryptographic identities, homogeneous fleets, signed packet issuers, and Sybil-resistance ledgers affect packet promotion and collective certificates.
+v0.4.4 preserves the v0.4.3 ALT abstraction-liquidity foundry support so external knowledge and agent traces can become reusable abstraction-token candidates, then certified abstraction capital only after lower-bound surplus, calibrated proxy or causal value evidence, transport, root-of-trust, telemetry, lifecycle, and hazard checks pass. ALT also adds negative-liquidity, deprecation/resurrection, baseline refresh, reproduction diagnostics, and ALT-CARA acceleration certificates so stale or unsafe abstraction claims remain repairable residual work rather than silent capital. Use `development`, `research`, `controlled`, `federated`, `production`, or `adversarial` profiles to choose how communication policy, cryptographic identities, homogeneous fleets, signed packet issuers, and Sybil-resistance ledgers affect packet promotion and collective certificates.
 
 Core contract: registry is metadata, not evidence. Use `pic doctor` and structured checker outputs to distinguish declared status, finite certificate results, proof obligations, and residual ledgers.
 
@@ -80,12 +80,29 @@ uv run pic agent check --text "Candidate packet: route evidence and preserve res
 uv run pic agent intake --text "Candidate packet: route evidence and preserve residuals." --profile development
 ```
 
+## Optional Sidecars
+
+These commands help operators, maintainers, and agent frameworks inspect PIC
+adoption, canonical implementation readiness, packet exchange, benchmarks, and
+phase metrics. They do not gate the main workflow and do not change `settled`
+semantics.
+
+```powershell
+pic adoption request --format markdown
+pic adoption packet --format markdown
+pic audit canonical-readiness --profile development --format json
+pic phase benchmark-suite --profile development --format json
+pic packet inspect --packet packet.json
+pic phase dashboard --profile development --format json
+```
+
 Command choice:
 
 - Use `pic agent check --compact` when a human, CI job, or first-time agent needs the shortest practical JSON contract.
 - Use `pic agent runbook` when an agent needs deterministic next commands, schemas, and fields to inspect.
 - Use `pic phase plan --compact` or `pic agent accelerate --compact` when an agent needs ranked phase gaps, bottlenecks, safe next commands, and promotion blockers.
 - Use `pic agent intake` or `pic runtime step` when the caller needs the full nested runtime report.
+- Use `pic audit canonical-readiness` from pip when an agent needs canonical ECPT/BIT/TRC/SQOT/ALT implementation coverage without local TeX files.
 - Use `pic audit fidelity` from a source checkout when canonical TeX theory-fidelity and finite-upgrade candidates matter.
 
 Production packet promotion requires identity context:
@@ -159,6 +176,8 @@ uv run pic phase plan --request examples/phase_acceleration/phase_acceleration_r
 uv run pic phase gap --compact --profile development
 uv run pic phase runbook --profile development
 uv run pic phase benchmark --profile development
+uv run pic phase benchmark-suite --profile development --format json
+uv run pic phase dashboard --profile development --format json
 uv run pic schema --type PhaseAccelerationPlan
 ```
 
@@ -184,6 +203,7 @@ curated workflow.
 ```powershell
 python -m pip install percolation-inversion-compiler
 pic agent explain
+pic agent autonomy-audit --profile development --format json
 pic agent check --compact --text "Candidate packet: route evidence and preserve residuals." --profile development
 pic agent runbook --profile development
 pic phase plan --compact --text "Candidate packet: route evidence and preserve residuals." --profile development
@@ -193,6 +213,22 @@ pic demo installed-smoke --profile development
 pic demo bootstrap --output-dir pic-demo
 pic agent intake --text "Candidate packet: route evidence and preserve residuals." --profile development
 pic runtime step --state pic-demo/runtime_state.json --input pic-demo/runtime_step_input.json --profile development
+pic phase benchmark-suite --profile development --format json
+pic phase dashboard --runtime-report pic-demo/runtime_step_report.json --profile development
+pic packet inspect --packet pic-demo/packet_envelope.json
+pic packet merge --packets pic-demo/packet*.json --output pic-demo/merged-packets.json
+pic packet lineage --packet pic-demo/merged-packets.json
+pic phase observe --reports pic-demo/phase_dashboard.json --output pic-demo/observation.json
+pic audit canonical-readiness --profile development --format json
+```
+
+For connector, identity, and local runtime-service dependencies without the
+science/OT/LP research stack:
+
+```powershell
+python -m pip install "percolation-inversion-compiler[agent-full]"
+pic agent network-readiness --profile development
+pic agent communication-guide --profile development
 ```
 
 ### Path B: Clone For Canonical Audits And Development
@@ -237,6 +273,7 @@ uv run pic snapshot show --artifact ecpt
 uv run pic snapshot show --artifact sqot
 uv run pic snapshot show --artifact alt
 uv run pic snapshot routes
+uv run pic audit canonical-readiness --profile development --format json
 ```
 
 ### 2. Run One Runtime Step

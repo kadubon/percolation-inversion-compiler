@@ -12,7 +12,9 @@ from percolation_inversion_compiler.acceleration import (
     build_phase_acceleration_plan,
 )
 from percolation_inversion_compiler.agent.records import (
+    AgentAutonomyAuditReport,
     AgentCheckReport,
+    AgentCommandInvocation,
     AgentCommunicationGuide,
     AgentCommunicationPolicy,
     AgentCommunicationStep,
@@ -94,6 +96,127 @@ _CMD_ALT_REFRESH_BASELINE = (
 _CMD_ALT_CHECK_CARA = (
     "uv run pic alt check-cara --certificate examples/alt/alt_cara_certificate.json"
 )
+_CHECK_TEXT = "Candidate packet: preserve residuals."
+
+
+def pip_core_commands(profile: str = "development") -> list[str]:
+    """Return commands expected to work from a bare PyPI install."""
+
+    return [
+        "python -m pip install percolation-inversion-compiler",
+        "pic agent explain",
+        f"pic agent autonomy-audit --profile {profile} --format json",
+        f'pic agent check --compact --text "{_CHECK_TEXT}" --profile {profile}',
+        f'pic phase plan --compact --text "{_CHECK_TEXT}" --profile {profile}',
+        f'pic agent accelerate --compact --text "{_CHECK_TEXT}" --profile {profile}',
+        f"pic demo installed-smoke --profile {profile}",
+        "pic demo bootstrap --output-dir pic-demo",
+        f"pic runtime step --state pic-demo/runtime_state.json --input "
+        f"pic-demo/runtime_step_input.json --profile {profile}",
+        f"pic phase benchmark-suite --profile {profile} --format json",
+        f"pic phase dashboard --profile {profile} --format json",
+        "pic packet inspect --packet pic-demo/packet_envelope.json",
+        "pic packet merge --packets pic-demo/packet*.json --output pic-demo/merged-packets.json",
+        "pic packet lineage --packet pic-demo/merged-packets.json",
+        "pic phase observe --reports pic-demo/phase_dashboard.json "
+        "--output pic-demo/observation.json",
+        "pic snapshot list",
+        f"pic audit canonical-readiness --profile {profile} --format json",
+        "pic schema --type AgentAutonomyAuditReport",
+        "pic schema --type CanonicalImplementationReadinessReport",
+    ]
+
+
+def pip_agent_full_commands(profile: str = "development") -> list[str]:
+    """Return commands unlocked by the agent-full extra without a source checkout."""
+
+    return [
+        'python -m pip install "percolation-inversion-compiler[agent-full]"',
+        f"pic agent network-readiness --profile {profile}",
+        f"pic agent communication-guide --profile {profile}",
+        f"pic agent communication-guide --profile {profile} --no-allow-live-connectors",
+        f"pic agent relay-readiness --profile {profile}",
+    ]
+
+
+def source_checkout_commands(profile: str = "development") -> list[str]:
+    """Return fixture-backed commands that still require repository examples."""
+
+    return [
+        "uv run pic ecology ingest-general --source examples/agent_network/feed.xml --kind rss",
+        "uv run pic ecology bridge-runtime --report "
+        "examples/agent_network/general_intake_report.example.json",
+        "uv run pic alt admit --packet examples/alt/admission_packet.json",
+        "uv run pic agent message contract --message examples/agent_network/agent_message.json",
+        "uv run pic phase plan --request "
+        "examples/phase_acceleration/phase_acceleration_request.json "
+        f"--compact --profile {profile}",
+    ]
+
+
+def _argv(command: str) -> list[str]:
+    if command.startswith('pic agent check --compact --text "'):
+        return [
+            "pic",
+            "agent",
+            "check",
+            "--compact",
+            "--text",
+            _CHECK_TEXT,
+            "--profile",
+            command.rsplit(" ", maxsplit=1)[-1],
+        ]
+    if command.startswith('pic phase plan --compact --text "'):
+        return [
+            "pic",
+            "phase",
+            "plan",
+            "--compact",
+            "--text",
+            _CHECK_TEXT,
+            "--profile",
+            command.rsplit(" ", maxsplit=1)[-1],
+        ]
+    if command.startswith('pic agent accelerate --compact --text "'):
+        return [
+            "pic",
+            "agent",
+            "accelerate",
+            "--compact",
+            "--text",
+            _CHECK_TEXT,
+            "--profile",
+            command.rsplit(" ", maxsplit=1)[-1],
+        ]
+    if command.startswith('python -m pip install "'):
+        return ["python", "-m", "pip", "install", "percolation-inversion-compiler[agent-full]"]
+    return command.split()
+
+
+def _invocation(
+    invocation_id: str,
+    command: str,
+    purpose: str,
+    *,
+    requires_source_checkout: bool = False,
+    requires_agent_full_extra: bool = False,
+    requires_operator_authority: bool = False,
+    mutates_environment_if_operator_runs_it: bool = False,
+) -> AgentCommandInvocation:
+    return AgentCommandInvocation(
+        invocation_id=invocation_id,
+        purpose=purpose,
+        argv=_argv(command),
+        shell_command=command,
+        requires_source_checkout=requires_source_checkout,
+        requires_agent_full_extra=requires_agent_full_extra,
+        requires_operator_authority=requires_operator_authority,
+        mutates_environment_if_operator_runs_it=mutates_environment_if_operator_runs_it,
+        safety_notes=[
+            "argv is the portable invocation; shell_command is display text",
+            "PIC emits this command as data and does not execute it",
+        ],
+    )
 
 
 def agent_manifest_payload() -> dict[str, object]:
@@ -111,14 +234,38 @@ def agent_manifest_payload() -> dict[str, object]:
             "CollectivePhaseCertificate",
             "AgentIntakeRequest",
             "AgentIntakeReport",
+            "AgentCheckReport",
+            "AgentCommandInvocation",
+            "AgentAutonomyAuditReport",
+            "CanonicalImplementationReadinessReport",
+            "CanonicalTheorySnapshotSummary",
             "AgentWorkflowGuide",
             "AgentNextActionReport",
             "AgentFeatureReadinessReport",
             "PhaseAccelerationRequest",
             "PhaseAccelerationPlan",
             "PhaseGapVector",
+            "PhaseComponentGap",
             "BottleneckCandidate",
             "SafePhaseAction",
+            "PhaseTrajectoryReport",
+            "PhaseAccelerationBenchmarkReport",
+            "ProtocolRelativeBenchmarkMetric",
+            "PhaseBenchmarkTask",
+            "PhaseBenchmarkCaseResult",
+            "PhaseBenchmarkSuiteReport",
+            "PhaseDashboardReport",
+            "PhaseObservationReport",
+            "OperatorAdoptionPacket",
+            "AgentToOperatorRequest",
+            "AdoptionSafetyBoundary",
+            "AdoptionFirstRunCommand",
+            "AdoptionReviewChecklist",
+            "PacketExchangeEnvelope",
+            "PacketImportInspectionReport",
+            "PacketMergeReport",
+            "PacketLineageDigest",
+            "ResidualCarryForwardReport",
             "AgentCommunicationPolicy",
             "AgentCommunicationGuide",
             "AgentNetworkReadinessReport",
@@ -169,11 +316,24 @@ def agent_manifest_payload() -> dict[str, object]:
             "general_intake_requires_explicit_source": True,
             "general_intake_is_bounded_candidate_only_by_default": True,
             "installed_package_smoke_commands_available": True,
+            "adoption_required_for_core": False,
+            "approval_gate_present": False,
+            "safe_commands_executable_by_pic": False,
+            "compact_mode_available": True,
+            "pip_core_workflow_available": True,
+            "agent_full_extra_available": True,
+            "source_checkout_required_for_core": False,
+            "shell_expansion_required_for_sidecars": False,
+            "command_execution_allowed_by_pic": False,
+            "approval_persistence_created": False,
             "live_connectors_default_enabled": True,
             "live_connectors_opt_out_available": True,
             "live_discovery_fetches_each_resource_once": True,
             "local_staged_intake_uses_byte_limits": True,
             "local_web_discovery_disallows_seed_directory_escape": True,
+            "operator_adoption_sidecar_optional": True,
+            "sidecar_absence_is_not_failure": True,
+            "benchmark_dashboard_and_packet_exchange_are_diagnostic_only": True,
             "production_requires_identity_context": True,
             "redirect_chain_urls_are_policy_validated": True,
             "residuals_are_not_failures": True,
@@ -200,6 +360,20 @@ def agent_manifest_payload() -> dict[str, object]:
                 ],
             },
             {
+                "mode": "pip-agent-full-extra",
+                "command": 'python -m pip install "percolation-inversion-compiler[agent-full]"',
+                "intended_for": [
+                    "bounded explicit-source live connector readiness",
+                    "cryptographic identity verification",
+                    "local runtime service dependencies",
+                ],
+                "does_not_include": [
+                    "science/OT/LP research dependencies",
+                    "root examples tree",
+                    "canonical TeX files",
+                ],
+            },
+            {
                 "mode": "source-checkout",
                 "command": (
                     "git clone https://github.com/kadubon/percolation-inversion-compiler.git"
@@ -220,6 +394,11 @@ def agent_manifest_payload() -> dict[str, object]:
             "external-intake",
             "agent-messages",
             "alt-foundry",
+            "agent-autonomy-audit",
+            "canonical-implementation-readiness",
+            "operator-adoption-sidecar",
+            "packet-exchange-sidecar",
+            "phase-dashboard-sidecar",
         ],
         "clone_url": "https://github.com/kadubon/percolation-inversion-compiler.git",
         "clone_recommended_for_full_use": False,
@@ -237,12 +416,21 @@ def agent_manifest_payload() -> dict[str, object]:
             "pypi_fallback": "python -m pip install uv",
         },
         "pip_boundary": {
+            "agent_full_extra": 'percolation-inversion-compiler[agent-full]',
+            "pip_core_commands": pip_core_commands(),
+            "pip_agent_full_commands": pip_agent_full_commands(),
+            "source_checkout_commands": source_checkout_commands(),
             "pip_supports": [
                 "pic agent explain",
                 "pic agent check",
+                "pic agent autonomy-audit",
                 "pic demo installed-smoke",
                 "pic demo bootstrap",
                 "pic runtime step with bootstrapped demo files",
+                "pic phase benchmark-suite",
+                "pic phase dashboard",
+                "pic audit canonical-readiness",
+                "pic packet inspect/merge/lineage with bootstrapped packet files",
                 "pic snapshot list/show",
                 "pic schema export",
                 "Python SDK imports",
@@ -297,6 +485,12 @@ def agent_manifest_payload() -> dict[str, object]:
             "docs/integrations/README.md",
             "docs/agent-external-communication.md",
             "docs/integrations/github-actions.md",
+            "docs/operator-adoption.md",
+            "docs/agent-to-operator-request.md",
+            "docs/integrations/packet-exchange.md",
+            "docs/phase-dashboard.md",
+            "docs/benchmarks/phase-benchmark-suite.md",
+            "docs/canonical-implementation-readiness.md",
             "docs/pypi-distribution.md",
             "docs/01-quickstart.md",
             "docs/identity-and-sybil-resistance.md",
@@ -350,6 +544,18 @@ def agent_manifest_payload() -> dict[str, object]:
             "uv run python examples/python_sdk_agent_output_check/check_agent_output.py",
             "pic snapshot list",
             "pic schema --type AgentIntakeReport",
+            "pic schema --type PhaseAccelerationPlan",
+            "pic schema --type PhaseAccelerationBenchmarkReport",
+            "pic agent autonomy-audit --profile development --format json",
+            "pic adoption request --format markdown",
+            "pic adoption packet --format markdown",
+            "pic phase benchmark-suite --profile development --format json",
+            "pic phase dashboard --profile development --format json",
+            "pic audit canonical-readiness --profile development --format json",
+            "pic schema --type OperatorAdoptionPacket",
+            "pic schema --type CanonicalImplementationReadinessReport",
+            "pic schema --type PacketExchangeEnvelope",
+            "pic schema --type PhaseDashboardReport",
             "uv run pic --help",
             "uv run pic agent explain",
             _CMD_AGENT_COMM_GUIDE_DEV,
@@ -384,7 +590,7 @@ def agent_manifest_payload() -> dict[str, object]:
                 "--output identity-context.json"
             ),
         ],
-        "version": "0.4.3",
+        "version": "0.4.4",
     }
 
 
@@ -405,6 +611,144 @@ def agent_safety_invariants() -> list[str]:
         "general web intake is bounded and does not execute scripts, forms, or repo mutation",
         "agent-to-agent messages are packet candidates, not proof of external-world truth",
     ]
+
+
+def build_agent_autonomy_audit(profile: str = "development") -> AgentAutonomyAuditReport:
+    """Audit whether agents can continue useful work without approval bottlenecks."""
+
+    core_commands = pip_core_commands(profile)
+    full_commands = pip_agent_full_commands(profile)
+    checkout_commands = source_checkout_commands(profile)
+    invocations = [
+        _invocation(
+            "pip-core-install",
+            core_commands[0],
+            "Install the bare package when local environment mutation is authorized.",
+            requires_operator_authority=True,
+            mutates_environment_if_operator_runs_it=True,
+        ),
+        _invocation(
+            "compact-agent-check",
+            core_commands[3],
+            "Run the shortest compact candidate-output check.",
+        ),
+        _invocation(
+            "compact-phase-plan",
+            core_commands[4],
+            "Rank phase gaps and bottlenecks without adoption state.",
+        ),
+        _invocation(
+            "compact-agent-accelerate",
+            core_commands[5],
+            "Build an agent-facing acceleration plan without changing settled semantics.",
+        ),
+        _invocation(
+            "canonical-readiness",
+            f"pic audit canonical-readiness --profile {profile} --format json",
+            "Inspect canonical implementation coverage from bundled snapshots without TeX files.",
+        ),
+        _invocation(
+            "sidecar-packet-merge",
+            "pic packet merge --packets pic-demo/packet*.json "
+            "--output pic-demo/merged-packets.json",
+            "Merge bootstrapped packet sidecars with Python-side glob expansion.",
+        ),
+        _invocation(
+            "agent-full-install",
+            full_commands[0],
+            "Install connector, identity, and service extras when that capability is needed.",
+            requires_agent_full_extra=True,
+            requires_operator_authority=True,
+            mutates_environment_if_operator_runs_it=True,
+        ),
+    ]
+    return AgentAutonomyAuditReport(
+        profile=profile,
+        pip_core_commands=core_commands,
+        pip_agent_full_commands=full_commands,
+        source_checkout_commands=checkout_commands,
+        recommended_next_invocations=invocations,
+        autonomy_enablers=[
+            "compact reports keep the first workflow machine-readable",
+            "operator adoption sidecars are optional documentation",
+            "packet exchange, dashboard, and benchmark sidecars are diagnostic-only",
+            "canonical readiness is available from pip through bundled snapshot metadata",
+            "argv arrays avoid shell-specific quoting and glob expansion",
+            "agent-full extra exposes connector, identity, and service dependencies via pip",
+        ],
+        remaining_friction_points=[
+            "installing packages still mutates the selected Python environment",
+            "canonical source-file audits and repository fixtures still require a source checkout",
+            "production packet promotion still requires accepted protocol-relative "
+            "identity context",
+        ],
+        safety_invariants=[
+            *agent_safety_invariants(),
+            "adoption approval is not a phase input or settled blocker",
+            "safe_commands are not executable authority",
+            "PIC does not persist approval state",
+        ],
+        reasons=[
+            "core PIC activity is not gated by operator adoption state",
+            "autonomy is increased through portable records and sidecar diagnostics",
+        ],
+    )
+
+
+def agent_autonomy_audit_markdown(
+    report: AgentAutonomyAuditReport,
+    *,
+    language: str = "en",
+) -> str:
+    """Render an autonomy audit as deterministic localized Markdown."""
+
+    if language == "ja":
+        lines = [
+            "# PIC エージェント自律性監査",
+            "",
+            f"- Profile: `{report.profile}`",
+            f"- adoption_required_for_core: `{str(report.adoption_required_for_core).lower()}`",
+            f"- approval_gate_present: `{str(report.approval_gate_present).lower()}`",
+            "- safe_commands_executable_by_pic: "
+            f"`{str(report.safe_commands_executable_by_pic).lower()}`",
+            f"- settled: `{str(report.settled).lower()}`",
+            "",
+            "## 自律性を上げる要素",
+            *[f"- {item}" for item in report.autonomy_enablers],
+            "",
+            "## 次の argv 呼び出し",
+        ]
+        for invocation in report.recommended_next_invocations:
+            lines.append(f"- `{invocation.invocation_id}`: `{invocation.argv}`")
+        lines.extend(
+            [
+                "",
+                "## 安全境界",
+                *[f"- {item}" for item in report.safety_invariants],
+            ]
+        )
+        return "\n".join(lines) + "\n"
+
+    lines = [
+        "# PIC Agent Autonomy Audit",
+        "",
+        f"- Profile: `{report.profile}`",
+        f"- adoption_required_for_core: `{str(report.adoption_required_for_core).lower()}`",
+        f"- approval_gate_present: `{str(report.approval_gate_present).lower()}`",
+        "- safe_commands_executable_by_pic: "
+        f"`{str(report.safe_commands_executable_by_pic).lower()}`",
+        f"- settled: `{str(report.settled).lower()}`",
+        "",
+        "## Autonomy Enablers",
+        *[f"- {item}" for item in report.autonomy_enablers],
+        "",
+        "## Next argv Invocations",
+    ]
+    for invocation in report.recommended_next_invocations:
+        lines.append(f"- `{invocation.invocation_id}`: `{invocation.argv}`")
+    lines.extend(["", "## Safety Boundary"])
+    lines.extend(f"- {item}" for item in report.safety_invariants)
+    return "\n".join(lines) + "\n"
 
 
 def _communication_policy(
@@ -919,6 +1263,9 @@ def build_agent_workflow_guide(profile: str = "development") -> AgentWorkflowGui
     return AgentWorkflowGuide(
         profile=profile,
         steps=steps,
+        pip_core_commands=pip_core_commands(profile),
+        pip_agent_full_commands=pip_agent_full_commands(profile),
+        source_checkout_commands=source_checkout_commands(profile),
         safety_invariants=agent_safety_invariants(),
     )
 
@@ -939,6 +1286,9 @@ def agent_check_schema_refs() -> list[str]:
         "PhaseGapVector",
         "BottleneckCandidate",
         "SafePhaseAction",
+        "AgentCommandInvocation",
+        "AgentAutonomyAuditReport",
+        "CanonicalImplementationReadinessReport",
     ]
 
 
@@ -966,13 +1316,20 @@ def build_agent_runbook(profile: str = "development") -> AgentRunbookReport:
         profile=profile,
         commands=[
             'pic agent check --compact --text "Candidate packet: preserve residuals."',
+            f"pic agent autonomy-audit --profile {profile} --format json",
+            f"pic audit canonical-readiness --profile {profile} --format json",
             f"pic agent runbook --profile {profile}",
             "pic schema --type AgentCheckReport",
+            "pic schema --type AgentAutonomyAuditReport",
+            "pic schema --type CanonicalImplementationReadinessReport",
             "pic schema --type RuntimeStepReport",
             "pic schema --type PhaseAccelerationPlan",
             f"pic phase plan --compact --profile {profile}",
             "pic agent readiness --profile production",
         ],
+        pip_core_commands=pip_core_commands(profile),
+        pip_agent_full_commands=pip_agent_full_commands(profile),
+        source_checkout_commands=source_checkout_commands(profile),
         schemas_to_inspect=agent_check_schema_refs(),
         fields_to_inspect=[
             "accepted",

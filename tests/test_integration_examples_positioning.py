@@ -96,6 +96,11 @@ def test_manifest_and_schema_index_expose_deployment_surfaces() -> None:
         "external-intake",
         "agent-messages",
         "alt-foundry",
+        "agent-autonomy-audit",
+        "canonical-implementation-readiness",
+        "operator-adoption-sidecar",
+        "packet-exchange-sidecar",
+        "phase-dashboard-sidecar",
     ]
     manifest = json.loads((ROOT / "agent-manifest.json").read_text(encoding="utf-8"))
     schema_index = json.loads((ROOT / "schemas" / "index.json").read_text(encoding="utf-8"))

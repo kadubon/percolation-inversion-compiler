@@ -106,6 +106,7 @@ Installed package path:
 ```powershell
 python -m pip install percolation-inversion-compiler
 pic agent explain
+pic agent autonomy-audit --profile development --format json
 pic agent check --compact --text "Candidate packet: route evidence and preserve residuals." --profile development
 pic agent runbook --profile development
 pic phase plan --compact --text "Candidate packet: route evidence and preserve residuals." --profile development
@@ -114,16 +115,34 @@ pic agent check --text "Candidate packet: route evidence and preserve residuals.
 pic demo installed-smoke --profile development
 pic demo bootstrap --output-dir pic-demo
 pic runtime step --state pic-demo/runtime_state.json --input pic-demo/runtime_step_input.json --profile development
+pic phase benchmark-suite --profile development --format json
+pic phase dashboard --runtime-report pic-demo/runtime_step_report.json --profile development
+pic packet inspect --packet pic-demo/packet_envelope.json
+pic packet merge --packets pic-demo/packet*.json --output pic-demo/merged-packets.json
+pic packet lineage --packet pic-demo/merged-packets.json
+pic phase observe --reports pic-demo/phase_dashboard.json --output pic-demo/observation.json
+pic audit canonical-readiness --profile development --format json
 pic agent guide --profile development
 pic agent intake --text "Candidate packet: route evidence and preserve residuals." --profile development
 pic snapshot list
+pic audit canonical-readiness --profile development --format json
 pic schema --type AgentIntakeReport
+pic schema --type CanonicalImplementationReadinessReport
 ```
 
 Use the installed package path for practical agent-output checks, curated
-workflow checks, bundled snapshots, schema export, and your own JSON inputs.
-Clone the repository for root fixtures, canonical TeX audits, release checks,
-and `examples/...`.
+workflow checks, bundled snapshots, canonical implementation readiness, schema
+export, and your own JSON inputs. Clone the repository for root fixtures,
+canonical TeX source audits, release checks, and `examples/...`.
+
+Use the agent-full extra when an installed agent needs connector, identity, or
+runtime-service dependencies without the research extras:
+
+```powershell
+python -m pip install "percolation-inversion-compiler[agent-full]"
+pic agent network-readiness --profile development
+pic agent communication-guide --profile development
+```
 
 Source checkout path with repository fixtures:
 
@@ -185,6 +204,9 @@ Use the phase planner after the first runtime report:
 uv run pic phase plan --compact --profile development
 uv run pic phase gap --compact --profile development
 uv run pic phase benchmark --profile development
+uv run pic phase benchmark-suite --profile development --format json
+uv run pic phase dashboard --profile development --format json
+uv run pic audit canonical-readiness --profile development --format json
 uv run pic schema --type PhaseAccelerationPlan
 ```
 
@@ -201,6 +223,24 @@ uv run pic agent next --intake-report intake-report.json --profile development
 ```
 
 `pic agent next` only recommends safe commands, SDK calls, schemas, and output fields. It does not execute routes, shells, network connectors, or repository mutations.
+
+## Optional Sidecars
+
+Sidecars help with operator handoff, benchmark diagnostics, packet exchange,
+and phase observation. They are optional and do not gate the main workflow:
+
+```powershell
+uv run pic adoption request --profile development --format markdown
+uv run pic adoption packet --profile development --format markdown
+uv run pic audit canonical-readiness --profile development --format json
+uv run pic phase benchmark-suite --profile development --format json
+uv run pic packet inspect --packet packet.json
+uv run pic phase dashboard --profile development --format json
+```
+
+Missing adoption sidecar output is normal. Adoption approval, benchmark scores,
+packet exchange, and dashboard metrics do not set `settled=true`, prove real
+ASI, or promote packet candidates.
 
 ## Networked Packet Intake
 

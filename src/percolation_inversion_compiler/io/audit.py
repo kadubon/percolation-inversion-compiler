@@ -5,6 +5,8 @@ from __future__ import annotations
 from pathlib import Path
 
 from percolation_inversion_compiler.core.checker import (
+    CanonicalImplementationReadinessReport,
+    CanonicalTheorySnapshotSummary,
     TheoryAuditReport,
     TheoryAuditSuiteReport,
     TheoryFidelityReport,
@@ -16,7 +18,7 @@ from percolation_inversion_compiler.core.coverage import (
     TheoryImplementationRecord,
     TheoryItem,
 )
-from percolation_inversion_compiler.io.snapshots import snapshot_delta
+from percolation_inversion_compiler.io.snapshots import list_theory_snapshots, snapshot_delta
 from percolation_inversion_compiler.io.tex import (
     count_mr_records_by_category,
     extract_artifact,
@@ -334,7 +336,7 @@ def audit_canonical_suite(canonical_dir: str | Path) -> TheoryAuditSuiteReport:
 
 
 def build_theory_fidelity_report(canonical_dir: str | Path) -> TheoryFidelityReport:
-    """Build a v0.4.3 theory-fidelity summary from the canonical suite audit."""
+    """Build a v0.4.4 theory-fidelity summary from the canonical suite audit."""
 
     suite = audit_canonical_suite(canonical_dir)
     theory_summaries: dict[str, dict[str, object]] = {}
@@ -388,3 +390,199 @@ def build_theory_fidelity_report(canonical_dir: str | Path) -> TheoryFidelityRep
         settled=False,
         reasons=list(suite.reasons),
     )
+
+
+def build_canonical_implementation_readiness_report(
+    profile: str = "development",
+) -> CanonicalImplementationReadinessReport:
+    """Build a pip-safe canonical readiness report from bundled snapshots."""
+
+    snapshots = list_theory_snapshots()
+    theory_summaries: dict[str, CanonicalTheorySnapshotSummary] = {}
+    finite_upgrade_candidates: dict[str, list[str]] = {}
+    residual_category_totals: dict[str, int] = {}
+    total_implemented = 0
+    total_external = 0
+    unsupported_total = 0
+    partial_total = 0
+    for snapshot in snapshots:
+        implemented_total = int(snapshot.coverage_delta.get("implemented_total", 0))
+        external_total = int(snapshot.coverage_delta.get("external_obligation_total", 0))
+        unsupported = int(snapshot.coverage_delta.get("unsupported_total", 0))
+        partial = int(snapshot.coverage_counts.get(CoverageStatus.PARTIAL.value, 0))
+        external_records = (
+            snapshot.external_obligation_catalog.obligations
+            if snapshot.external_obligation_catalog is not None
+            else []
+        )
+        candidates = sorted(
+            record.item_id
+            for record in external_records
+            if record.verifier_route or record.checker_refs or record.checker_ref
+        )
+        for category, count in snapshot.external_obligation_category_summary.items():
+            residual_category_totals[category] = residual_category_totals.get(category, 0) + count
+        total_implemented += implemented_total
+        total_external += external_total
+        unsupported_total += unsupported
+        partial_total += partial
+        finite_upgrade_candidates[snapshot.artifact_key] = candidates
+        theory_summaries[snapshot.artifact_key] = CanonicalTheorySnapshotSummary(
+            artifact_key=snapshot.artifact_key,
+            artifact=snapshot.artifact,
+            doi=snapshot.attribution.doi,
+            source_tex_sha256=snapshot.attribution.source_tex_sha256,
+            definitions=snapshot.definitions,
+            claims=snapshot.claims,
+            mr_records=snapshot.mr_records,
+            coverage_counts=dict(sorted(snapshot.coverage_counts.items())),
+            external_obligation_category_summary=dict(
+                sorted(snapshot.external_obligation_category_summary.items())
+            ),
+            implemented_total=implemented_total,
+            external_obligation_total=external_total,
+            unsupported_total=unsupported,
+            partial_total=partial,
+            finite_upgrade_candidate_count=len(candidates),
+        )
+
+    expected_keys = ["ecpt", "bit", "trc", "sqot", "alt"]
+    found_keys = sorted(theory_summaries)
+    accepted = (
+        found_keys == sorted(expected_keys)
+        and unsupported_total == 0
+        and partial_total == 0
+        and total_implemented > 0
+    )
+    return CanonicalImplementationReadinessReport(
+        profile=profile,
+        snapshot_count=len(snapshots),
+        theory_summaries={key: theory_summaries[key] for key in sorted(theory_summaries)},
+        total_implemented_items=total_implemented,
+        total_external_obligations=total_external,
+        unsupported_total=unsupported_total,
+        partial_total=partial_total,
+        finite_upgrade_candidates={
+            key: finite_upgrade_candidates[key] for key in sorted(finite_upgrade_candidates)
+        },
+        residual_category_totals=dict(sorted(residual_category_totals.items())),
+        accepted=accepted,
+        workflow_usable=accepted,
+        operationally_usable=accepted,
+        recommended_invocations=[
+            {
+                "invocation_id": "core-compact-check",
+                "argv": [
+                    "pic",
+                    "agent",
+                    "check",
+                    "--compact",
+                    "--profile",
+                    profile,
+                    "--text",
+                    "Candidate packet: preserve residuals.",
+                ],
+                "purpose": "Run the first compact agent contract without adoption state.",
+                "requires_source_checkout": False,
+                "executes_shell_commands_by_pic": False,
+            },
+            {
+                "invocation_id": "canonical-readiness",
+                "argv": [
+                    "pic",
+                    "audit",
+                    "canonical-readiness",
+                    "--profile",
+                    profile,
+                    "--format",
+                    "json",
+                ],
+                "purpose": (
+                    "Inspect pip-safe canonical implementation coverage from bundled snapshots."
+                ),
+                "requires_source_checkout": False,
+                "executes_shell_commands_by_pic": False,
+            },
+            {
+                "invocation_id": "portability-schema-bundle",
+                "argv": ["pic", "schema", "--all"],
+                "purpose": "Export stable JSON schemas for cross-language ports.",
+                "requires_source_checkout": False,
+                "executes_shell_commands_by_pic": False,
+            },
+            {
+                "invocation_id": "source-tex-fidelity",
+                "argv": [
+                    "pic",
+                    "audit",
+                    "fidelity",
+                    "--canonical-dir",
+                    "<canonical-tex-dir>",
+                ],
+                "purpose": (
+                    "Compare local canonical TeX against bundled metadata when sources "
+                    "are available."
+                ),
+                "requires_source_checkout": True,
+                "executes_shell_commands_by_pic": False,
+            },
+        ],
+        reasons=[
+            "bundled snapshots expose canonical ECPT/BIT/TRC/SQOT/ALT coverage without TeX files",
+            "external obligations remain residual finite-upgrade targets",
+            "authority or adoption state is not required for core compact workflows",
+        ],
+    )
+
+
+def canonical_implementation_readiness_markdown(
+    report: CanonicalImplementationReadinessReport,
+    *,
+    language: str = "en",
+) -> str:
+    """Render canonical readiness as deterministic Markdown."""
+
+    if language not in {"en", "ja"}:
+        raise ValueError("language must be one of: en, ja")
+    lines = [
+        "# PIC Canonical Implementation Readiness",
+        "",
+        f"- Profile: `{report.profile}`",
+        f"- Source: `{report.source}`",
+        f"- Snapshot count: `{report.snapshot_count}`",
+        f"- Accepted: `{str(report.accepted).lower()}`",
+        f"- Workflow usable: `{str(report.workflow_usable).lower()}`",
+        f"- Settled: `{str(report.settled).lower()}`",
+        f"- Source checkout required: `{str(report.source_checkout_required).lower()}`",
+        "- Canonical TeX required for this report: "
+        f"`{str(report.canonical_tex_required_for_this_report).lower()}`",
+        f"- Approval gate present: `{str(report.approval_gate_present).lower()}`",
+        "",
+        "## Totals",
+        f"- Implemented items: `{report.total_implemented_items}`",
+        f"- External obligations: `{report.total_external_obligations}`",
+        f"- Unsupported items: `{report.unsupported_total}`",
+        f"- Partial items: `{report.partial_total}`",
+        "",
+        "## Theory Summaries",
+    ]
+    for key, summary in report.theory_summaries.items():
+        lines.append(
+            f"- `{key}`: implemented=`{summary.implemented_total}`, "
+            f"external=`{summary.external_obligation_total}`, "
+            f"unsupported=`{summary.unsupported_total}`, partial=`{summary.partial_total}`"
+        )
+    lines.extend(
+        [
+            "",
+            "## Portability Invariants",
+            *[f"- {item}" for item in report.portability_invariants],
+            "",
+            "## Recommended argv Invocations",
+        ]
+    )
+    for invocation in report.recommended_invocations:
+        lines.append(f"- `{invocation['invocation_id']}`: `{invocation['argv']}`")
+    lines.extend(["", "## Safety Boundary"])
+    lines.extend(f"- {item}" for item in report.safety_invariants)
+    return "\n".join(lines) + "\n"

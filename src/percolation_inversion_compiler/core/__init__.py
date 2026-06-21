@@ -41,6 +41,8 @@ from percolation_inversion_compiler.core.certificates import (
     RefreshRule,
 )
 from percolation_inversion_compiler.core.checker import (
+    CanonicalImplementationReadinessReport,
+    CanonicalTheorySnapshotSummary,
     CheckerContext,
     ObligationRule,
     ObligationTrace,
@@ -107,6 +109,8 @@ __all__ = [
     "AgentConnectorSpec",
     "AlgebraLawCertificate",
     "CalibrationCertificate",
+    "CanonicalImplementationReadinessReport",
+    "CanonicalTheorySnapshotSummary",
     "Certificate",
     "CertificateDAG",
     "CertificateFamily",

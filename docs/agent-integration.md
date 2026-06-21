@@ -100,7 +100,7 @@ An agent connector should implement this policy:
 9. For ECPT active planning, treat `PhaseControlPlan.selected_actions` as
    ranked finite recommendations and route every `missing_obligations` entry
    before main operational execution.
-10. For v0.4.3 active runtime, submit observations through `RuntimeStepInput`,
+10. For v0.4.4 active runtime, submit observations through `RuntimeStepInput`,
     let the runtime rebuild packet edges, update Psi, run SQOT scheduling,
     rank ECPT phase-control tasks, and preserve residual ledgers without
     settling unresolved proof obligations. Prefer typed
@@ -200,7 +200,7 @@ can use the package to organize capability, bottleneck, and cyber-physical
 frontier evidence. They must not treat it as evidence for unobserved ASI,
 unconditional phase transition claims, or uncertified simulator output.
 
-In v0.4.3, the workflow is closed-loop at the runtime and population levels.
+In v0.4.4, the workflow is closed-loop at the runtime and population levels.
 `pic runtime step`
 converts agent output into packets, builds edge witnesses, updates Psi, ranks
 bottleneck and ECPT phase-control tasks, schedules work through SQOT, emits

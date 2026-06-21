@@ -1,4 +1,26 @@
 {
+  "clone_recommended_for": [
+    "canonical TeX audits",
+    "development fixtures",
+    "release engineering",
+    "editing examples and docs"
+  ],
+  "clone_recommended_for_full_use": false,
+  "clone_url": "https://github.com/kadubon/percolation-inversion-compiler.git",
+  "deployment_surfaces": [
+    "cli",
+    "python-sdk",
+    "github-actions",
+    "runtime-service",
+    "external-intake",
+    "agent-messages",
+    "alt-foundry",
+    "agent-autonomy-audit",
+    "canonical-implementation-readiness",
+    "operator-adoption-sidecar",
+    "packet-exchange-sidecar",
+    "phase-dashboard-sidecar"
+  ],
   "full_feature_stages": [
     "orient",
     "inspect snapshots",
@@ -29,6 +51,10 @@
     "AgentIntakeRequest",
     "AgentIntakeReport",
     "AgentCheckReport",
+    "AgentCommandInvocation",
+    "AgentAutonomyAuditReport",
+    "CanonicalImplementationReadinessReport",
+    "CanonicalTheorySnapshotSummary",
     "AgentWorkflowGuide",
     "AgentNextActionReport",
     "AgentFeatureReadinessReport",
@@ -40,11 +66,27 @@
     "SafePhaseAction",
     "PhaseTrajectoryReport",
     "PhaseAccelerationBenchmarkReport",
+    "ProtocolRelativeBenchmarkMetric",
+    "PhaseBenchmarkTask",
+    "PhaseBenchmarkCaseResult",
+    "PhaseBenchmarkSuiteReport",
+    "PhaseDashboardReport",
+    "PhaseObservationReport",
+    "OperatorAdoptionPacket",
+    "AgentToOperatorRequest",
+    "AdoptionSafetyBoundary",
+    "AdoptionFirstRunCommand",
+    "AdoptionReviewChecklist",
+    "PacketExchangeEnvelope",
+    "PacketImportInspectionReport",
+    "PacketMergeReport",
+    "PacketLineageDigest",
+    "ResidualCarryForwardReport",
     "AgentCommunicationPolicy",
     "AgentCommunicationGuide",
     "AgentNetworkReadinessReport",
-    "GeneralIntakePolicy",
     "GeneralIntakeProfile",
+    "GeneralIntakePolicy",
     "GeneralIntakePolicyDecision",
     "GeneralIntakeSource",
     "GeneralIntakeReport",
@@ -76,37 +118,16 @@
     "ALTCARACertificate",
     "ALTKernelTransitionReport",
     "FoundryControlDashboard",
-    "CertifiedAbstractionCapital",
-    "PortabilityConformanceReport"
+    "CertifiedAbstractionCapital"
   ],
-  "machine_contract": {
-    "arbitrary_shell_execution": false,
-    "examples_path_requires_source_checkout": true,
-    "curated_demo_bundle_in_wheel": true,
-    "external_content_is_candidate_only": true,
-    "external_candidate_volume_cannot_improve_phase_status": true,
-    "candidate_only_closure_execution_and_basin_paths_do_not_improve_phase_status": true,
-    "feed_and_inbox_entry_counts_are_bounded": true,
-    "general_intake_requires_explicit_source": true,
-    "general_intake_requires_source_and_policy_opt_in": true,
-    "general_intake_is_bounded_candidate_only_by_default": true,
-    "general_intake_reports_sanitized_fetch_provenance": true,
-    "installed_package_smoke_commands_available": true,
-    "local_web_discovery_disallows_seed_directory_escape": true,
-    "local_staged_intake_uses_byte_limits": true,
-    "live_discovery_fetches_each_resource_once": true,
-    "live_connectors_default_enabled": true,
-    "phase_acceleration_planner_is_recommendation_only": true,
-    "production_requires_identity_context": true,
-    "redirect_chain_urls_are_policy_validated": true,
-    "rss_atom_uses_defused_xml": true,
-    "residuals_are_not_failures": true,
-    "settled_false_is_expected": true
-  },
   "install_modes": [
     {
-      "mode": "pip",
       "command": "python -m pip install percolation-inversion-compiler",
+      "does_not_include": [
+        "root examples tree",
+        "canonical TeX files",
+        "release engineering fixtures"
+      ],
       "intended_for": [
         "practical agent output checking",
         "curated installed workflow",
@@ -115,61 +136,70 @@
         "library and CLI runtime checks",
         "ALT admission smoke with bundled data"
       ],
-      "does_not_include": [
-        "root examples tree",
-        "canonical TeX files",
-        "release engineering fixtures"
-      ]
+      "mode": "pip"
     },
     {
-      "mode": "source-checkout",
+      "command": "python -m pip install \"percolation-inversion-compiler[agent-full]\"",
+      "does_not_include": [
+        "science/OT/LP research dependencies",
+        "root examples tree",
+        "canonical TeX files"
+      ],
+      "intended_for": [
+        "bounded explicit-source live connector readiness",
+        "cryptographic identity verification",
+        "local runtime service dependencies"
+      ],
+      "mode": "pip-agent-full-extra"
+    },
+    {
       "command": "git clone https://github.com/kadubon/percolation-inversion-compiler.git",
       "intended_for": [
         "examples-backed commands",
         "canonical TeX audits",
         "development tests",
         "release engineering"
-      ]
+      ],
+      "mode": "source-checkout"
     }
   ],
-  "deployment_surfaces": [
-    "cli",
-    "python-sdk",
-    "github-actions",
-    "runtime-service",
-    "external-intake",
-    "agent-messages",
-    "alt-foundry"
-  ],
-  "clone_url": "https://github.com/kadubon/percolation-inversion-compiler.git",
-  "clone_recommended_for_full_use": false,
-  "clone_recommended_for": [
-    "canonical TeX audits",
-    "development fixtures",
-    "release engineering",
-    "editing examples and docs"
-  ],
-  "uv_install_commands": {
-    "windows_powershell": "powershell -ExecutionPolicy ByPass -c \"irm https://astral.sh/uv/install.ps1 | iex\"",
-    "macos_linux": "curl -LsSf https://astral.sh/uv/install.sh | sh",
-    "pypi_fallback": "python -m pip install uv"
-  },
-  "pip_boundary": {
-    "pip_supports": [
-      "pic agent explain",
-      "pic agent check",
-      "pic demo installed-smoke",
-      "pic demo bootstrap",
-      "pic runtime step with bootstrapped demo files",
-      "pic snapshot list/show",
-      "pic schema export",
-      "Python SDK imports"
-    ],
-    "clone_required_for": [
-      "commands that reference examples/...",
-      "canonical TeX/PDF audits through local source files",
-      "release checks and provenance/SBOM asset generation"
-    ]
+  "machine_contract": {
+    "adoption_required_for_core": false,
+    "agent_full_extra_available": true,
+    "approval_gate_present": false,
+    "approval_persistence_created": false,
+    "arbitrary_shell_execution": false,
+    "benchmark_dashboard_and_packet_exchange_are_diagnostic_only": true,
+    "candidate_only_closure_execution_and_basin_paths_do_not_improve_phase_status": true,
+    "canonical_readiness_available_from_pip": true,
+    "command_execution_allowed_by_pic": false,
+    "compact_mode_available": true,
+    "curated_demo_bundle_in_wheel": true,
+    "examples_path_requires_source_checkout": true,
+    "external_candidate_volume_cannot_improve_phase_status": true,
+    "external_content_is_candidate_only": true,
+    "feed_and_inbox_entry_counts_are_bounded": true,
+    "general_intake_is_bounded_candidate_only_by_default": true,
+    "general_intake_reports_sanitized_fetch_provenance": true,
+    "general_intake_requires_explicit_source": true,
+    "installed_package_smoke_commands_available": true,
+    "live_connectors_default_enabled": true,
+    "live_connectors_opt_out_available": true,
+    "live_discovery_fetches_each_resource_once": true,
+    "local_staged_intake_uses_byte_limits": true,
+    "local_web_discovery_disallows_seed_directory_escape": true,
+    "operator_adoption_sidecar_optional": true,
+    "pip_core_workflow_available": true,
+    "production_requires_identity_context": true,
+    "redirect_chain_urls_are_policy_validated": true,
+    "residuals_are_not_failures": true,
+    "rss_atom_uses_defused_xml": true,
+    "safe_commands_executable_by_pic": false,
+    "sanitized_outputs_only": true,
+    "settled_false_is_expected": true,
+    "shell_expansion_required_for_sidecars": false,
+    "sidecar_absence_is_not_failure": true,
+    "source_checkout_required_for_core": false
   },
   "name": "percolation-inversion-compiler",
   "non_goals": [
@@ -183,6 +213,64 @@
     "unbounded web crawling",
     "arbitrary shell execution"
   ],
+  "pip_boundary": {
+    "agent_full_extra": "percolation-inversion-compiler[agent-full]",
+    "clone_required_for": [
+      "commands that reference examples/...",
+      "canonical TeX/PDF audits through local source files",
+      "release checks and provenance/SBOM asset generation"
+    ],
+    "pip_agent_full_commands": [
+      "python -m pip install \"percolation-inversion-compiler[agent-full]\"",
+      "pic agent network-readiness --profile development",
+      "pic agent communication-guide --profile development",
+      "pic agent communication-guide --profile development --no-allow-live-connectors",
+      "pic agent relay-readiness --profile development"
+    ],
+    "pip_core_commands": [
+      "python -m pip install percolation-inversion-compiler",
+      "pic agent explain",
+      "pic agent autonomy-audit --profile development --format json",
+      "pic agent check --compact --text \"Candidate packet: preserve residuals.\" --profile development",
+      "pic phase plan --compact --text \"Candidate packet: preserve residuals.\" --profile development",
+      "pic agent accelerate --compact --text \"Candidate packet: preserve residuals.\" --profile development",
+      "pic demo installed-smoke --profile development",
+      "pic demo bootstrap --output-dir pic-demo",
+      "pic runtime step --state pic-demo/runtime_state.json --input pic-demo/runtime_step_input.json --profile development",
+      "pic phase benchmark-suite --profile development --format json",
+      "pic phase dashboard --profile development --format json",
+      "pic packet inspect --packet pic-demo/packet_envelope.json",
+      "pic packet merge --packets pic-demo/packet*.json --output pic-demo/merged-packets.json",
+      "pic packet lineage --packet pic-demo/merged-packets.json",
+      "pic phase observe --reports pic-demo/phase_dashboard.json --output pic-demo/observation.json",
+      "pic snapshot list",
+      "pic audit canonical-readiness --profile development --format json",
+      "pic schema --type AgentAutonomyAuditReport",
+      "pic schema --type CanonicalImplementationReadinessReport"
+    ],
+    "pip_supports": [
+      "pic agent explain",
+      "pic agent check",
+      "pic agent autonomy-audit",
+      "pic demo installed-smoke",
+      "pic demo bootstrap",
+      "pic runtime step with bootstrapped demo files",
+      "pic phase benchmark-suite",
+      "pic phase dashboard",
+      "pic audit canonical-readiness",
+      "pic packet inspect/merge/lineage with bootstrapped packet files",
+      "pic snapshot list/show",
+      "pic schema export",
+      "Python SDK imports"
+    ],
+    "source_checkout_commands": [
+      "uv run pic ecology ingest-general --source examples/agent_network/feed.xml --kind rss",
+      "uv run pic ecology bridge-runtime --report examples/agent_network/general_intake_report.example.json",
+      "uv run pic alt admit --packet examples/alt/admission_packet.json",
+      "uv run pic agent message contract --message examples/agent_network/agent_message.json",
+      "uv run pic phase plan --request examples/phase_acceleration/phase_acceleration_request.json --compact --profile development"
+    ]
+  },
   "primary_use_cases": [
     "AI agent workflow verification",
     "evidence routing",
@@ -201,7 +289,9 @@
     "ALT-CARA protocol-relative acceleration certification",
     "CLI AI agent output checking",
     "Python SDK agent runtime embedding",
-    "read-only GitHub Actions audit artifact generation"
+    "read-only GitHub Actions audit artifact generation",
+    "bounded default-live explicit-source intake",
+    "deterministic phase acceleration planning"
   ],
   "purpose": "AI agent runtime verification and ECPT ASI-proxy collective phase acceleration",
   "recommended_docs": [
@@ -211,7 +301,12 @@
     "docs/integrations/README.md",
     "docs/agent-external-communication.md",
     "docs/integrations/github-actions.md",
-    "docs/alt.md",
+    "docs/operator-adoption.md",
+    "docs/agent-to-operator-request.md",
+    "docs/integrations/packet-exchange.md",
+    "docs/phase-dashboard.md",
+    "docs/benchmarks/phase-benchmark-suite.md",
+    "docs/canonical-implementation-readiness.md",
     "docs/pypi-distribution.md",
     "docs/01-quickstart.md",
     "docs/identity-and-sybil-resistance.md",
@@ -236,29 +331,44 @@
     "pic schema --type AgentIntakeReport",
     "pic schema --type PhaseAccelerationPlan",
     "pic schema --type PhaseAccelerationBenchmarkReport",
+    "pic agent autonomy-audit --profile development --format json",
+    "pic adoption request --format markdown",
+    "pic adoption packet --format markdown",
+    "pic phase benchmark-suite --profile development --format json",
+    "pic phase dashboard --profile development --format json",
+    "pic audit canonical-readiness --profile development --format json",
+    "pic schema --type OperatorAdoptionPacket",
+    "pic schema --type CanonicalImplementationReadinessReport",
+    "pic schema --type PacketExchangeEnvelope",
+    "pic schema --type PhaseDashboardReport",
     "uv run pic --help",
     "uv run pic agent explain",
-    "uv run pic agent guide --profile development",
     "uv run pic agent communication-guide --profile development",
     "uv run pic agent network-readiness --profile development",
-    "uv run pic phase runbook --profile development",
-    "uv run pic phase plan --compact --profile development",
-    "uv run pic ecology policy explain --profile controlled_web",
     "uv run pic ecology ingest-general --source examples/agent_network/feed.xml --kind rss",
-    "uv run pic ecology bridge-runtime --report examples/agent_network/general_intake_report.example.json",
+    "uv run pic ecology ingest-general --source examples/agent_network/page.html --kind web-page",
+    "uv run pic ecology policy explain --profile controlled_web",
+    "uv run pic ecology bridge-runtime --report general-intake-report.json",
     "uv run pic alt admit --packet examples/alt/admission_packet.json",
     "uv run pic alt negative-certify --certificate examples/alt/negative_liquidity_certificate.json",
     "uv run pic alt refresh-baseline --certificate examples/alt/baseline_refresh_certificate.json",
     "uv run pic alt check-cara --certificate examples/alt/alt_cara_certificate.json",
     "uv run pic alt foundry-dashboard --state examples/alt/foundry_state.json",
     "uv run pic agent message contract --message examples/agent_network/agent_message.json",
-    "uv run pic ecology ingest-general --source examples/agent_network/page.html --kind web-page",
     "uv run pic agent message ingest --message examples/agent_network/agent_message.json",
+    "uv run pic agent relay-readiness --profile development",
+    "uv run pic agent message send --inbox inbox.json --sender agent:alice --text \"Candidate packet: preserve residuals.\"",
+    "uv run pic agent message receive --inbox inbox.json",
     "uv run pic schema --type IntakeProvenanceRecord",
     "uv run pic runtime health --state examples/runtime_state.json --profile development",
     "uv run pic runtime step --state examples/runtime_state.json --input examples/runtime_step_input.json --profile development",
     "uv run pic identity explain-profile --profile research",
     "uv run pic identity derive-context --population examples/agent_population_signed.json --profile production --output identity-context.json"
   ],
-  "version": "0.4.3"
+  "uv_install_commands": {
+    "macos_linux": "curl -LsSf https://astral.sh/uv/install.sh | sh",
+    "pypi_fallback": "python -m pip install uv",
+    "windows_powershell": "powershell -ExecutionPolicy ByPass -c \"irm https://astral.sh/uv/install.ps1 | iex\""
+  },
+  "version": "0.4.4"
 }

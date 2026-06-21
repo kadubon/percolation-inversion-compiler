@@ -1,6 +1,6 @@
 # ECPT Active Agent Runtime
 
-`pic runtime` is the v0.4.3 active loop for agents. It composes the existing
+`pic runtime` is the v0.4.4 active loop for agents. It composes the existing
 finite ECPT planner, SQOT salience scheduler, packet ecology, certificate
 checks, verifier route catalog, provenance policy, and residual ledgers into
 one deterministic report.

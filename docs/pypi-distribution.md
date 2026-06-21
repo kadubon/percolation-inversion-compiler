@@ -1,6 +1,6 @@
 # PyPI Distribution
 
-v0.4.3 is the practical-readiness patch for
+v0.4.4 is the optional-sidecar practical-readiness patch for
 `percolation-inversion-compiler` on PyPI. It keeps existing schemas and
 commands stable while making the wheel useful as an installed agent-output and
 workflow checker, with bundled demo data, snapshots, schema export, and
@@ -13,6 +13,7 @@ Core runtime and CLI:
 ```powershell
 python -m pip install percolation-inversion-compiler
 pic agent explain
+pic agent autonomy-audit --profile development --format json
 pic agent check --compact --text "Candidate packet: preserve residuals." --profile development
 pic agent runbook --profile development
 pic phase plan --compact --text "Candidate packet: preserve residuals." --profile development
@@ -21,11 +22,20 @@ pic agent check --text "Candidate packet: preserve residuals." --profile develop
 pic demo installed-smoke --profile development
 pic demo bootstrap --output-dir pic-demo
 pic runtime step --state pic-demo/runtime_state.json --input pic-demo/runtime_step_input.json --profile development
+pic phase benchmark-suite --profile development --format json
+pic phase dashboard --runtime-report pic-demo/runtime_step_report.json --profile development
+pic packet inspect --packet pic-demo/packet_envelope.json
+pic packet merge --packets pic-demo/packet*.json --output pic-demo/merged-packets.json
+pic packet lineage --packet pic-demo/merged-packets.json
+pic phase observe --reports pic-demo/phase_dashboard.json --output pic-demo/observation.json
+pic audit canonical-readiness --profile development --format json
 pic agent message receive --inbox pic-demo/agent_inbox.json
 pic agent inbox verify --inbox pic-demo/agent_inbox.json
 pic agent intake --text "Candidate packet: preserve residuals." --profile development
 pic snapshot list
+pic audit canonical-readiness --profile development --format json
 pic schema --type AgentIntakeReport
+pic schema --type CanonicalImplementationReadinessReport
 pic schema --type PhaseAccelerationPlan
 ```
 
@@ -33,6 +43,14 @@ Optional identity, live-intake, and local service extras:
 
 ```powershell
 python -m pip install "percolation-inversion-compiler[identity,connectors,server]"
+```
+
+Agent-oriented full extra, without the science/OT/LP research stack:
+
+```powershell
+python -m pip install "percolation-inversion-compiler[agent-full]"
+pic agent network-readiness --profile development
+pic agent communication-guide --profile development
 ```
 
 Full research/development extras:
@@ -43,17 +61,19 @@ python -m pip install "percolation-inversion-compiler[all]"
 
 The wheel includes a curated installed workflow bundle under package data.
 `pic agent check` works directly on inline text or user files. `pic demo
-bootstrap` exports runtime, agent-output, policy, local agent-message relay, and ALT example JSON to a
+bootstrap` exports runtime, agent-output, policy, local agent-message relay,
+ALT example JSON, packet sidecar, runtime report, and phase dashboard JSON to a
 directory the user controls. The full root `examples/...` tree, canonical TeX
 audits, and release engineering checks require a source checkout. The wheel is
 intended for practical runtime, schema, snapshot, curated workflow, and CLI use;
 the repository is the full fixture and development workspace.
 
-`pic phase plan --compact` and `pic agent accelerate --compact` are installed
-package commands. They use bundled/minimal runtime data when no source checkout
-is present and return a recommendation-only `PhaseAccelerationPlan` for ranked
-finite bottlenecks, safe commands, promotion blockers, candidate-only reasons,
-and settlement blockers.
+`pic phase plan --compact`, `pic agent accelerate --compact`, and `pic audit
+canonical-readiness` are installed package commands. The canonical-readiness
+report uses bundled derived snapshots, not vendored TeX/PDF files, and returns
+ECPT/BIT/TRC/SQOT/ALT coverage totals, external residual categories, finite
+upgrade candidates, and argv-safe next actions. These outputs are
+recommendation-only and keep `settled=false`.
 
 Live HTTP/feed intake is bounded and candidate-only by default when an explicit source is
 supplied. Use `--no-allow-live-connectors` for local-only smoke tests. Default-live mode does
@@ -62,7 +82,7 @@ not grant background crawling, shell execution, repository mutation, or hidden p
 
 ## Clone Boundary
 
-Clone when an agent needs the full `examples/...` tree, canonical TeX audits,
+Clone when an agent needs the full `examples/...` tree, canonical TeX source audits,
 fixture-backed collective phase workflows, local service tests, release
 provenance, SBOM generation, or development checks. Basic real use does not
 require a checkout.
@@ -115,7 +135,7 @@ the publication workflow instead of falling back to token upload.
 
 ## Pre-Publish Checks
 
-Run these before publishing or republishing the v0.4.3 distributions:
+Run these before publishing or republishing the v0.4.4 distributions:
 
 ```powershell
 uv run pytest

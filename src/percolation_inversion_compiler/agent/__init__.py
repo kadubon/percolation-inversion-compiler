@@ -4,11 +4,13 @@ from __future__ import annotations
 
 from percolation_inversion_compiler.agent.algorithms import (
     accelerate_agent_phase,
+    agent_autonomy_audit_markdown,
     agent_check_compact_payload,
     agent_feature_readiness,
     agent_manifest_payload,
     agent_network_readiness,
     agent_safety_invariants,
+    build_agent_autonomy_audit,
     build_agent_communication_guide,
     build_agent_runbook,
     build_agent_workflow_guide,
@@ -19,7 +21,9 @@ from percolation_inversion_compiler.agent.algorithms import (
     run_agent_intake,
 )
 from percolation_inversion_compiler.agent.records import (
+    AgentAutonomyAuditReport,
     AgentCheckReport,
+    AgentCommandInvocation,
     AgentCommunicationGuide,
     AgentCommunicationPolicy,
     AgentCommunicationStep,
@@ -34,7 +38,9 @@ from percolation_inversion_compiler.agent.records import (
 )
 
 __all__ = [
+    "AgentAutonomyAuditReport",
     "AgentCheckReport",
+    "AgentCommandInvocation",
     "AgentCommunicationGuide",
     "AgentCommunicationPolicy",
     "AgentCommunicationStep",
@@ -47,11 +53,13 @@ __all__ = [
     "AgentWorkflowGuide",
     "AgentWorkflowStep",
     "accelerate_agent_phase",
+    "agent_autonomy_audit_markdown",
     "agent_check_compact_payload",
     "agent_feature_readiness",
     "agent_manifest_payload",
     "agent_network_readiness",
     "agent_safety_invariants",
+    "build_agent_autonomy_audit",
     "build_agent_communication_guide",
     "build_agent_runbook",
     "build_agent_workflow_guide",

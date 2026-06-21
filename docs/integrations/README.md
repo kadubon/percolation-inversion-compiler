@@ -19,6 +19,11 @@ verification layer. PIC is not specific to GitHub Actions.
 | External intake | You want to ingest web/feed/repository/message content as candidates. | `pic agent communication-guide` |
 | Agent messages | You want to inspect agent-to-agent packet exchange. | `pic agent message contract` |
 | ALT foundry | You want to check reusable abstraction capital. | `pic alt admit` |
+| Optional adoption sidecar | You need operator-facing handoff text without workflow gating. | `pic adoption request` |
+| Canonical readiness sidecar | You need pip-safe ECPT/BIT/TRC/SQOT/ALT implementation coverage. | `pic audit canonical-readiness` |
+| Packet exchange sidecar | You need data-only packet export, inspect, merge, or lineage. | `pic packet inspect` |
+| Phase dashboard sidecar | You need observation-only phase metrics. | `pic phase dashboard` |
+| Agent autonomy audit | You need to verify approval/adoption is not gating core agent work. | `pic agent autonomy-audit` |
 
 ## Safety Contract
 
@@ -29,6 +34,13 @@ verification layer. PIC is not specific to GitHub Actions.
 - `settled=false` is expected when obligations remain unresolved.
 - Residuals must be preserved.
 - Do not claim real ASI.
+- Optional sidecars do not gate `pic agent check`, `pic phase plan`, or `pic agent accelerate`.
+- Canonical readiness is snapshot-derived metadata and does not replace local
+  TeX fidelity audits.
+- `percolation-inversion-compiler[agent-full]` adds connector, identity, and local service
+  dependencies without requiring the science/OT/LP research extras.
+- Localized Markdown is display-only; JSON schemas and keys stay stable for ports.
+- Packet exchange and dashboards are diagnostic-only and do not promote packets.
 
 ## Recommended Reading Order For Agents
 
@@ -38,3 +50,8 @@ verification layer. PIC is not specific to GitHub Actions.
 4. `docs/integrations/github-actions.md` only if CI integration is needed
 5. `docs/agent-external-communication.md` only if external intake is needed
 6. `docs/alt.md` only if abstraction-capital checking is needed
+7. `docs/operator-adoption.md` only if operator handoff is needed
+8. `docs/integrations/packet-exchange.md` only if packet handoff is needed
+9. `docs/phase-dashboard.md` only if dashboard observation is needed
+10. `docs/canonical-implementation-readiness.md` when installed canonical coverage matters
+11. `docs/i18n-and-portability.md` when localized Markdown or cross-language ports matter

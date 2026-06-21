@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import glob
 import json
 import os
 from importlib.resources import files
@@ -14,21 +15,35 @@ from rich.console import Console
 from percolation_inversion_compiler import __version__
 from percolation_inversion_compiler.acceleration import (
     PhaseAccelerationRequest,
+    PhaseDashboardReport,
     build_phase_acceleration_benchmark,
     build_phase_acceleration_plan,
+    build_phase_benchmark_suite,
+    build_phase_dashboard,
+    build_phase_observation,
     build_phase_trajectory,
     phase_acceleration_compact_payload,
     phase_acceleration_runbook,
+    phase_benchmark_suite_markdown,
+    phase_dashboard_markdown,
+)
+from percolation_inversion_compiler.adoption import (
+    adoption_packet_markdown,
+    build_agent_to_operator_request,
+    build_operator_adoption_packet,
+    operator_request_markdown,
 )
 from percolation_inversion_compiler.agent import (
     AgentIntakeReport,
     AgentIntakeRequest,
     accelerate_agent_phase,
+    agent_autonomy_audit_markdown,
     agent_check_compact_payload,
     agent_feature_readiness,
     agent_manifest_payload,
     agent_network_readiness,
     agent_safety_invariants,
+    build_agent_autonomy_audit,
     build_agent_communication_guide,
     build_agent_runbook,
     build_agent_workflow_guide,
@@ -141,9 +156,11 @@ from percolation_inversion_compiler.identity import (
 from percolation_inversion_compiler.io import (
     audit_canonical_suite,
     audit_theory_source,
+    build_canonical_implementation_readiness_report,
     build_operational_readiness_report,
     build_sbom_document,
     build_theory_fidelity_report,
+    canonical_implementation_readiness_markdown,
     canonical_manifest,
     count_mr_records_by_category,
     create_provenance_manifest,
@@ -165,6 +182,14 @@ from percolation_inversion_compiler.io import (
 )
 from percolation_inversion_compiler.io.provenance import ProvenanceManifest
 from percolation_inversion_compiler.io.schema import load_data
+from percolation_inversion_compiler.packet_exchange import (
+    PacketExchangeEnvelope,
+    PacketMergeReport,
+    inspect_packet_exchange_envelope,
+    merge_packet_exchange_envelopes,
+    packet_exchange_envelope_from_runtime_report,
+    packet_lineage_digest,
+)
 from percolation_inversion_compiler.runtime import (
     ActionCommitPolicy,
     AgentPopulationState,
@@ -217,7 +242,9 @@ provenance_app = typer.Typer(help="Create and verify release provenance manifest
 sbom_app = typer.Typer(help="Create deterministic release SBOM documents.")
 parse_app = typer.Typer(help="Run strict TeX parser diagnostics.")
 portability_app = typer.Typer(help="Verify cross-language portability conformance packs.")
+adoption_app = typer.Typer(help="Generate optional operator-adoption sidecars.")
 phase_app = typer.Typer(help="Plan deterministic protocol-relative phase acceleration.")
+packet_app = typer.Typer(help="Inspect and merge data-only packet-exchange sidecars.")
 alt_app = typer.Typer(help="Run ALT abstraction-liquidity foundry tools.")
 ecpt_app = typer.Typer(help="Run ECPT active phase-control planning tools.")
 sqot_app = typer.Typer(help="Run SQOT salience-queue scheduling tools.")
@@ -238,7 +265,9 @@ app.add_typer(provenance_app, name="provenance")
 app.add_typer(sbom_app, name="sbom")
 app.add_typer(parse_app, name="parse")
 app.add_typer(portability_app, name="portability")
+app.add_typer(adoption_app, name="adoption")
 app.add_typer(phase_app, name="phase")
+app.add_typer(packet_app, name="packet")
 app.add_typer(alt_app, name="alt")
 app.add_typer(ecpt_app, name="ecpt")
 app.add_typer(sqot_app, name="sqot")
@@ -260,6 +289,46 @@ def _dump(data: Any, output: Path | None = None) -> None:
         output.write_text(text + "\n", encoding="utf-8")
     else:
         console.print_json(text)
+
+
+def _dump_text(text: str, output: Path | None = None) -> None:
+    if output is not None:
+        output.parent.mkdir(parents=True, exist_ok=True)
+        output.write_text(text, encoding="utf-8")
+    else:
+        console.print(text, end="", markup=False)
+
+
+def _output_format(value: str) -> str:
+    normalized = value.lower()
+    if normalized not in {"json", "markdown"}:
+        raise typer.BadParameter("--format must be json or markdown")
+    return normalized
+
+
+def _language(value: str) -> str:
+    normalized = value.lower()
+    if normalized not in {"en", "ja"}:
+        raise typer.BadParameter("--language must be en or ja")
+    return normalized
+
+
+def _expand_repeated_paths(paths: list[Path] | None, option_name: str) -> list[Path]:
+    expanded: list[Path] = []
+    for path in paths or []:
+        raw = str(path)
+        if any(marker in raw for marker in "*?["):
+            matches = sorted(glob.glob(raw, recursive=True), key=lambda item: item.lower())
+            if not matches:
+                raise typer.BadParameter(f"{option_name} pattern matched no files: {raw}")
+            for match in matches:
+                parsed = Path(match)
+                if not parsed.is_file():
+                    raise typer.BadParameter(f"{option_name} pattern matched a non-file: {match}")
+                expanded.append(parsed)
+            continue
+        expanded.append(path)
+    return expanded
 
 
 DEMO_RESOURCE_PACKAGE = "percolation_inversion_compiler.data.demo"
@@ -545,6 +614,35 @@ def _load_runtime_step_report(path: Path) -> RuntimeStepReport:
     if not isinstance(raw, dict):
         raise typer.BadParameter("runtime report file must contain an object")
     return RuntimeStepReport.model_validate(raw)
+
+
+def _load_packet_exchange_envelope(path: Path) -> PacketExchangeEnvelope:
+    data = load_data(path)
+    raw = data.get("packet_exchange_envelope", data.get("packet", data))
+    if not isinstance(raw, dict):
+        raise typer.BadParameter("packet file must contain an object")
+    return PacketExchangeEnvelope.model_validate(raw)
+
+
+def _load_packet_or_merge(path: Path) -> PacketExchangeEnvelope | PacketMergeReport:
+    data = load_data(path)
+    raw_merge = data.get("packet_merge_report", data.get("merge_report"))
+    if isinstance(raw_merge, dict):
+        return PacketMergeReport.model_validate(raw_merge)
+    if "packets" in data and "input_packet_count" in data:
+        return PacketMergeReport.model_validate(data)
+    raw_packet = data.get("packet_exchange_envelope", data.get("packet", data))
+    if not isinstance(raw_packet, dict):
+        raise typer.BadParameter("packet lineage input must contain a packet or merge report")
+    return PacketExchangeEnvelope.model_validate(raw_packet)
+
+
+def _load_phase_dashboard_report(path: Path) -> PhaseDashboardReport:
+    data = load_data(path)
+    raw = data.get("phase_dashboard_report", data.get("dashboard", data))
+    if not isinstance(raw, dict):
+        raise typer.BadParameter("phase dashboard file must contain an object")
+    return PhaseDashboardReport.model_validate(raw)
 
 
 def _load_phase_acceleration_request(
@@ -1117,6 +1215,36 @@ def audit_fidelity_command(
     _dump(report.model_dump(mode="json"), output)
     if fail_on == "fail" and not report.accepted:
         raise typer.Exit(1)
+
+
+@audit_app.command("canonical-readiness")
+def audit_canonical_readiness_command(
+    profile: Annotated[
+        str,
+        typer.Option("--profile", help="Runtime profile label to include in the report."),
+    ] = "development",
+    output_format: Annotated[
+        str,
+        typer.Option("--format", help="Output format: json or markdown."),
+    ] = "json",
+    language: Annotated[
+        str,
+        typer.Option("--language", help="Markdown language: en or ja."),
+    ] = "en",
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write output.")
+    ] = None,
+) -> None:
+    """Report pip-safe canonical readiness from bundled derived snapshots."""
+
+    report = build_canonical_implementation_readiness_report(profile)
+    if _output_format(output_format) == "markdown":
+        _dump_text(
+            canonical_implementation_readiness_markdown(report, language=_language(language)),
+            output,
+        )
+        return
+    _dump(report.model_dump(mode="json"), output)
 
 
 @snapshot_app.command("list")
@@ -2749,6 +2877,60 @@ def runtime_service_command(
         raise typer.BadParameter(str(exc)) from exc
 
 
+@adoption_app.command("packet")
+def adoption_packet_command(
+    profile: Annotated[
+        str,
+        typer.Option("--profile", help="Operator-adoption profile."),
+    ] = "development",
+    output_format: Annotated[
+        str,
+        typer.Option("--format", help="Output format: json or markdown."),
+    ] = "json",
+    language: Annotated[
+        str,
+        typer.Option("--language", help="Markdown language: en or ja."),
+    ] = "en",
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write output.")
+    ] = None,
+) -> None:
+    """Generate an optional operator-facing adoption packet."""
+
+    packet = build_operator_adoption_packet(profile)
+    if _output_format(output_format) == "markdown":
+        _dump_text(adoption_packet_markdown(packet, language=_language(language)), output)
+        return
+    _dump(packet.model_dump(mode="json"), output)
+
+
+@adoption_app.command("request")
+def adoption_request_command(
+    profile: Annotated[
+        str,
+        typer.Option("--profile", help="Operator-adoption profile."),
+    ] = "development",
+    output_format: Annotated[
+        str,
+        typer.Option("--format", help="Output format: json or markdown."),
+    ] = "json",
+    language: Annotated[
+        str,
+        typer.Option("--language", help="Markdown language: en or ja."),
+    ] = "en",
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write output.")
+    ] = None,
+) -> None:
+    """Generate a short agent-to-operator adoption request."""
+
+    request = build_agent_to_operator_request(profile)
+    if _output_format(output_format) == "markdown":
+        _dump_text(operator_request_markdown(request, language=_language(language)), output)
+        return
+    _dump(request.model_dump(mode="json"), output)
+
+
 @phase_app.command("plan")
 def phase_plan_command(
     request: Annotated[
@@ -2990,6 +3172,153 @@ def phase_benchmark_command(
     _dump(build_phase_acceleration_benchmark(plan).model_dump(mode="json"), output)
 
 
+@phase_app.command("benchmark-suite")
+def phase_benchmark_suite_command(
+    profile: Annotated[str, typer.Option("--profile", help="Benchmark profile.")] = "development",
+    output_format: Annotated[
+        str,
+        typer.Option("--format", help="Output format: json or markdown."),
+    ] = "json",
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write output.")
+    ] = None,
+) -> None:
+    """Run the diagnostic protocol-relative phase benchmark suite."""
+
+    report = build_phase_benchmark_suite(profile=profile)
+    if _output_format(output_format) == "markdown":
+        _dump_text(phase_benchmark_suite_markdown(report), output)
+        return
+    _dump(report.model_dump(mode="json"), output)
+
+
+@phase_app.command("dashboard")
+def phase_dashboard_command(
+    profile: Annotated[str, typer.Option("--profile", help="Dashboard profile.")] = "development",
+    runtime_report: Annotated[
+        Path | None,
+        typer.Option("--runtime-report", help="Optional RuntimeStepReport JSON/YAML."),
+    ] = None,
+    output_format: Annotated[
+        str,
+        typer.Option("--format", help="Output format: json or markdown."),
+    ] = "json",
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write output.")
+    ] = None,
+) -> None:
+    """Emit an observation-only phase dashboard."""
+
+    parsed_report = None if runtime_report is None else _load_runtime_step_report(runtime_report)
+    dashboard = build_phase_dashboard(profile=profile, runtime_report=parsed_report)
+    if _output_format(output_format) == "markdown":
+        _dump_text(phase_dashboard_markdown(dashboard), output)
+        return
+    _dump(dashboard.model_dump(mode="json"), output)
+
+
+@phase_app.command("observe")
+def phase_observe_command(
+    reports: Annotated[
+        list[Path] | None,
+        typer.Option("--reports", help="RuntimeStepReport or PhaseDashboardReport JSON/YAML."),
+    ] = None,
+    profile: Annotated[str, typer.Option("--profile", help="Observation profile.")] = "development",
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Aggregate phase reports into an observation-only dashboard report."""
+
+    dashboards: list[PhaseDashboardReport] = []
+    for path in _expand_repeated_paths(reports, "--reports"):
+        data = load_data(path)
+        if "dashboard_id" in data and "packet_candidate_count" in data:
+            dashboards.append(_load_phase_dashboard_report(path))
+        else:
+            dashboards.append(
+                build_phase_dashboard(
+                    profile=profile,
+                    runtime_report=_load_runtime_step_report(path),
+                )
+            )
+    if not dashboards:
+        dashboards.append(build_phase_dashboard(profile=profile))
+    _dump(build_phase_observation(dashboards, profile=profile).model_dump(mode="json"), output)
+
+
+@packet_app.command("export")
+def packet_export_command(
+    report: Annotated[
+        Path,
+        typer.Option("--report", help="RuntimeStepReport JSON/YAML to export as data."),
+    ],
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write packet JSON.")
+    ] = None,
+) -> None:
+    """Export a runtime report as a data-only packet envelope."""
+
+    envelope = packet_exchange_envelope_from_runtime_report(_load_runtime_step_report(report))
+    _dump(envelope.model_dump(mode="json"), output)
+
+
+@packet_app.command("inspect")
+def packet_inspect_command(
+    packet: Annotated[
+        Path,
+        typer.Option("--packet", help="PacketExchangeEnvelope JSON/YAML."),
+    ],
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write inspection JSON.")
+    ] = None,
+) -> None:
+    """Inspect a data-only packet envelope without executing content."""
+
+    _dump(
+        inspect_packet_exchange_envelope(
+            _load_packet_exchange_envelope(packet)
+        ).model_dump(mode="json"),
+        output,
+    )
+
+
+@packet_app.command("merge")
+def packet_merge_command(
+    packets: Annotated[
+        list[Path],
+        typer.Option("--packets", help="PacketExchangeEnvelope JSON/YAML. May be repeated."),
+    ],
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write merge-report JSON.")
+    ] = None,
+) -> None:
+    """Merge packet envelopes by digest without promoting them."""
+
+    report = merge_packet_exchange_envelopes(
+        [
+            _load_packet_exchange_envelope(path)
+            for path in _expand_repeated_paths(packets, "--packets")
+        ]
+    )
+    _dump(report.model_dump(mode="json"), output)
+
+
+@packet_app.command("lineage")
+def packet_lineage_command(
+    packet: Annotated[
+        Path,
+        typer.Option("--packet", help="PacketExchangeEnvelope or PacketMergeReport JSON/YAML."),
+    ],
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write lineage JSON.")
+    ] = None,
+) -> None:
+    """Emit packet lineage without promotion."""
+
+    _dump(packet_lineage_digest(_load_packet_or_merge(packet)).model_dump(mode="json"), output)
+
+
 @agent_app.command("explain")
 def agent_explain_command(
     output: Annotated[
@@ -3067,6 +3396,36 @@ def agent_doctor_command(
         },
         output,
     )
+
+
+@agent_app.command("autonomy-audit")
+def agent_autonomy_audit_command(
+    profile: Annotated[
+        str,
+        typer.Option("--profile", help="Agent autonomy profile."),
+    ] = "development",
+    output_format: Annotated[
+        str,
+        typer.Option("--format", help="Output format: json or markdown."),
+    ] = "json",
+    language: Annotated[
+        str,
+        typer.Option("--language", help="Markdown language: en or ja."),
+    ] = "en",
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write output.")
+    ] = None,
+) -> None:
+    """Audit whether agent activity is blocked by approval or adoption state."""
+
+    report = build_agent_autonomy_audit(profile)
+    if _output_format(output_format) == "markdown":
+        _dump_text(
+            agent_autonomy_audit_markdown(report, language=_language(language)),
+            output,
+        )
+        return
+    _dump(report.model_dump(mode="json"), output)
 
 
 @agent_app.command("guide")
@@ -3429,7 +3788,7 @@ def agent_manifest_command(
     """Print the machine-readable agent manifest."""
 
     manifest_path = Path("agent-manifest.json")
-    if manifest_path.exists():
+    if output is None and manifest_path.exists():
         _dump(json.loads(manifest_path.read_text(encoding="utf-8")), output)
         return
     _dump(agent_manifest_payload(), output)
@@ -4236,20 +4595,98 @@ def demo_bootstrap(
     runtime_input_path = output_dir / "runtime_step_input.json"
     alt_packet_path = output_dir / "alt_admission_packet.json"
     agent_inbox_path = output_dir / "agent_inbox.json"
+    runtime_report_path = output_dir / "runtime_step_report.json"
+    packet_path = output_dir / "packet_envelope.json"
+    dashboard_path = output_dir / "phase_dashboard.json"
+    merged_packets_path = output_dir / "merged-packets.json"
+    observation_path = output_dir / "observation.json"
+    recommended_next_commands = [
+        f"pic agent check --text-file {agent_output_path} --profile development",
+        f"pic runtime step --state {runtime_state_path} "
+        f"--input {runtime_input_path} --profile development",
+        f"pic agent message receive --inbox {agent_inbox_path}",
+        f"pic agent inbox verify --inbox {agent_inbox_path}",
+        f"pic alt admit --packet {alt_packet_path}",
+        "pic phase benchmark-suite --profile development --format json",
+        f"pic phase dashboard --runtime-report {runtime_report_path} --profile development",
+        f"pic packet inspect --packet {packet_path}",
+        f"pic packet merge --packets {output_dir / 'packet*.json'} --output {merged_packets_path}",
+        f"pic packet lineage --packet {merged_packets_path}",
+        f"pic phase observe --reports {dashboard_path} --output {observation_path}",
+        "pic audit canonical-readiness --profile development --format json",
+    ]
+    recommended_next_invocations = [
+        {
+            "invocation_id": "agent-check-bootstrapped-text",
+            "argv": [
+                "pic",
+                "agent",
+                "check",
+                "--text-file",
+                str(agent_output_path),
+                "--profile",
+                "development",
+            ],
+        },
+        {
+            "invocation_id": "runtime-step-bootstrapped",
+            "argv": [
+                "pic",
+                "runtime",
+                "step",
+                "--state",
+                str(runtime_state_path),
+                "--input",
+                str(runtime_input_path),
+                "--profile",
+                "development",
+            ],
+        },
+        {
+            "invocation_id": "packet-merge-bootstrapped",
+            "argv": [
+                "pic",
+                "packet",
+                "merge",
+                "--packets",
+                str(output_dir / "packet*.json"),
+                "--output",
+                str(merged_packets_path),
+            ],
+        },
+        {
+            "invocation_id": "phase-observe-bootstrapped",
+            "argv": [
+                "pic",
+                "phase",
+                "observe",
+                "--reports",
+                str(dashboard_path),
+                "--output",
+                str(observation_path),
+            ],
+        },
+        {
+            "invocation_id": "canonical-readiness",
+            "argv": [
+                "pic",
+                "audit",
+                "canonical-readiness",
+                "--profile",
+                "development",
+                "--format",
+                "json",
+            ],
+        },
+    ]
     _dump(
         {
             "accepted": True,
             "bundle": _demo_manifest(),
             "files": written,
             "output_dir": str(output_dir),
-            "recommended_next_commands": [
-                f"pic agent check --text-file {agent_output_path} --profile development",
-                f"pic runtime step --state {runtime_state_path} "
-                f"--input {runtime_input_path} --profile development",
-                f"pic agent message receive --inbox {agent_inbox_path}",
-                f"pic agent inbox verify --inbox {agent_inbox_path}",
-                f"pic alt admit --packet {alt_packet_path}",
-            ],
+            "recommended_next_commands": recommended_next_commands,
+            "recommended_next_invocations": recommended_next_invocations,
             "settled": False,
             "workflow_usable": True,
         },
@@ -4292,6 +4729,46 @@ def demo_installed_smoke(
                 ),
                 "pic agent message receive --inbox pic-demo/agent_inbox.json",
                 "pic alt admit --packet pic-demo/alt_admission_packet.json",
+                f"pic phase benchmark-suite --profile {profile} --format json",
+                "pic phase dashboard --runtime-report pic-demo/runtime_step_report.json "
+                f"--profile {profile}",
+                "pic packet inspect --packet pic-demo/packet_envelope.json",
+                "pic packet merge --packets pic-demo/packet*.json "
+                "--output pic-demo/merged-packets.json",
+                "pic packet lineage --packet pic-demo/merged-packets.json",
+                "pic phase observe --reports pic-demo/phase_dashboard.json "
+                "--output pic-demo/observation.json",
+                f"pic audit canonical-readiness --profile {profile} --format json",
+            ],
+            "recommended_next_invocations": [
+                {
+                    "invocation_id": "demo-bootstrap",
+                    "argv": ["pic", "demo", "bootstrap", "--output-dir", "pic-demo"],
+                },
+                {
+                    "invocation_id": "sidecar-packet-merge",
+                    "argv": [
+                        "pic",
+                        "packet",
+                        "merge",
+                        "--packets",
+                        "pic-demo/packet*.json",
+                        "--output",
+                        "pic-demo/merged-packets.json",
+                    ],
+                },
+                {
+                    "invocation_id": "canonical-readiness",
+                    "argv": [
+                        "pic",
+                        "audit",
+                        "canonical-readiness",
+                        "--profile",
+                        profile,
+                        "--format",
+                        "json",
+                    ],
+                },
             ],
             "residual_summary": report.residual_summary,
             "runtime_report": report.runtime_report.model_dump(mode="json"),

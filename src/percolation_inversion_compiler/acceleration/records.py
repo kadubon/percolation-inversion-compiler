@@ -197,3 +197,107 @@ class PhaseAccelerationBenchmarkReport(BaseModel):
     invariant_checks: dict[str, bool] = Field(default_factory=dict)
     safety_invariants: list[str] = Field(default_factory=list)
     reasons: list[str] = Field(default_factory=list)
+
+
+class ProtocolRelativeBenchmarkMetric(BaseModel):
+    """One diagnostic metric for protocol-relative sidecar benchmarking."""
+
+    metric_id: str
+    label: str
+    value: float = 0.0
+    maximum: float = 1.0
+    passed: bool = False
+    interpretation: str = "diagnostic-only metric; does not settle claims"
+
+
+class PhaseBenchmarkTask(BaseModel):
+    """Bundled benchmark task that can run from an installed package."""
+
+    task_id: str
+    agent_output: str
+    expected_properties: list[str] = Field(default_factory=list)
+    candidate_only: bool = True
+    execution_authority_granted: bool = False
+
+
+class PhaseBenchmarkCaseResult(BaseModel):
+    """Result for one phase benchmark-suite task."""
+
+    case_id: str
+    task: PhaseBenchmarkTask
+    accepted: bool = False
+    workflow_usable: bool = False
+    operationally_usable: bool = False
+    settled: bool = False
+    metric_results: list[ProtocolRelativeBenchmarkMetric] = Field(default_factory=list)
+    missing_obligation_count: int = 0
+    residual_coordinate_count: int = 0
+    safe_command_count: int = 0
+    settled_blocker_count: int = 0
+    candidate_only_reason_count: int = 0
+    bottleneck_count: int = 0
+    phase_gap_visible: bool = False
+    reasons: list[str] = Field(default_factory=list)
+
+
+class PhaseBenchmarkSuiteReport(BaseModel):
+    """Diagnostic benchmark suite for protocol-relative workflow properties."""
+
+    report_id: str = "phase-benchmark-suite"
+    profile: str = "development"
+    cases: list[PhaseBenchmarkCaseResult] = Field(default_factory=list)
+    aggregate_metrics: list[ProtocolRelativeBenchmarkMetric] = Field(default_factory=list)
+    aggregate_score: float = 0.0
+    accepted: bool = False
+    workflow_usable: bool = False
+    operationally_usable: bool = False
+    settled: bool = False
+    safety_invariants: list[str] = Field(default_factory=list)
+    reasons: list[str] = Field(default_factory=list)
+
+
+class PhaseDashboardReport(BaseModel):
+    """Observational phase dashboard sidecar."""
+
+    dashboard_id: str = "phase-dashboard"
+    profile: str = "development"
+    packet_candidate_count: int = 0
+    accepted_packet_count: int = 0
+    workflow_usable_packet_count: int = 0
+    settled_packet_count: int = 0
+    unsettled_candidate_count: int = 0
+    residual_debt_count: int = 0
+    missing_obligation_count: int = 0
+    identity_blocker_count: int = 0
+    route_blocker_count: int = 0
+    rollback_blocker_count: int = 0
+    alt_liquidity_candidate_count: int = 0
+    sqot_queue_pressure: float = 0.0
+    phase_gap_vector: PhaseGapVector = Field(default_factory=PhaseGapVector)
+    bottleneck_count_by_type: dict[str, int] = Field(default_factory=dict)
+    safe_command_count: int = 0
+    settled_blocker_count: int = 0
+    candidate_only_reason_count: int = 0
+    external_volume_candidate_only_count: int = 0
+    promotion_blocker_summary: list[str] = Field(default_factory=list)
+    dashboard_safety_boundary: list[str] = Field(default_factory=list)
+    accepted: bool = False
+    workflow_usable: bool = False
+    operationally_usable: bool = False
+    settled: bool = False
+    reasons: list[str] = Field(default_factory=list)
+
+
+class PhaseObservationReport(BaseModel):
+    """Observation-only aggregation over one or more phase dashboard reports."""
+
+    observation_id: str = "phase-observation"
+    profile: str = "development"
+    dashboards: list[PhaseDashboardReport] = Field(default_factory=list)
+    aggregate_metrics: dict[str, int | float] = Field(default_factory=dict)
+    accepted: bool = False
+    workflow_usable: bool = False
+    operationally_usable: bool = False
+    settled: bool = False
+    safety_invariants: list[str] = Field(default_factory=list)
+    reasons: list[str] = Field(default_factory=list)

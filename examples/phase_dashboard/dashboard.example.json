@@ -1,0 +1,61 @@
+{
+  "accepted": true,
+  "accepted_packet_count": 0,
+  "alt_liquidity_candidate_count": 0,
+  "bottleneck_count_by_type": {
+    "phase-component-gap": 1
+  },
+  "candidate_only_reason_count": 1,
+  "dashboard_id": "phase-dashboard:example",
+  "dashboard_safety_boundary": [
+    "phase dashboard is observational only",
+    "phase dashboard does not claim a real ASI phase transition"
+  ],
+  "external_volume_candidate_only_count": 0,
+  "identity_blocker_count": 0,
+  "missing_obligation_count": 1,
+  "operationally_usable": true,
+  "packet_candidate_count": 1,
+  "phase_gap_vector": {
+    "accepted": true,
+    "aggregate_gap": 0.5,
+    "components": [
+      {
+        "component": "AC",
+        "current_value": 0.0,
+        "gap": 0.5,
+        "limiting": true,
+        "reasons": [
+          "component is below finite threshold"
+        ],
+        "source": "PsiDashboard",
+        "threshold_value": 0.5
+      }
+    ],
+    "limiting_components": [
+      "AC"
+    ],
+    "operationally_usable": true,
+    "reasons": [],
+    "settled": false,
+    "vector_id": "phase-gap-vector:example"
+  },
+  "profile": "development",
+  "promotion_blocker_summary": [
+    "missing obligations remain"
+  ],
+  "reasons": [
+    "dashboard metrics are diagnostic-only"
+  ],
+  "residual_debt_count": 1,
+  "rollback_blocker_count": 0,
+  "route_blocker_count": 1,
+  "safe_command_count": 1,
+  "settled": false,
+  "settled_blocker_count": 1,
+  "settled_packet_count": 0,
+  "sqot_queue_pressure": 0.0,
+  "unsettled_candidate_count": 1,
+  "workflow_usable": true,
+  "workflow_usable_packet_count": 1
+}

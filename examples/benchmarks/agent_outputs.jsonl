@@ -1,0 +1,3 @@
+{"case_id":"missing-obligation-visibility","agent_output":"Candidate packet: route evidence and preserve residuals."}
+{"case_id":"false-promotion-prevention","agent_output":"Candidate packet: preserve candidate-only status until verifier routes pass."}
+{"case_id":"phase-gap-and-bottleneck-ranking","agent_output":"Candidate packet: identify phase gaps and rank bottlenecks."}

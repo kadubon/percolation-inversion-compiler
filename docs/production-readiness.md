@@ -64,7 +64,7 @@ also returns `external_domain_required_routes`, `contract_enforced_routes`,
 `replay_residual_routes`, and `residual_external_obligation_count`.
 
 `commercial_readiness` reports `live_connectors_default_enabled=true`,
-`live_connector_opt_out_available=true`, and `bounded_intake_default=true` for v0.4.3.
+`live_connector_opt_out_available=true`, and `bounded_intake_default=true` for v0.4.4.
 This means explicit-source communication is usable by default, not that external packet volume
 can promote runtime state. Production/adversarial profiles still require accepted identity
 context before signed peer-agent messages or packet issuers become more than diagnostic

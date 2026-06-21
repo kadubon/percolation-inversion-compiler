@@ -81,12 +81,30 @@ class AgentWorkflowStep(BaseModel):
     safety_notes: list[str] = Field(default_factory=list)
 
 
+class AgentCommandInvocation(BaseModel):
+    """OS-independent command description for autonomous agents."""
+
+    invocation_id: str
+    purpose: str
+    argv: list[str] = Field(default_factory=list)
+    shell_command: str = ""
+    requires_source_checkout: bool = False
+    requires_agent_full_extra: bool = False
+    requires_operator_authority: bool = False
+    executes_shell_commands_by_pic: bool = False
+    mutates_environment_if_operator_runs_it: bool = False
+    safety_notes: list[str] = Field(default_factory=list)
+
+
 class AgentWorkflowGuide(BaseModel):
     """Deterministic full-feature workflow guide for AI agents."""
 
     guide_id: str = "agent-workflow-guide"
     profile: str = "development"
     steps: list[AgentWorkflowStep] = Field(default_factory=list)
+    pip_core_commands: list[str] = Field(default_factory=list)
+    pip_agent_full_commands: list[str] = Field(default_factory=list)
+    source_checkout_commands: list[str] = Field(default_factory=list)
     safety_invariants: list[str] = Field(default_factory=list)
     accepted: bool = True
     operationally_usable: bool = True
@@ -100,6 +118,9 @@ class AgentRunbookReport(BaseModel):
     profile: str = "development"
     entrypoint: str = "pic agent check --compact"
     commands: list[str] = Field(default_factory=list)
+    pip_core_commands: list[str] = Field(default_factory=list)
+    pip_agent_full_commands: list[str] = Field(default_factory=list)
+    source_checkout_commands: list[str] = Field(default_factory=list)
     schemas_to_inspect: list[str] = Field(default_factory=list)
     fields_to_inspect: list[str] = Field(default_factory=list)
     runbook_steps: list[str] = Field(default_factory=list)
@@ -124,6 +145,36 @@ class AgentFeatureReadinessReport(BaseModel):
     safety_invariants: list[str] = Field(default_factory=list)
     accepted: bool = False
     operationally_usable: bool = False
+    settled: bool = False
+    reasons: list[str] = Field(default_factory=list)
+
+
+class AgentAutonomyAuditReport(BaseModel):
+    """Audit report for non-gated agent activity through installed PIC."""
+
+    report_id: str = "agent-autonomy-audit"
+    profile: str = "development"
+    adoption_required_for_core: bool = False
+    approval_gate_present: bool = False
+    safe_commands_executable_by_pic: bool = False
+    compact_mode_available: bool = True
+    pip_core_workflow_available: bool = True
+    agent_full_extra_available: bool = True
+    source_checkout_required_for_core: bool = False
+    shell_expansion_required_for_sidecars: bool = False
+    command_execution_allowed_by_pic: bool = False
+    background_crawling_allowed: bool = False
+    approval_persistence_created: bool = False
+    pip_core_commands: list[str] = Field(default_factory=list)
+    pip_agent_full_commands: list[str] = Field(default_factory=list)
+    source_checkout_commands: list[str] = Field(default_factory=list)
+    recommended_next_invocations: list[AgentCommandInvocation] = Field(default_factory=list)
+    autonomy_enablers: list[str] = Field(default_factory=list)
+    remaining_friction_points: list[str] = Field(default_factory=list)
+    safety_invariants: list[str] = Field(default_factory=list)
+    accepted: bool = True
+    workflow_usable: bool = True
+    operationally_usable: bool = True
     settled: bool = False
     reasons: list[str] = Field(default_factory=list)
 
