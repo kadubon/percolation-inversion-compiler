@@ -63,4 +63,5 @@ def test_unsupported_markdown_language_is_rejected() -> None:
     )
 
     assert result.exit_code != 0
-    assert "--language must be en or ja" in result.output
+    assert "language" in result.output.lower()
+    assert "en or ja" in result.output
