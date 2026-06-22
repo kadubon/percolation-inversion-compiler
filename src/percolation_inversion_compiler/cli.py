@@ -73,12 +73,25 @@ from percolation_inversion_compiler.alt import (
     check_negative_liquidity_certificate,
     check_token_admissibility,
     check_transport_certificate,
+    compute_alt_capital_impact,
     compute_alt_reproduction_report,
     compute_foundry_dashboard,
     deprecate_alt_packet,
     predict_foundry_phase_control,
     recommend_foundry_actions,
     resurrect_alt_candidate,
+    verify_alt_ecpt_lift,
+    verify_alt_liquidity_to_paths,
+    verify_receiver_liquidity_lift,
+)
+from percolation_inversion_compiler.bit_engine import (
+    BottleneckInversionCandidate,
+    BottleneckInversionReport,
+    build_inversion_certificate,
+    compare_observation_baseline,
+    diagnose_bottlenecks,
+    invert_bottlenecks,
+    minimal_enabling_conditions_for_bottleneck,
 )
 from percolation_inversion_compiler.core import (
     ExternalProofObligation,
@@ -190,6 +203,23 @@ from percolation_inversion_compiler.packet_exchange import (
     packet_exchange_envelope_from_runtime_report,
     packet_lineage_digest,
 )
+from percolation_inversion_compiler.phase_lab import (
+    ASIProxyThresholdSpec,
+    EffectivePacketGraph,
+    PhaseLabStore,
+    PhaseWindowObservation,
+    build_collective_phase_certificate_candidate,
+    build_effective_packet_graph,
+    build_threshold_status,
+    compare_phase_windows,
+    detect_autocatalytic_closure,
+    detect_execution_available_paths,
+    export_phase_lab_store,
+    ingest_phase_lab_directory,
+    ingest_phase_lab_paths,
+    init_phase_lab_store,
+    observe_phase_window,
+)
 from percolation_inversion_compiler.runtime import (
     ActionCommitPolicy,
     AgentPopulationState,
@@ -227,7 +257,20 @@ from percolation_inversion_compiler.sqot import (
     SalienceQueueRecord,
     build_salience_schedule,
 )
-from percolation_inversion_compiler.trc import compile_frontier, datacenter_demo
+from percolation_inversion_compiler.sqot_controller import (
+    build_quarantine_decisions,
+    build_queue_rebalance_plan,
+    check_diagnostic_reserve,
+    diagnose_queue_occupation,
+    diagnose_salience_obstruction,
+)
+from percolation_inversion_compiler.trc import (
+    action_boundary_from_runtime_report,
+    adapt_tool_trace_events,
+    adapt_trc_trace,
+    compile_frontier,
+    datacenter_demo,
+)
 
 app = typer.Typer(
     help="Finite certificate compiler toolkit for ECPT, BIT, TRC, SQOT, and ALT.",
@@ -244,8 +287,11 @@ parse_app = typer.Typer(help="Run strict TeX parser diagnostics.")
 portability_app = typer.Typer(help="Verify cross-language portability conformance packs.")
 adoption_app = typer.Typer(help="Generate optional operator-adoption sidecars.")
 phase_app = typer.Typer(help="Plan deterministic protocol-relative phase acceleration.")
+phase_lab_app = typer.Typer(help="Run local Phase Ecology Lab diagnostics.")
+phase_closure_app = typer.Typer(help="Find and certify effective graph closure candidates.")
 packet_app = typer.Typer(help="Inspect and merge data-only packet-exchange sidecars.")
 alt_app = typer.Typer(help="Run ALT abstraction-liquidity foundry tools.")
+bit_app = typer.Typer(help="Run practical BIT bottleneck inversion diagnostics.")
 ecpt_app = typer.Typer(help="Run ECPT active phase-control planning tools.")
 sqot_app = typer.Typer(help="Run SQOT salience-queue scheduling tools.")
 ecology_app = typer.Typer(help="Run ECPT capability packet ecology tools.")
@@ -256,6 +302,7 @@ identity_app = typer.Typer(help="Verify cryptographic agent identities and Sybil
 agent_app = typer.Typer(help="Agent-facing shortcuts for PIC runtime integration.")
 agent_inbox_app = typer.Typer(help="Manage local agent inbox/outbox records.")
 agent_message_app = typer.Typer(help="Create, verify, and ingest agent message envelopes.")
+trc_app = typer.Typer(help="Run TRC typed trace adapter diagnostics.")
 app.add_typer(demo_app, name="demo")
 app.add_typer(audit_app, name="audit")
 app.add_typer(snapshot_app, name="snapshot")
@@ -267,8 +314,11 @@ app.add_typer(parse_app, name="parse")
 app.add_typer(portability_app, name="portability")
 app.add_typer(adoption_app, name="adoption")
 app.add_typer(phase_app, name="phase")
+phase_app.add_typer(phase_lab_app, name="lab")
+phase_app.add_typer(phase_closure_app, name="closure")
 app.add_typer(packet_app, name="packet")
 app.add_typer(alt_app, name="alt")
+app.add_typer(bit_app, name="bit")
 app.add_typer(ecpt_app, name="ecpt")
 app.add_typer(sqot_app, name="sqot")
 app.add_typer(ecology_app, name="ecology")
@@ -279,6 +329,7 @@ app.add_typer(identity_app, name="identity")
 app.add_typer(agent_app, name="agent")
 agent_app.add_typer(agent_inbox_app, name="inbox")
 agent_app.add_typer(agent_message_app, name="message")
+app.add_typer(trc_app, name="trc")
 console = Console()
 
 
@@ -643,6 +694,85 @@ def _load_phase_dashboard_report(path: Path) -> PhaseDashboardReport:
     if not isinstance(raw, dict):
         raise typer.BadParameter("phase dashboard file must contain an object")
     return PhaseDashboardReport.model_validate(raw)
+
+
+def _load_effective_graph(path: Path) -> EffectivePacketGraph:
+    data = load_data(path)
+    raw = data.get("effective_packet_graph", data.get("graph", data))
+    if not isinstance(raw, dict):
+        raise typer.BadParameter("effective graph file must contain an object")
+    return EffectivePacketGraph.model_validate(raw)
+
+
+def _load_asi_proxy_threshold(path: Path) -> ASIProxyThresholdSpec:
+    data = load_data(path)
+    raw = data.get("asi_proxy_threshold", data.get("threshold", data))
+    if not isinstance(raw, dict):
+        raise typer.BadParameter("ASI-proxy threshold file must contain an object")
+    return ASIProxyThresholdSpec.model_validate(raw)
+
+
+def _load_bottleneck_report(path: Path) -> BottleneckInversionReport:
+    data = load_data(path)
+    raw = data.get("bottleneck_inversion_report", data.get("report", data))
+    if not isinstance(raw, dict):
+        raise typer.BadParameter("BIT bottleneck report file must contain an object")
+    return BottleneckInversionReport.model_validate(raw)
+
+
+def _load_inversion_candidate(path: Path) -> BottleneckInversionCandidate:
+    data = load_data(path)
+    raw = data.get("inversion_candidate", data.get("candidate", data))
+    if isinstance(raw, dict) and "inversion_candidates" in raw:
+        report = BottleneckInversionReport.model_validate(raw)
+        if not report.inversion_candidates:
+            raise typer.BadParameter("BIT report contains no inversion candidates")
+        return report.inversion_candidates[0]
+    if not isinstance(raw, dict):
+        raise typer.BadParameter("BIT candidate file must contain an object")
+    return BottleneckInversionCandidate.model_validate(raw)
+
+
+def _load_jsonl_events(path: Path) -> list[dict[str, Any]]:
+    events: list[dict[str, Any]] = []
+    for line_number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
+        stripped = line.strip()
+        if not stripped:
+            continue
+        item = json.loads(stripped)
+        if not isinstance(item, dict):
+            raise typer.BadParameter(f"JSONL event on line {line_number} must be an object")
+        events.append(item)
+    return events
+
+
+def _phase_lab_graph(store_path: Path, window: str = "latest") -> EffectivePacketGraph:
+    store = PhaseLabStore(store_path)
+    if window == "all":
+        events = store.load_all_events()
+        source_window_id = "all"
+    else:
+        selected, events = store.load_events(window)
+        source_window_id = selected.window_id
+    return build_effective_packet_graph(
+        events,
+        graph_id=f"effective-graph:{source_window_id}",
+        source_window_id=source_window_id,
+    ).graph
+
+
+def _phase_lab_observation(
+    store_path: Path,
+    window: str = "latest",
+) -> tuple[PhaseWindowObservation, EffectivePacketGraph]:
+    store = PhaseLabStore(store_path)
+    selected, events = store.load_events(window)
+    graph = build_effective_packet_graph(
+        events,
+        graph_id=f"effective-graph:{selected.window_id}",
+        source_window_id=selected.window_id,
+    ).graph
+    return observe_phase_window(selected, events, graph), graph
 
 
 def _load_phase_acceleration_request(
@@ -1811,6 +1941,166 @@ def alt_bridge_runtime(
     _dump(foundry.model_dump(mode="json"), output)
 
 
+@alt_app.command("ecpt-lift")
+def alt_ecpt_lift_command(
+    packets: Annotated[
+        list[Path],
+        typer.Option(
+            "--packets",
+            help="ALT packet/report JSON/YAML. May repeat; literal patterns are expanded by PIC.",
+        ),
+    ],
+    graph: Annotated[Path, typer.Option("--graph", help="EffectivePacketGraph JSON/YAML.")],
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Check whether ALT artifacts lift into ECPT phase proxy components."""
+
+    packet_data = [load_data(path) for path in _expand_repeated_paths(packets, "--packets")]
+    report = verify_alt_ecpt_lift(packet_data, _load_effective_graph(graph))
+    _dump(report.model_dump(mode="json"), output)
+
+
+@alt_app.command("receiver-lift")
+def alt_receiver_lift_command(
+    packet: Annotated[Path, typer.Option("--packet", help="ALT packet/report JSON/YAML.")],
+    receiver_context: Annotated[
+        Path,
+        typer.Option("--receiver-context", help="Receiver context JSON/YAML."),
+    ],
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Check receiver-context liquidity lift for one ALT artifact."""
+
+    lift = verify_receiver_liquidity_lift(load_data(packet), load_data(receiver_context))
+    _dump(lift.model_dump(mode="json"), output)
+
+
+@alt_app.command("liquidity-to-paths")
+def alt_liquidity_to_paths_command(
+    packet: Annotated[Path, typer.Option("--packet", help="ALT packet/report JSON/YAML.")],
+    graph: Annotated[Path, typer.Option("--graph", help="EffectivePacketGraph JSON/YAML.")],
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Check ALT liquidity contribution to execution path density."""
+
+    report = verify_alt_liquidity_to_paths(load_data(packet), _load_effective_graph(graph))
+    _dump(report.model_dump(mode="json"), output)
+
+
+@alt_app.command("capital-impact")
+def alt_capital_impact_command(
+    reports: Annotated[
+        list[Path],
+        typer.Option(
+            "--reports",
+            help=(
+                "ALT lift/admission report JSON/YAML. May repeat; "
+                "literal patterns are expanded by PIC."
+            ),
+        ),
+    ],
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Summarize diagnostic ALT capital impact reports."""
+
+    payloads = [load_data(path) for path in _expand_repeated_paths(reports, "--reports")]
+    report = compute_alt_capital_impact(payloads)
+    _dump(report.model_dump(mode="json"), output)
+
+
+@bit_app.command("diagnose")
+def bit_diagnose_command(
+    graph: Annotated[Path, typer.Option("--graph", help="EffectivePacketGraph JSON/YAML.")],
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Diagnose bottlenecks from an effective packet graph."""
+
+    report = diagnose_bottlenecks(_load_effective_graph(graph))
+    _dump(report.model_dump(mode="json"), output)
+
+
+@bit_app.command("invert")
+def bit_invert_command(
+    bottlenecks: Annotated[
+        Path,
+        typer.Option("--bottlenecks", help="BottleneckInversionReport JSON/YAML."),
+    ],
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Build recommendation-only inversion candidates."""
+
+    report = invert_bottlenecks(_load_bottleneck_report(bottlenecks))
+    _dump(report.model_dump(mode="json"), output)
+
+
+@bit_app.command("mec")
+def bit_mec_command(
+    bottleneck: Annotated[str, typer.Option("--bottleneck", help="Bottleneck id.")],
+    bottlenecks: Annotated[
+        Path | None,
+        typer.Option("--bottlenecks", help="Optional BottleneckInversionReport JSON/YAML."),
+    ] = None,
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Emit minimal enabling conditions for one bottleneck."""
+
+    report = None if bottlenecks is None else _load_bottleneck_report(bottlenecks)
+    conditions = minimal_enabling_conditions_for_bottleneck(bottleneck, report)
+    _dump(
+        {"minimal_enabling_conditions": [item.model_dump(mode="json") for item in conditions]},
+        output,
+    )
+
+
+@bit_app.command("certificate")
+def bit_certificate_command(
+    candidate: Annotated[
+        Path,
+        typer.Option("--candidate", help="BottleneckInversionCandidate or report JSON/YAML."),
+    ],
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Build a fail-closed inversion certificate candidate."""
+
+    certificate = build_inversion_certificate(_load_inversion_candidate(candidate))
+    _dump(certificate.model_dump(mode="json"), output)
+
+
+@bit_app.command("compare-baseline")
+def bit_compare_baseline_command(
+    baseline: Annotated[Path, typer.Option("--baseline", help="PhaseWindowObservation JSON/YAML.")],
+    candidate: Annotated[
+        Path,
+        typer.Option("--candidate", help="PhaseWindowObservation JSON/YAML."),
+    ],
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Compare observations for protocol-relative activation gain."""
+
+    baseline_observation = PhaseWindowObservation.model_validate(load_data(baseline))
+    candidate_observation = PhaseWindowObservation.model_validate(load_data(candidate))
+    report = compare_observation_baseline(baseline_observation, candidate_observation)
+    _dump(report.model_dump(mode="json"), output)
+
+
 @sqot_app.command("audit")
 def sqot_audit(
     source: Annotated[Path, typer.Option("--source", "-s", help="SQOT TeX source artifact.")],
@@ -1905,6 +2195,93 @@ def sqot_schedule(
         diagnostic_reserve=DiagnosticReservePolicy(),
         risk_budget=risk_budget,
         profile=profile,
+    )
+    _dump(report.model_dump(mode="json"), output)
+
+
+@sqot_app.command("diagnose-queue")
+def sqot_diagnose_queue_command(
+    graph: Annotated[Path, typer.Option("--graph", help="EffectivePacketGraph JSON/YAML.")],
+    attention_budget: Annotated[
+        float,
+        typer.Option("--attention-budget", help="Finite diagnostic attention budget."),
+    ] = 1.0,
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Diagnose queue occupation pressure from an effective graph."""
+
+    report = diagnose_queue_occupation(
+        _load_effective_graph(graph),
+        attention_budget=attention_budget,
+    )
+    _dump(report.model_dump(mode="json"), output)
+
+
+@sqot_app.command("salience-obstruction")
+def sqot_salience_obstruction_command(
+    graph: Annotated[Path, typer.Option("--graph", help="EffectivePacketGraph JSON/YAML.")],
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Diagnose salience obstruction load."""
+
+    diagnosis = diagnose_salience_obstruction(_load_effective_graph(graph))
+    _dump(diagnosis.model_dump(mode="json"), output)
+
+
+@sqot_app.command("rebalance")
+def sqot_rebalance_command(
+    graph: Annotated[Path, typer.Option("--graph", help="EffectivePacketGraph JSON/YAML.")],
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Emit a recommendation-only queue rebalance plan."""
+
+    plan = build_queue_rebalance_plan(_load_effective_graph(graph))
+    _dump(plan.model_dump(mode="json"), output)
+
+
+@sqot_app.command("quarantine")
+def sqot_quarantine_command(
+    graph: Annotated[Path, typer.Option("--graph", help="EffectivePacketGraph JSON/YAML.")],
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Emit reversible quarantine decisions without applying them."""
+
+    decisions = build_quarantine_decisions(_load_effective_graph(graph))
+    _dump(
+        {
+            "quarantine_decisions": [decision.model_dump(mode="json") for decision in decisions],
+            "applied": False,
+            "deletes_packets": False,
+            "settled": False,
+        },
+        output,
+    )
+
+
+@sqot_app.command("reserve-check")
+def sqot_reserve_check_command(
+    graph: Annotated[Path, typer.Option("--graph", help="EffectivePacketGraph JSON/YAML.")],
+    attention_budget: Annotated[
+        float,
+        typer.Option("--attention-budget", help="Finite diagnostic attention budget."),
+    ] = 1.0,
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Check diagnostic reserve without scheduling work."""
+
+    report = check_diagnostic_reserve(
+        _load_effective_graph(graph),
+        attention_budget=attention_budget,
     )
     _dump(report.model_dump(mode="json"), output)
 
@@ -2157,6 +2534,26 @@ def ecology_build_edges(
     _dump(updated.model_dump(mode="json"), output)
 
 
+@ecology_app.command("effective-graph")
+def ecology_effective_graph_command(
+    reports: Annotated[
+        list[Path],
+        typer.Option(
+            "--reports",
+            help="PIC report JSON/YAML. May repeat; literal patterns are expanded by PIC.",
+        ),
+    ],
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Build an effective packet graph from inert report files."""
+
+    payloads = [load_data(path) for path in _expand_repeated_paths(reports, "--reports")]
+    graph = build_effective_packet_graph(payloads).graph
+    _dump(graph.model_dump(mode="json"), output)
+
+
 @ecology_app.command("psi")
 def ecology_psi(
     registry: Annotated[
@@ -2280,6 +2677,19 @@ def ecology_execution_paths(
         constraint_frame=frame,
     )
     _dump({"execution_available_paths": [path.model_dump(mode="json") for path in paths]}, output)
+
+
+@ecology_app.command("execution-available-paths")
+def ecology_execution_available_paths_command(
+    graph: Annotated[Path, typer.Option("--graph", help="EffectivePacketGraph JSON/YAML.")],
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Detect execution-available, not-executed paths from an effective graph."""
+
+    report = detect_execution_available_paths(_load_effective_graph(graph))
+    _dump(report.model_dump(mode="json"), output)
 
 
 @ecology_app.command("hidden-injection-check")
@@ -3235,6 +3645,253 @@ def phase_observe_command(
     if not dashboards:
         dashboards.append(build_phase_dashboard(profile=profile))
     _dump(build_phase_observation(dashboards, profile=profile).model_dump(mode="json"), output)
+
+
+@phase_lab_app.command("init")
+def phase_lab_init_command(
+    output_dir: Annotated[
+        Path,
+        typer.Option("--output-dir", help="Directory for the local Phase Lab store."),
+    ],
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Initialize a local Phase Ecology Lab store."""
+
+    manifest = init_phase_lab_store(output_dir)
+    _dump(manifest.model_dump(mode="json"), output)
+
+
+@phase_lab_app.command("ingest")
+def phase_lab_ingest_command(
+    store: Annotated[Path, typer.Option("--store", help="Phase Lab store directory.")],
+    report: Annotated[
+        list[Path] | None,
+        typer.Option(
+            "--report",
+            help="PIC report JSON/YAML. May repeat; literal patterns are expanded by PIC.",
+        ),
+    ] = None,
+    packet: Annotated[
+        list[Path] | None,
+        typer.Option(
+            "--packet",
+            help="Packet JSON/YAML. May repeat; literal patterns are expanded by PIC.",
+        ),
+    ] = None,
+    directory: Annotated[
+        Path | None,
+        typer.Option("--directory", help="Directory of JSON/YAML reports to ingest."),
+    ] = None,
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Ingest local report or packet data into a new Phase Lab window."""
+
+    paths = [
+        *_expand_repeated_paths(report, "--report"),
+        *_expand_repeated_paths(packet, "--packet"),
+    ]
+    if directory is not None:
+        ingest = ingest_phase_lab_directory(store, directory)
+    elif paths:
+        ingest = ingest_phase_lab_paths(store, paths)
+    else:
+        raise typer.BadParameter("provide --report, --packet, or --directory")
+    _dump(ingest.model_dump(mode="json"), output)
+
+
+@phase_lab_app.command("list-windows")
+def phase_lab_list_windows_command(
+    store: Annotated[Path, typer.Option("--store", help="Phase Lab store directory.")],
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """List deterministic Phase Lab ingest windows."""
+
+    active = PhaseLabStore(store)
+    _dump(
+        {
+            "store_manifest": active.manifest().model_dump(mode="json"),
+            "windows": [window.model_dump(mode="json") for window in active.list_windows()],
+            "settled": False,
+        },
+        output,
+    )
+
+
+@phase_lab_app.command("observe")
+def phase_lab_observe_command(
+    store: Annotated[Path, typer.Option("--store", help="Phase Lab store directory.")],
+    window: Annotated[
+        str,
+        typer.Option("--window", help="latest, previous, or window id."),
+    ] = "latest",
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Observe one Phase Lab window."""
+
+    observation, _graph = _phase_lab_observation(store, window)
+    _dump(observation.model_dump(mode="json"), output)
+
+
+@phase_lab_app.command("graph")
+def phase_lab_graph_command(
+    store: Annotated[Path, typer.Option("--store", help="Phase Lab store directory.")],
+    window: Annotated[
+        str,
+        typer.Option("--window", help="latest, previous, all, or window id."),
+    ] = "all",
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Build an effective packet graph from Phase Lab events."""
+
+    _dump(_phase_lab_graph(store, window).model_dump(mode="json"), output)
+
+
+@phase_lab_app.command("closure")
+def phase_lab_closure_command(
+    store: Annotated[Path, typer.Option("--store", help="Phase Lab store directory.")],
+    window: Annotated[
+        str,
+        typer.Option("--window", help="latest, previous, all, or window id."),
+    ] = "all",
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Detect autocatalytic closure candidates without settlement."""
+
+    graph = _phase_lab_graph(store, window)
+    _dump(detect_autocatalytic_closure(graph).model_dump(mode="json"), output)
+
+
+@phase_lab_app.command("executable-paths")
+def phase_lab_executable_paths_command(
+    store: Annotated[Path, typer.Option("--store", help="Phase Lab store directory.")],
+    window: Annotated[
+        str,
+        typer.Option("--window", help="latest, previous, all, or window id."),
+    ] = "all",
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Detect execution-available, not-executed hyperpaths."""
+
+    graph = _phase_lab_graph(store, window)
+    _dump(detect_execution_available_paths(graph).model_dump(mode="json"), output)
+
+
+@phase_lab_app.command("threshold-status")
+def phase_lab_threshold_status_command(
+    store: Annotated[Path, typer.Option("--store", help="Phase Lab store directory.")],
+    threshold: Annotated[
+        Path,
+        typer.Option("--threshold", help="ASIProxyThresholdSpec JSON/YAML."),
+    ],
+    window: Annotated[
+        str,
+        typer.Option("--window", help="latest, previous, or window id."),
+    ] = "latest",
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Compute protocol-relative ASI-proxy threshold status."""
+
+    observation, _graph = _phase_lab_observation(store, window)
+    status = build_threshold_status(observation, _load_asi_proxy_threshold(threshold))
+    _dump(status.model_dump(mode="json"), output)
+
+
+@phase_lab_app.command("certify")
+def phase_lab_certify_command(
+    store: Annotated[Path, typer.Option("--store", help="Phase Lab store directory.")],
+    threshold: Annotated[
+        Path,
+        typer.Option("--threshold", help="ASIProxyThresholdSpec JSON/YAML."),
+    ],
+    window: Annotated[
+        str,
+        typer.Option("--window", help="latest, previous, or window id."),
+    ] = "latest",
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Build a collective phase certificate candidate or abstention report."""
+
+    observation, graph = _phase_lab_observation(store, window)
+    status = build_threshold_status(observation, _load_asi_proxy_threshold(threshold))
+    candidate = build_collective_phase_certificate_candidate(status, graph)
+    _dump(candidate.model_dump(mode="json"), output)
+
+
+@phase_lab_app.command("compare-window")
+def phase_lab_compare_window_command(
+    store: Annotated[Path, typer.Option("--store", help="Phase Lab store directory.")],
+    baseline: Annotated[str, typer.Option("--baseline", help="previous, latest, or window id.")],
+    candidate: Annotated[str, typer.Option("--candidate", help="latest or window id.")],
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Compare two Phase Lab windows."""
+
+    baseline_observation, _baseline_graph = _phase_lab_observation(store, baseline)
+    candidate_observation, _candidate_graph = _phase_lab_observation(store, candidate)
+    _dump(
+        compare_phase_windows(baseline_observation, candidate_observation).model_dump(mode="json"),
+        output,
+    )
+
+
+@phase_lab_app.command("export")
+def phase_lab_export_command(
+    store: Annotated[Path, typer.Option("--store", help="Phase Lab store directory.")],
+    output_dir: Annotated[Path, typer.Option("--output-dir", help="Export directory.")],
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Export a sanitized Phase Lab bundle."""
+
+    manifest = export_phase_lab_store(store, output_dir)
+    _dump(manifest.model_dump(mode="json"), output)
+
+
+@phase_closure_app.command("find")
+def phase_closure_find_command(
+    graph: Annotated[Path, typer.Option("--graph", help="EffectivePacketGraph JSON/YAML.")],
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Find closure candidates from an effective packet graph."""
+
+    report = detect_autocatalytic_closure(_load_effective_graph(graph))
+    _dump(report.model_dump(mode="json"), output)
+
+
+@phase_closure_app.command("certify")
+def phase_closure_certify_command(
+    graph: Annotated[Path, typer.Option("--graph", help="EffectivePacketGraph JSON/YAML.")],
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Emit only the closure certificate candidate."""
+
+    report = detect_autocatalytic_closure(_load_effective_graph(graph))
+    _dump(report.certificate_candidate.model_dump(mode="json"), output)
 
 
 @packet_app.command("export")
@@ -4439,6 +5096,61 @@ def ecpt_route_obligations(
     _dump({"routed_obligations": routed}, output)
 
 
+@trc_app.command("trace-adapter")
+def trc_trace_adapter_command(
+    input_path: Annotated[
+        Path,
+        typer.Option("--input", help="Trace JSON/YAML to adapt."),
+    ],
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Adapt agent/workflow trace data into a TRC typed trace."""
+
+    report = adapt_trc_trace(load_data(input_path))
+    _dump(report.model_dump(mode="json"), output)
+
+
+@trc_app.command("tool-trace")
+def trc_tool_trace_command(
+    events: Annotated[
+        Path,
+        typer.Option("--events", help="JSONL tool events or JSON object with events."),
+    ],
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Adapt JSONL agent tool-call events into typed trace records."""
+
+    if events.suffix.lower() == ".jsonl":
+        report = adapt_tool_trace_events(_load_jsonl_events(events))
+    else:
+        data = load_data(events)
+        raw_events = data.get("events", data.get("tool_calls", []))
+        if not isinstance(raw_events, list):
+            raise typer.BadParameter("tool trace JSON must contain events or tool_calls list")
+        report = adapt_tool_trace_events([item for item in raw_events if isinstance(item, dict)])
+    _dump(report.model_dump(mode="json"), output)
+
+
+@trc_app.command("action-boundary")
+def trc_action_boundary_command(
+    report_path: Annotated[
+        Path,
+        typer.Option("--report", help="Runtime report JSON/YAML."),
+    ],
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Extract typed action-boundary diagnostics from a runtime report."""
+
+    report = action_boundary_from_runtime_report(load_data(report_path))
+    _dump(report.model_dump(mode="json"), output)
+
+
 @app.command(name="compile")
 def compile_command(
     records: Annotated[
@@ -4586,6 +5298,9 @@ def demo_bootstrap(
     runtime_report_path = output_dir / "runtime_step_report.json"
     packet_path = output_dir / "packet_envelope.json"
     dashboard_path = output_dir / "phase_dashboard.json"
+    phase_lab_report_path = output_dir / "phase_lab_runtime_report.json"
+    phase_lab_threshold_path = output_dir / "phase_lab_threshold.json"
+    phase_lab_store_path = output_dir / "phase-lab"
     merged_packets_path = output_dir / "merged-packets.json"
     observation_path = output_dir / "observation.json"
     recommended_next_commands = [
@@ -4598,9 +5313,19 @@ def demo_bootstrap(
         "pic phase benchmark-suite --profile development --format json",
         f"pic phase dashboard --runtime-report {runtime_report_path} --profile development",
         f"pic packet inspect --packet {packet_path}",
-        f"pic packet merge --packets {output_dir / 'packet*.json'} --output {merged_packets_path}",
+        f"pic packet merge --packets {packet_path} --output {merged_packets_path}",
         f"pic packet lineage --packet {merged_packets_path}",
         f"pic phase observe --reports {dashboard_path} --output {observation_path}",
+        f"pic phase lab init --output-dir {phase_lab_store_path}",
+        f"pic phase lab ingest --store {phase_lab_store_path} --report {phase_lab_report_path}",
+        f"pic phase lab observe --store {phase_lab_store_path} --window latest",
+        f"pic phase lab graph --store {phase_lab_store_path}",
+        f"pic phase lab closure --store {phase_lab_store_path}",
+        f"pic phase lab executable-paths --store {phase_lab_store_path}",
+        (
+            f"pic phase lab certify --store {phase_lab_store_path} "
+            f"--threshold {phase_lab_threshold_path}"
+        ),
         "pic audit canonical-readiness --profile development --format json",
     ]
     recommended_next_invocations = [
@@ -4637,7 +5362,7 @@ def demo_bootstrap(
                 "packet",
                 "merge",
                 "--packets",
-                str(output_dir / "packet*.json"),
+                str(packet_path),
                 "--output",
                 str(merged_packets_path),
             ],
@@ -4652,6 +5377,78 @@ def demo_bootstrap(
                 str(dashboard_path),
                 "--output",
                 str(observation_path),
+            ],
+        },
+        {
+            "invocation_id": "phase-lab-ingest-bootstrapped",
+            "argv": [
+                "pic",
+                "phase",
+                "lab",
+                "ingest",
+                "--store",
+                str(phase_lab_store_path),
+                "--report",
+                str(phase_lab_report_path),
+            ],
+        },
+        {
+            "invocation_id": "phase-lab-observe-bootstrapped",
+            "argv": [
+                "pic",
+                "phase",
+                "lab",
+                "observe",
+                "--store",
+                str(phase_lab_store_path),
+                "--window",
+                "latest",
+            ],
+        },
+        {
+            "invocation_id": "phase-lab-graph-bootstrapped",
+            "argv": [
+                "pic",
+                "phase",
+                "lab",
+                "graph",
+                "--store",
+                str(phase_lab_store_path),
+            ],
+        },
+        {
+            "invocation_id": "phase-lab-closure-bootstrapped",
+            "argv": [
+                "pic",
+                "phase",
+                "lab",
+                "closure",
+                "--store",
+                str(phase_lab_store_path),
+            ],
+        },
+        {
+            "invocation_id": "phase-lab-executable-paths-bootstrapped",
+            "argv": [
+                "pic",
+                "phase",
+                "lab",
+                "executable-paths",
+                "--store",
+                str(phase_lab_store_path),
+            ],
+        },
+        {
+            "invocation_id": "phase-lab-certify-bootstrapped",
+            "argv": [
+                "pic",
+                "phase",
+                "lab",
+                "certify",
+                "--store",
+                str(phase_lab_store_path),
+                "--threshold",
+                str(phase_lab_threshold_path),
             ],
         },
         {
@@ -4721,11 +5518,20 @@ def demo_installed_smoke(
                 "pic phase dashboard --runtime-report pic-demo/runtime_step_report.json "
                 f"--profile {profile}",
                 "pic packet inspect --packet pic-demo/packet_envelope.json",
-                "pic packet merge --packets pic-demo/packet*.json "
+                "pic packet merge --packets pic-demo/packet_envelope.json "
                 "--output pic-demo/merged-packets.json",
                 "pic packet lineage --packet pic-demo/merged-packets.json",
                 "pic phase observe --reports pic-demo/phase_dashboard.json "
                 "--output pic-demo/observation.json",
+                "pic phase lab init --output-dir pic-demo/phase-lab",
+                "pic phase lab ingest --store pic-demo/phase-lab "
+                "--report pic-demo/phase_lab_runtime_report.json",
+                "pic phase lab observe --store pic-demo/phase-lab --window latest",
+                "pic phase lab graph --store pic-demo/phase-lab",
+                "pic phase lab closure --store pic-demo/phase-lab",
+                "pic phase lab executable-paths --store pic-demo/phase-lab",
+                "pic phase lab certify --store pic-demo/phase-lab "
+                "--threshold pic-demo/phase_lab_threshold.json",
                 f"pic audit canonical-readiness --profile {profile} --format json",
             ],
             "recommended_next_invocations": [
@@ -4740,9 +5546,22 @@ def demo_installed_smoke(
                         "packet",
                         "merge",
                         "--packets",
-                        "pic-demo/packet*.json",
+                        "pic-demo/packet_envelope.json",
                         "--output",
                         "pic-demo/merged-packets.json",
+                    ],
+                },
+                {
+                    "invocation_id": "phase-lab-ingest",
+                    "argv": [
+                        "pic",
+                        "phase",
+                        "lab",
+                        "ingest",
+                        "--store",
+                        "pic-demo/phase-lab",
+                        "--report",
+                        "pic-demo/phase_lab_runtime_report.json",
                     ],
                 },
                 {

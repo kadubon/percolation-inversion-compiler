@@ -90,7 +90,7 @@ class WebFetchPolicy(BaseModel):
     require_https_for_live: bool = True
     require_robots_decision: bool = False
     reject_private_networks: bool = True
-    user_agent: str = "percolation-inversion-compiler-agent-intake/0.4.4"
+    user_agent: str = "percolation-inversion-compiler-agent-intake/0.5.0"
     robots_uncertainty_is_diagnostic: bool = False
     diagnose_rate_limits: bool = True
 

@@ -104,6 +104,31 @@ not combine it with `--state`, `--input`, `--runtime-report`, `--text`, or
 remove identity-readiness blockers, but `settled=false` remains correct while
 route, residual, or phase-gap obligations remain.
 
+## Phase Ecology Lab Quickstart
+
+Use this path when the task is to compare local report windows, build an
+effective packet graph, inspect closure/path diagnostics, or generate a
+protocol-relative threshold certificate candidate:
+
+```powershell
+uv run pic phase lab init --output-dir pic-phase-lab
+uv run pic phase lab ingest --store pic-phase-lab --report examples/phase_lab/runtime_report_1.json
+uv run pic phase lab observe --store pic-phase-lab --window latest
+uv run pic phase lab graph --store pic-phase-lab --output effective_graph.json
+uv run pic phase lab closure --store pic-phase-lab
+uv run pic phase lab executable-paths --store pic-phase-lab
+uv run pic phase lab certify --store pic-phase-lab --threshold examples/thresholds/asi_proxy_development.json
+uv run pic bit diagnose --graph effective_graph.json
+uv run pic sqot diagnose-queue --graph effective_graph.json
+uv run pic alt ecpt-lift --packets examples/packet_exchange/packet_envelope.example.json --graph effective_graph.json
+uv run pic trc trace-adapter --input examples/trc_adapter/tool_trace_input.example.json
+```
+
+Phase Lab ingest treats report and packet files as inert data. The derived BIT,
+SQOT, ALT lift, TRC, threshold, and certificate outputs are diagnostic and
+preserve residual blockers; they do not execute packet content or make
+`settled=true` claims by themselves.
+
 ## Networked Intake Quickstart
 
 Use this path to inspect bounded live defaults and exercise broad intake and agent-to-agent

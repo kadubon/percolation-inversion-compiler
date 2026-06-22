@@ -359,3 +359,103 @@ class TRCCompileResult(BaseModel):
     failed_main_records: list[str] = Field(default_factory=list)
     missing_trace_obligations: list[str] = Field(default_factory=list)
     trace_residual_ledger: Ledger = Field(default_factory=Ledger)
+
+
+class TypedToolCallTrace(BaseModel):
+    """Typed data record for one observed agent tool call."""
+
+    trace_id: str
+    source: str = "agent"
+    receiver: str = "tool"
+    tool_name: str = "unknown"
+    action_kind: str = "tool-call"
+    authority_status: str = "not-granted"
+    rollback_status: str = "unknown"
+    evidence_refs: list[str] = Field(default_factory=list)
+    input_digest: str = ""
+    output_digest: str = ""
+    content_treated_as_data: bool = True
+    execution_success_claim_verified: bool = False
+    settled: bool = False
+
+
+class TypedActionBoundary(BaseModel):
+    """Boundary conditions around an agent/tool action trace."""
+
+    boundary_id: str
+    trace_ids: list[str] = Field(default_factory=list)
+    action_kind: str = "tool-call"
+    authority_explicit: bool = False
+    scope_bounded: bool = False
+    rollback_available: bool = False
+    external_result_verified: bool = False
+    missing_obligations: list[str] = Field(default_factory=list)
+    settled: bool = False
+
+
+class TraceToleranceLedger(BaseModel):
+    """TRC tolerance ledger for adapted agent traces."""
+
+    ledger_id: str = "trace-tolerance-ledger"
+    tolerance_coordinates: dict[str, float] = Field(default_factory=dict)
+    residual_charge: float = 0.0
+    settled: bool = False
+
+
+class TraceFrontierDebt(BaseModel):
+    """Unresolved physical/oracle/domain trace obligations."""
+
+    debt_id: str = "trace-frontier-debt"
+    missing_physical_obligations: list[str] = Field(default_factory=list)
+    missing_oracle_obligations: list[str] = Field(default_factory=list)
+    missing_domain_obligations: list[str] = Field(default_factory=list)
+    residual_preserved: bool = True
+    settled: bool = False
+
+
+class TraceNormalForm(BaseModel):
+    """Normalized word and typed records for an adapted trace."""
+
+    normal_form_id: str
+    normalized_word: list[str] = Field(default_factory=list)
+    tool_calls: list[TypedToolCallTrace] = Field(default_factory=list)
+    action_boundaries: list[TypedActionBoundary] = Field(default_factory=list)
+    content_treated_as_data: bool = True
+    settled: bool = False
+
+
+class TypedAgentTrace(BaseModel):
+    """Normalized typed agent trace."""
+
+    trace_id: str = "typed-agent-trace"
+    tool_calls: list[TypedToolCallTrace] = Field(default_factory=list)
+    action_boundaries: list[TypedActionBoundary] = Field(default_factory=list)
+    tolerance_ledger: TraceToleranceLedger = Field(default_factory=TraceToleranceLedger)
+    frontier_debt: TraceFrontierDebt = Field(default_factory=TraceFrontierDebt)
+    normal_form: TraceNormalForm
+    protocol_relative_only: bool = True
+    proves_physical_truth: bool = False
+    content_treated_as_data: bool = True
+    accepted: bool = False
+    workflow_usable: bool = True
+    settled: bool = False
+    reasons: list[str] = Field(default_factory=list)
+
+
+class TraceAdapterReport(BaseModel):
+    """Report emitted by the practical TRC trace adapter."""
+
+    report_id: str = "trc-trace-adapter"
+    typed_trace: TypedAgentTrace
+    action_boundaries: list[TypedActionBoundary] = Field(default_factory=list)
+    tolerance_ledger: TraceToleranceLedger = Field(default_factory=TraceToleranceLedger)
+    frontier_debt: TraceFrontierDebt = Field(default_factory=TraceFrontierDebt)
+    trace_normal_form: TraceNormalForm
+    content_treated_as_data: bool = True
+    executed_action_count: int = 0
+    protocol_relative_only: bool = True
+    proves_physical_truth: bool = False
+    accepted: bool = False
+    workflow_usable: bool = True
+    settled: bool = False
+    reasons: list[str] = Field(default_factory=list)

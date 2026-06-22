@@ -1,9 +1,10 @@
 # PyPI Distribution
 
-v0.4.4 is the optional-sidecar practical-readiness patch for
-`percolation-inversion-compiler` on PyPI. It keeps existing schemas and
-commands stable while making the wheel useful as an installed agent-output and
-workflow checker, with bundled demo data, snapshots, schema export, and
+v0.5.0 is the Phase Ecology Lab practical runtime snapshot for
+`percolation-inversion-compiler` on PyPI. It keeps v0.4.4 compact agent and
+phase-planner behavior stable while adding local windowed graph diagnostics,
+BIT bottleneck inversion, SQOT queue diagnostics, ALT-to-ECPT lift checks, TRC
+trace adapters, bundled Phase Lab demo data, snapshots, schema export, and
 residual-preserving runtime commands.
 
 ## Install Modes
@@ -24,8 +25,15 @@ pic demo bootstrap --output-dir pic-demo
 pic runtime step --state pic-demo/runtime_state.json --input pic-demo/runtime_step_input.json --profile development
 pic phase benchmark-suite --profile development --format json
 pic phase dashboard --runtime-report pic-demo/runtime_step_report.json --profile development
+pic phase lab init --output-dir pic-demo/phase-lab
+pic phase lab ingest --store pic-demo/phase-lab --report pic-demo/phase_lab_runtime_report.json
+pic phase lab observe --store pic-demo/phase-lab --window latest
+pic phase lab graph --store pic-demo/phase-lab
+pic phase lab closure --store pic-demo/phase-lab
+pic phase lab executable-paths --store pic-demo/phase-lab
+pic phase lab certify --store pic-demo/phase-lab --threshold pic-demo/phase_lab_threshold.json
 pic packet inspect --packet pic-demo/packet_envelope.json
-pic packet merge --packets pic-demo/packet*.json --output pic-demo/merged-packets.json
+pic packet merge --packets pic-demo/packet_envelope.json --output pic-demo/merged-packets.json
 pic packet lineage --packet pic-demo/merged-packets.json
 pic phase observe --reports pic-demo/phase_dashboard.json --output pic-demo/observation.json
 pic audit canonical-readiness --profile development --format json
@@ -62,8 +70,8 @@ python -m pip install "percolation-inversion-compiler[all]"
 The wheel includes a curated installed workflow bundle under package data.
 `pic agent check` works directly on inline text or user files. `pic demo
 bootstrap` exports runtime, agent-output, policy, local agent-message relay,
-ALT example JSON, packet sidecar, runtime report, and phase dashboard JSON to a
-directory the user controls. The full root `examples/...` tree, canonical TeX
+ALT example JSON, packet sidecar, runtime report, phase dashboard JSON, and
+Phase Lab fixture JSON to a directory the user controls. The full root `examples/...` tree, canonical TeX
 audits, and release engineering checks require a source checkout. The wheel is
 intended for practical runtime, schema, snapshot, curated workflow, and CLI use;
 the repository is the full fixture and development workspace.
@@ -74,6 +82,12 @@ report uses bundled derived snapshots, not vendored TeX/PDF files, and returns
 ECPT/BIT/TRC/SQOT/ALT coverage totals, external residual categories, finite
 upgrade candidates, and argv-safe next actions. These outputs are
 recommendation-only and keep `settled=false`.
+
+The v0.5.0 Phase Lab commands ingest local JSON/YAML reports as data, derive
+effective packet graphs, window observations, closure witnesses, execution
+available paths, threshold status, and certificate candidates. They do not
+execute packet text, change repository state, fetch background sources, or
+promote diagnostic output to `settled=true`.
 
 Live HTTP/feed intake is bounded and candidate-only by default when an explicit source is
 supplied. Use `--no-allow-live-connectors` for local-only smoke tests. Default-live mode does
@@ -135,7 +149,7 @@ the publication workflow instead of falling back to token upload.
 
 ## Pre-Publish Checks
 
-Run these before publishing or republishing the v0.4.4 distributions:
+Run these before publishing or republishing the v0.5.0 distributions:
 
 ```powershell
 uv run pytest
@@ -144,17 +158,16 @@ uv run ruff check .
 uv run ruff format --check .
 uv run mypy src scripts
 uv build
-uv run python -m twine check dist\*.whl dist\*.tar.gz
-uv run python scripts\check_distribution_artifacts.py
+uv run python -m twine check dist\percolation_inversion_compiler-0.5.0-py3-none-any.whl dist\percolation_inversion_compiler-0.5.0.tar.gz
+uv run python scripts\check_distribution_artifacts.py --dist-dir dist --version 0.5.0
 uv run bandit -q -r src scripts
 uv run pip-audit
 uv run python scripts\validate_citation.py
 uv run python scripts\check_publish_safety.py
-git diff --check
 ```
 
 The distribution-artifact check verifies the wheel contains `py.typed`, bundled
-snapshots, and the curated installed-demo assets. The publish-safety check
+snapshots, curated installed-demo assets, and Phase Lab demo fixtures. The publish-safety check
 verifies project URLs, PyPI keywords, `twine` metadata checking, the SHA-pinned
 checkout/setup actions, the `uv publish` Trusted Publishing command, absence of
 upload tokens, absence of `llms.txt`, and the existing local-path,

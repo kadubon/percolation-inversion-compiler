@@ -23,7 +23,16 @@ PIC uses theory-specific terms, but each term has a practical software meaning.
 | benchmark suite | diagnostic-only protocol-relative benchmark for visibility and non-promotion checks |
 | packet exchange envelope | data-only candidate packet handoff record with residual carry-forward |
 | phase dashboard | observation-only metric report that does not alter runtime state |
+| Phase Ecology Lab | local windowed workbench for multi-packet phase diagnostics |
+| effective packet graph | accepted/candidate graph that separates positive contribution from diagnostic volume |
+| autocatalytic closure report | evidence-supported closure diagnostic that remains unsettled until finite checks pass |
+| execution-available hyperpath | not-executed path witness with receiver, authority, rollback, and residual requirements |
 | phase gap vector | finite workflow-health gaps between current Psi components and declared thresholds |
+| BIT inversion engine | recommendation-only bottleneck diagnosis and minimal enabling condition report |
+| SQOT queue sovereignty | queue pressure, salience obstruction, quarantine, and reserve diagnostics |
+| ALT-to-ECPT lift | check that abstraction liquidity affects a concrete ECPT phase proxy component |
+| TRC trace adapter | typed normalization of agent tool traces as data, not instruction |
+| ASI-proxy threshold status | finite threshold comparison that prefers abstention when evidence is missing |
 | bottleneck candidate | repair target such as verifier work, packet repair, SQOT queue work, ALT certification, identity readiness, or residual debt |
 | safe phase action | recommendation-only action with commands, schemas, fields, and no execution authority |
 | phase control audit | typed ECPT report for proxy target, baseline, and queue/capacity checks |

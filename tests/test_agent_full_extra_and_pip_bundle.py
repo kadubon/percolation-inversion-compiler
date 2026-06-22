@@ -74,7 +74,8 @@ def test_installed_smoke_recommends_sidecar_path() -> None:
     assert data["recommended_next_invocations"]
     joined = "\n".join(data["recommended_next_commands"])
     assert "pic phase benchmark-suite" in joined
-    assert "pic packet merge --packets pic-demo/packet*.json" in joined
+    assert "pic packet merge --packets pic-demo/packet_envelope.json" in joined
+    assert "packet*.json" not in joined
     assert "pic audit canonical-readiness --profile development --format json" in joined
     assert any(
         item["invocation_id"] == "canonical-readiness"

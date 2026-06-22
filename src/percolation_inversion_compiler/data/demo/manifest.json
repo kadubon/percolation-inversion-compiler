@@ -52,19 +52,36 @@
       "media_type": "application/json",
       "path": "alt_admission_packet.json",
       "purpose": "ALT admission packet fixture for abstraction-liquidity CLI smoke."
+    },
+    {
+      "media_type": "application/json",
+      "path": "phase_lab_runtime_report.json",
+      "purpose": "Phase Lab report fixture for installed-package graph and observation smoke."
+    },
+    {
+      "media_type": "application/json",
+      "path": "phase_lab_threshold.json",
+      "purpose": "Phase Lab threshold fixture for certificate/abstention smoke."
     }
   ],
   "license": "Apache-2.0 for repository demo JSON and text files",
-  "provenance": "Derived from repository examples for v0.4.4 practical installed-package workflows; no canonical TeX or PDF is vendored.",
+  "provenance": "Derived from repository examples for v0.5.0 practical installed-package workflows; no canonical TeX or PDF is vendored.",
   "recommended_phase_commands": [
     "pic phase plan --compact --text \"Candidate packet: preserve residuals.\" --profile development",
     "pic agent accelerate --compact --text \"Candidate packet: preserve residuals.\" --profile development",
     "pic phase benchmark-suite --profile development --format json",
     "pic phase dashboard --runtime-report pic-demo/runtime_step_report.json --profile development",
     "pic packet inspect --packet pic-demo/packet_envelope.json",
-    "pic packet merge --packets pic-demo/packet*.json --output pic-demo/merged-packets.json",
+    "pic packet merge --packets pic-demo/packet_envelope.json --output pic-demo/merged-packets.json",
     "pic packet lineage --packet pic-demo/merged-packets.json",
     "pic phase observe --reports pic-demo/phase_dashboard.json --output pic-demo/observation.json",
+    "pic phase lab init --output-dir pic-demo/phase-lab",
+    "pic phase lab ingest --store pic-demo/phase-lab --report pic-demo/phase_lab_runtime_report.json",
+    "pic phase lab observe --store pic-demo/phase-lab --window latest",
+    "pic phase lab graph --store pic-demo/phase-lab",
+    "pic phase lab closure --store pic-demo/phase-lab",
+    "pic phase lab executable-paths --store pic-demo/phase-lab",
+    "pic phase lab certify --store pic-demo/phase-lab --threshold pic-demo/phase_lab_threshold.json",
     "pic audit canonical-readiness --profile development --format json",
     "pic schema --type PhaseAccelerationPlan"
   ],
@@ -74,5 +91,5 @@
     "live connectors are bounded and candidate-only by default when an explicit source is supplied",
     "settled=false is expected when residual obligations remain"
   ],
-  "version": "0.4.4"
+  "version": "0.5.0"
 }

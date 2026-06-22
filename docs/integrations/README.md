@@ -23,6 +23,7 @@ verification layer. PIC is not specific to GitHub Actions.
 | Canonical readiness sidecar | You need pip-safe ECPT/BIT/TRC/SQOT/ALT implementation coverage. | `pic audit canonical-readiness` |
 | Packet exchange sidecar | You need data-only packet export, inspect, merge, or lineage. | `pic packet inspect` |
 | Phase dashboard sidecar | You need observation-only phase metrics. | `pic phase dashboard` |
+| Phase Ecology Lab | You need windowed multi-packet graph, closure, path, and threshold diagnostics. | `pic phase lab init` |
 | Agent autonomy audit | You need to verify approval/adoption is not gating core agent work. | `pic agent autonomy-audit` |
 
 ## Safety Contract
@@ -41,6 +42,8 @@ verification layer. PIC is not specific to GitHub Actions.
   dependencies without requiring the science/OT/LP research extras.
 - Localized Markdown is display-only; JSON schemas and keys stay stable for ports.
 - Packet exchange and dashboards are diagnostic-only and do not promote packets.
+- Phase Lab effective graphs separate accepted contribution from candidate-only
+  volume and do not execute stored content.
 
 ## Recommended Reading Order For Agents
 
@@ -53,5 +56,6 @@ verification layer. PIC is not specific to GitHub Actions.
 7. `docs/operator-adoption.md` only if operator handoff is needed
 8. `docs/integrations/packet-exchange.md` only if packet handoff is needed
 9. `docs/phase-dashboard.md` only if dashboard observation is needed
-10. `docs/canonical-implementation-readiness.md` when installed canonical coverage matters
-11. `docs/i18n-and-portability.md` when localized Markdown or cross-language ports matter
+10. `docs/phase-ecology-lab.md` when windowed graph/closure/path diagnostics matter
+11. `docs/canonical-implementation-readiness.md` when installed canonical coverage matters
+12. `docs/i18n-and-portability.md` when localized Markdown or cross-language ports matter

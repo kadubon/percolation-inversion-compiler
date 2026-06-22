@@ -4,16 +4,25 @@
 - Run local quality gates, publish safety scan, Bandit, pip-audit, and Zizmor.
 - Run `uv build` and check only the target-version artifacts before any PyPI
   publication, for example
-  `uv run python -m twine check dist\percolation_inversion_compiler-0.4.4-py3-none-any.whl dist\percolation_inversion_compiler-0.4.4.tar.gz`.
+  `uv run python -m twine check dist\percolation_inversion_compiler-0.5.0-py3-none-any.whl dist\percolation_inversion_compiler-0.5.0.tar.gz`.
   Local `dist/` directories may contain old release artifacts; do not publish
   local `dist/*`. Prefer the clean GitHub Trusted Publishing workflow.
-- Run `uv run python scripts\check_distribution_artifacts.py` and confirm the
+- Run `uv run python scripts\check_distribution_artifacts.py --dist-dir dist --version 0.5.0` and confirm the
   wheel contains `py.typed`, bundled theory snapshots, and only the curated
-  `percolation_inversion_compiler.data.demo` assets.
+  `percolation_inversion_compiler.data.demo` assets, including Phase Lab
+  runtime-report and threshold fixtures.
 - Verify the pip-first installed-package path:
   `pic demo installed-smoke --profile development`,
   `pic demo bootstrap --output-dir pic-demo`, and
   `pic runtime step --state pic-demo/runtime_state.json --input pic-demo/runtime_step_input.json --profile development`.
+- Verify the installed Phase Lab path after bootstrap:
+  `pic phase lab init --output-dir pic-demo/phase-lab`,
+  `pic phase lab ingest --store pic-demo/phase-lab --report pic-demo/phase_lab_runtime_report.json`,
+  `pic phase lab observe --store pic-demo/phase-lab --window latest`,
+  `pic phase lab graph --store pic-demo/phase-lab`,
+  `pic phase lab closure --store pic-demo/phase-lab`,
+  `pic phase lab executable-paths --store pic-demo/phase-lab`, and
+  `pic phase lab certify --store pic-demo/phase-lab --threshold pic-demo/phase_lab_threshold.json`.
 - Confirm README, AGENTS.md, and quickstart docs separate the PyPI path from
   the clone-recommended full workflow, including
   `git clone https://github.com/kadubon/percolation-inversion-compiler.git`
@@ -30,6 +39,9 @@
   run without provenance is expected to fail closed.
 - Verify `pic sqot schedule`, `pic ecology build-edges`, `pic ecology psi`,
   `pic ecology plan`, and `pic ecology loop` smoke tests.
+- Verify v0.5.0 diagnostics:
+  `pic ecology effective-graph`, `pic bit diagnose`, `pic sqot diagnose-queue`,
+  `pic alt ecpt-lift`, and `pic trc trace-adapter`.
 - Confirm no canonical TeX/PDF files, local paths, secrets, private keys, or build artifacts are staged.
 - Confirm the wheel does not include root `examples/`, local virtualenvs,
   vendored archives, model weights, serialized datasets, credential folders, or

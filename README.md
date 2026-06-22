@@ -8,7 +8,7 @@ Search terms: ECPT, BIT, TRC, SQOT, ALT, abstraction liquidity, reusable abstrac
 
 New to PIC? Start with the [GitHub Wiki](https://github.com/kadubon/percolation-inversion-compiler/wiki) for a plain-language guide to what PIC does, why AI agent output is treated as candidate work, getting started, use cases, core concepts, and agent-safe interpretation of `accepted=true` and `settled=false`.
 
-Distribution status: v0.4.4 is a practical runtime snapshot with a beta API
+Distribution status: v0.5.0 is a practical runtime snapshot with a beta API
 surface. Install the core package from PyPI with `pip install
 percolation-inversion-compiler`; use `pip install
 "percolation-inversion-compiler[identity,connectors,server]"` when you need
@@ -55,7 +55,11 @@ safe next-step planner for verified work reuse and bottleneck removal. See
 
 The runtime is fail-closed: planning can recommend finite ASI-proxy actions, but `settled` remains false unless scoped verifier rules discharge the required finite obligations. In production, signed identities and Sybil-resistance ledgers can prevent duplicate-key, clone-fanout, revoked, expired, or unsigned agent populations from producing accepted collective certificates. Residual external obligations remain explicit.
 
-v0.4.4 preserves the v0.4.3 ALT abstraction-liquidity foundry support so external knowledge and agent traces can become reusable abstraction-token candidates, then certified abstraction capital only after lower-bound surplus, calibrated proxy or causal value evidence, transport, root-of-trust, telemetry, lifecycle, and hazard checks pass. ALT also adds negative-liquidity, deprecation/resurrection, baseline refresh, reproduction diagnostics, and ALT-CARA acceleration certificates so stale or unsafe abstraction claims remain repairable residual work rather than silent capital. Use `development`, `research`, `controlled`, `federated`, `production`, or `adversarial` profiles to choose how communication policy, cryptographic identities, homogeneous fleets, signed packet issuers, and Sybil-resistance ledgers affect packet promotion and collective certificates.
+v0.5.0 adds the Phase Ecology Lab for windowed multi-packet diagnostics: effective packet graphs, closure, execution-available paths, BIT bottleneck inversion, SQOT queue obstruction, ALT-to-ECPT lift, TRC typed trace adapters, and threshold/certificate candidates. These surfaces are diagnostic, non-executing, protocol-relative, and residual-preserving.
+
+For the v0.5.0 contract audit, OS-independent pip notes, and residual obligation boundary, see [docs/v050-audit.md](docs/v050-audit.md).
+
+v0.5.0 preserves the v0.4.4 ALT abstraction-liquidity foundry support so external knowledge and agent traces can become reusable abstraction-token candidates, then certified abstraction capital only after lower-bound surplus, calibrated proxy or causal value evidence, transport, root-of-trust, telemetry, lifecycle, and hazard checks pass. ALT also adds negative-liquidity, deprecation/resurrection, baseline refresh, reproduction diagnostics, and ALT-CARA acceleration certificates so stale or unsafe abstraction claims remain repairable residual work rather than silent capital. Use `development`, `research`, `controlled`, `federated`, `production`, or `adversarial` profiles to choose how communication policy, cryptographic identities, homogeneous fleets, signed packet issuers, and Sybil-resistance ledgers affect packet promotion and collective certificates.
 
 Core contract: registry is metadata, not evidence. Use `pic doctor` and structured checker outputs to distinguish declared status, finite certificate results, proof obligations, and residual ledgers.
 
@@ -78,6 +82,13 @@ uv run pic agent accelerate --compact --text "Candidate packet: route evidence a
 uv run pic agent guide --profile development
 uv run pic agent check --text "Candidate packet: route evidence and preserve residuals." --profile development
 uv run pic agent intake --text "Candidate packet: route evidence and preserve residuals." --profile development
+uv run pic phase lab init --output-dir pic-phase-lab
+uv run pic phase lab ingest --store pic-phase-lab --report examples/phase_lab/runtime_report_1.json
+uv run pic phase lab observe --store pic-phase-lab --window latest
+uv run pic phase lab graph --store pic-phase-lab
+uv run pic phase lab closure --store pic-phase-lab
+uv run pic phase lab executable-paths --store pic-phase-lab
+uv run pic phase lab certify --store pic-phase-lab --threshold examples/thresholds/asi_proxy_development.json
 ```
 
 ## Optional Sidecars
@@ -94,6 +105,10 @@ pic audit canonical-readiness --profile development --format json
 pic phase benchmark-suite --profile development --format json
 pic packet inspect --packet packet.json
 pic phase dashboard --profile development --format json
+pic phase lab graph --store pic-phase-lab --output effective_graph.json
+pic bit diagnose --graph effective_graph.json
+pic sqot diagnose-queue --graph effective_graph.json
+pic trc trace-adapter --input examples/trc_adapter/tool_trace_input.example.json
 ```
 
 Command choice:
@@ -216,7 +231,7 @@ pic runtime step --state pic-demo/runtime_state.json --input pic-demo/runtime_st
 pic phase benchmark-suite --profile development --format json
 pic phase dashboard --runtime-report pic-demo/runtime_step_report.json --profile development
 pic packet inspect --packet pic-demo/packet_envelope.json
-pic packet merge --packets pic-demo/packet*.json --output pic-demo/merged-packets.json
+pic packet merge --packets pic-demo/packet_envelope.json --output pic-demo/merged-packets.json
 pic packet lineage --packet pic-demo/merged-packets.json
 pic phase observe --reports pic-demo/phase_dashboard.json --output pic-demo/observation.json
 pic audit canonical-readiness --profile development --format json

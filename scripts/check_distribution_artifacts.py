@@ -17,6 +17,8 @@ REQUIRED_WHEEL_MEMBERS = {
     "percolation_inversion_compiler/data/demo/general_intake_policy.json",
     "percolation_inversion_compiler/data/demo/manifest.json",
     "percolation_inversion_compiler/data/demo/packet_envelope.json",
+    "percolation_inversion_compiler/data/demo/phase_lab_runtime_report.json",
+    "percolation_inversion_compiler/data/demo/phase_lab_threshold.json",
     "percolation_inversion_compiler/data/demo/phase_dashboard.json",
     "percolation_inversion_compiler/data/demo/runtime_state.json",
     "percolation_inversion_compiler/data/demo/runtime_step_input.json",
@@ -34,6 +36,8 @@ REQUIRED_SDIST_SUFFIXES = {
     "src/percolation_inversion_compiler/data/demo/general_intake_policy.json",
     "src/percolation_inversion_compiler/data/demo/manifest.json",
     "src/percolation_inversion_compiler/data/demo/packet_envelope.json",
+    "src/percolation_inversion_compiler/data/demo/phase_lab_runtime_report.json",
+    "src/percolation_inversion_compiler/data/demo/phase_lab_threshold.json",
     "src/percolation_inversion_compiler/data/demo/phase_dashboard.json",
     "src/percolation_inversion_compiler/data/demo/runtime_state.json",
     "src/percolation_inversion_compiler/data/demo/runtime_step_input.json",
@@ -69,6 +73,19 @@ FORBIDDEN_WHEEL_SUFFIXES = {
     ".tgz",
     ".whl",
     ".zip",
+}
+FORBIDDEN_SDIST_SUFFIXES = {
+    ".ckpt",
+    ".key",
+    ".onnx",
+    ".p12",
+    ".pdf",
+    ".pem",
+    ".pfx",
+    ".pt",
+    ".pth",
+    ".safetensors",
+    ".tex",
 }
 FORBIDDEN_PARTS = {
     ".git",
@@ -125,9 +142,9 @@ def validate_sdist(sdist: Path) -> list[str]:
     for name in sorted(names):
         if _parts(name) & {".git", ".venv", "dist", "downloads", "private", "secrets", "venv"}:
             failures.append(f"sdist contains forbidden artifact path: {name}")
-        lower = name.lower()
-        if lower.endswith((".pem", ".p12", ".pfx", ".key", ".safetensors", ".ckpt", ".onnx")):
-            failures.append(f"sdist contains forbidden credential/model artifact: {name}")
+        suffixes = Path(name).suffixes
+        if any(suffix.lower() in FORBIDDEN_SDIST_SUFFIXES for suffix in suffixes):
+            failures.append(f"sdist contains forbidden artifact suffix: {name}")
     return failures
 
 

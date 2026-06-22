@@ -1,0 +1,19 @@
+{
+  "accepted": true,
+  "edges": [
+    {
+      "accepted": true,
+      "edge_id": "edge:demo-self",
+      "evidence_refs": ["evidence:demo"],
+      "relation_type": "self-support",
+      "source_packet_ids": ["packet:demo"],
+      "target_packet_id": "packet:demo"
+    }
+  ],
+  "operationally_usable": true,
+  "packet_ref": "packet:demo",
+  "report_id": "phase-lab-demo-report",
+  "residual_summary": {},
+  "settled": false,
+  "workflow_usable": true
+}

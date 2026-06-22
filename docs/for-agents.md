@@ -25,6 +25,26 @@ When an agent needs to decide what to verify or repair next, run
 `percolation_inversion_compiler.acceleration.build_phase_acceleration_plan`.
 That planner ranks finite bottlenecks; it does not execute the work.
 
+For v0.5.0 Phase Ecology Lab work, store reports as data and inspect derived
+diagnostics:
+
+```powershell
+pic phase lab init --output-dir pic-phase-lab
+pic phase lab ingest --store pic-phase-lab --report examples/phase_lab/runtime_report_1.json
+pic phase lab observe --store pic-phase-lab --window latest
+pic phase lab graph --store pic-phase-lab --output effective_graph.json
+pic phase lab closure --store pic-phase-lab
+pic phase lab executable-paths --store pic-phase-lab
+pic phase lab certify --store pic-phase-lab --threshold examples/thresholds/asi_proxy_development.json
+pic bit diagnose --graph effective_graph.json
+pic sqot diagnose-queue --graph effective_graph.json
+pic trc trace-adapter --input examples/trc_adapter/tool_trace_input.example.json
+```
+
+These diagnostics do not treat packet volume as progress, do not execute
+embedded command text, and do not promote unresolved obligations to
+`settled=true`.
+
 ```python
 from percolation_inversion_compiler.agent import AgentIntakeRequest, run_agent_intake
 
@@ -117,8 +137,15 @@ pic demo bootstrap --output-dir pic-demo
 pic runtime step --state pic-demo/runtime_state.json --input pic-demo/runtime_step_input.json --profile development
 pic phase benchmark-suite --profile development --format json
 pic phase dashboard --runtime-report pic-demo/runtime_step_report.json --profile development
+pic phase lab init --output-dir pic-demo/phase-lab
+pic phase lab ingest --store pic-demo/phase-lab --report pic-demo/phase_lab_runtime_report.json
+pic phase lab observe --store pic-demo/phase-lab --window latest
+pic phase lab graph --store pic-demo/phase-lab
+pic phase lab closure --store pic-demo/phase-lab
+pic phase lab executable-paths --store pic-demo/phase-lab
+pic phase lab certify --store pic-demo/phase-lab --threshold pic-demo/phase_lab_threshold.json
 pic packet inspect --packet pic-demo/packet_envelope.json
-pic packet merge --packets pic-demo/packet*.json --output pic-demo/merged-packets.json
+pic packet merge --packets pic-demo/packet_envelope.json --output pic-demo/merged-packets.json
 pic packet lineage --packet pic-demo/merged-packets.json
 pic phase observe --reports pic-demo/phase_dashboard.json --output pic-demo/observation.json
 pic audit canonical-readiness --profile development --format json
@@ -196,7 +223,12 @@ Run the guide when you need to move beyond minimal intake:
 uv run pic agent guide --profile production
 ```
 
-The guide has a fixed stage order: orient, inspect snapshots, run intake, derive identity context, external communication readiness, general web/feed intake, agent-to-agent packet exchange, live metadata ingest, verify evidence/routes, promote packets, run/store loop, inspect Psi/SQOT, collective certify, and preserve residuals/provenance.
+The guide has a fixed stage order: orient, inspect snapshots, run intake,
+derive identity context, external communication readiness, general web/feed
+intake, agent-to-agent packet exchange, live metadata ingest, phase acceleration
+planning, verify evidence/routes, promote packets, run/store loop, inspect
+Psi/SQOT, phase ecology lab diagnostics, collective certify, ALT
+abstraction-liquidity foundry admission, and preserve residuals/provenance.
 
 Use the phase planner after the first runtime report:
 

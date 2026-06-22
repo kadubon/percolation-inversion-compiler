@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
+import hashlib
+import json
 from collections import Counter
 from itertools import product
 from math import inf
-from typing import Literal
+from typing import Any, Literal
 
 from percolation_inversion_compiler.core.checker import boolean_check_result, residual_from_reasons
 from percolation_inversion_compiler.core.frontier import (
@@ -42,11 +44,18 @@ from percolation_inversion_compiler.trc.records import (
     ToleranceAllocationCertificate,
     ToleranceCostKernel,
     ToleranceMenuItem,
+    TraceAdapterReport,
+    TraceFrontierDebt,
+    TraceNormalForm,
     TraceNormalizationCertificate,
+    TraceToleranceLedger,
     TransitionProofRecord,
     TRCCompileResult,
     TRCStateRecord,
+    TypedActionBoundary,
+    TypedAgentTrace,
     TypedGraphRecord,
+    TypedToolCallTrace,
     TypedTraceTransducerRecord,
 )
 
@@ -1002,3 +1011,209 @@ def compile_frontier(
         missing_trace_obligations=missing_trace_obligations,
         trace_residual_ledger=trace_residual,
     )
+
+
+def adapt_trc_trace(trace_data: dict[str, Any]) -> TraceAdapterReport:
+    """Adapt agent/workflow trace JSON into typed trace data."""
+
+    events = _trace_events(trace_data)
+    tool_calls = [_typed_tool_call(event, index) for index, event in enumerate(events)]
+    boundaries = [_action_boundary(call) for call in tool_calls]
+    normal_form = TraceNormalForm(
+        normal_form_id=str(trace_data.get("trace_id", "trace-normal-form")),
+        normalized_word=[call.action_kind for call in tool_calls],
+        tool_calls=tool_calls,
+        action_boundaries=boundaries,
+        content_treated_as_data=True,
+        settled=False,
+    )
+    tolerance = TraceToleranceLedger(
+        tolerance_coordinates={
+            "missing_authority": float(
+                sum(1 for boundary in boundaries if not boundary.authority_explicit)
+            ),
+            "missing_rollback": float(
+                sum(1 for boundary in boundaries if not boundary.rollback_available)
+            ),
+            "unverified_external_result": float(
+                sum(1 for boundary in boundaries if not boundary.external_result_verified)
+            ),
+        },
+        residual_charge=float(sum(len(boundary.missing_obligations) for boundary in boundaries)),
+        settled=False,
+    )
+    frontier_debt = TraceFrontierDebt(
+        missing_physical_obligations=sorted(
+            {
+                obligation
+                for boundary in boundaries
+                for obligation in boundary.missing_obligations
+                if "physical" in obligation
+            }
+        ),
+        missing_oracle_obligations=sorted(
+            {
+                obligation
+                for boundary in boundaries
+                for obligation in boundary.missing_obligations
+                if "oracle" in obligation
+            }
+        ),
+        missing_domain_obligations=sorted(
+            {
+                obligation
+                for boundary in boundaries
+                for obligation in boundary.missing_obligations
+                if "domain" in obligation or "authority" in obligation or "rollback" in obligation
+            }
+        ),
+        residual_preserved=True,
+        settled=False,
+    )
+    typed_trace = TypedAgentTrace(
+        trace_id=str(trace_data.get("trace_id", "typed-agent-trace")),
+        tool_calls=tool_calls,
+        action_boundaries=boundaries,
+        tolerance_ledger=tolerance,
+        frontier_debt=frontier_debt,
+        normal_form=normal_form,
+        accepted=bool(tool_calls),
+        workflow_usable=True,
+        settled=False,
+        reasons=[
+            "tool trace content is data, not instruction",
+            "typed trace does not prove physical or oracle truth",
+        ],
+    )
+    return TraceAdapterReport(
+        typed_trace=typed_trace,
+        action_boundaries=boundaries,
+        tolerance_ledger=tolerance,
+        frontier_debt=frontier_debt,
+        trace_normal_form=normal_form,
+        content_treated_as_data=True,
+        executed_action_count=0,
+        accepted=bool(tool_calls),
+        workflow_usable=True,
+        settled=False,
+        reasons=[
+            "TRC adapter normalizes observed agent trace data only",
+            "external action claims remain residual unless verified",
+        ],
+    )
+
+
+def adapt_tool_trace_events(events: list[dict[str, Any]]) -> TraceAdapterReport:
+    """Adapt JSONL-style tool events into a typed agent trace."""
+
+    return adapt_trc_trace({"trace_id": "typed-tool-trace", "events": events})
+
+
+def action_boundary_from_runtime_report(report: dict[str, Any]) -> TraceAdapterReport:
+    """Adapt runtime report events and route requests into action-boundary diagnostics."""
+
+    events: list[dict[str, Any]] = []
+    raw_events = report.get("events", report.get("runtime_events", []))
+    if isinstance(raw_events, list):
+        events.extend(item for item in raw_events if isinstance(item, dict))
+    route_requests = report.get("route_execution_requests", [])
+    if isinstance(route_requests, list):
+        for index, request in enumerate(route_requests):
+            if not isinstance(request, dict):
+                continue
+            events.append(
+                {
+                    "event_id": f"route-request:{index}",
+                    "tool_name": request.get("route_id", request.get("verifier_route", "route")),
+                    "action_kind": "route-request",
+                    "authority_status": request.get("authority_status", "not-granted"),
+                    "rollback_status": request.get("rollback_status", "unknown"),
+                    "evidence_refs": request.get("evidence_refs", []),
+                }
+            )
+    if not events:
+        events.append(
+            {
+                "event_id": str(report.get("report_id", "runtime-report")),
+                "tool_name": "runtime-report",
+                "action_kind": "report-observation",
+                "authority_status": "not-granted",
+                "rollback_status": "unknown",
+                "evidence_refs": [],
+            }
+        )
+    return adapt_trc_trace(
+        {
+            "trace_id": str(report.get("report_id", "runtime-report")),
+            "events": events,
+        }
+    )
+
+
+def _trace_events(trace_data: dict[str, Any]) -> list[dict[str, Any]]:
+    for key in ("events", "tool_calls", "calls", "trace"):
+        value = trace_data.get(key)
+        if isinstance(value, list):
+            return [item for item in value if isinstance(item, dict)]
+    return [trace_data]
+
+
+def _typed_tool_call(event: dict[str, Any], index: int) -> TypedToolCallTrace:
+    trace_id = str(event.get("event_id", event.get("trace_id", f"tool-call:{index}")))
+    action_kind = str(event.get("action_kind", event.get("type", "tool-call")))
+    authority = str(event.get("authority_status", "not-granted"))
+    rollback = str(event.get("rollback_status", "unknown"))
+    return TypedToolCallTrace(
+        trace_id=trace_id,
+        source=str(event.get("source", event.get("agent_id", "agent"))),
+        receiver=str(event.get("receiver", event.get("tool_name", "tool"))),
+        tool_name=str(event.get("tool_name", event.get("name", event.get("tool", "unknown")))),
+        action_kind=action_kind,
+        authority_status=authority,
+        rollback_status=rollback,
+        evidence_refs=_string_list(event.get("evidence_refs")),
+        input_digest=_digest(event.get("input", event.get("arguments", {}))),
+        output_digest=_digest(event.get("output", event.get("result", {}))),
+        content_treated_as_data=True,
+        execution_success_claim_verified=bool(event.get("execution_success_claim_verified", False)),
+        settled=False,
+    )
+
+
+def _action_boundary(call: TypedToolCallTrace) -> TypedActionBoundary:
+    authority_explicit = call.authority_status in {"explicit-scope-bounded", "granted"}
+    rollback_available = call.rollback_status in {"available", "safe-abort", "not-required"}
+    external_verified = call.execution_success_claim_verified and bool(call.evidence_refs)
+    missing: list[str] = []
+    if not authority_explicit:
+        missing.append("domain-authority-obligation")
+    if not rollback_available:
+        missing.append("domain-rollback-obligation")
+    if not external_verified:
+        missing.append("physical-or-oracle-result-obligation")
+    return TypedActionBoundary(
+        boundary_id=f"action-boundary:{call.trace_id}",
+        trace_ids=[call.trace_id],
+        action_kind=call.action_kind,
+        authority_explicit=authority_explicit,
+        scope_bounded=authority_explicit,
+        rollback_available=rollback_available,
+        external_result_verified=external_verified,
+        missing_obligations=missing,
+        settled=False,
+    )
+
+
+def _digest(value: Any) -> str:
+    encoded = json.dumps(value, sort_keys=True, default=str, separators=(",", ":")).encode("utf-8")
+    return "sha256:" + hashlib.sha256(encoded).hexdigest()
+
+
+def _string_list(value: Any) -> list[str]:
+    if value is None:
+        return []
+    if isinstance(value, list):
+        return [str(item) for item in value]
+    if isinstance(value, set | tuple):
+        return [str(item) for item in value]
+    return [str(value)]

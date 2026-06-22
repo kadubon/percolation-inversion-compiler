@@ -35,7 +35,7 @@ def test_agent_autonomy_audit_is_non_gating_and_argv_safe() -> None:
             "packet",
             "merge",
             "--packets",
-            "pic-demo/packet*.json",
+            "pic-demo/packet_envelope.json",
             "--output",
             "pic-demo/merged-packets.json",
         ]

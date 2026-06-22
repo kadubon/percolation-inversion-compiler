@@ -11,10 +11,15 @@ from percolation_inversion_compiler.alt.records import (
     ALTAdmissionDecision,
     ALTCARACertificate,
     ALTDeprecationRecord,
+    AltEcptLiftReport,
     ALTKernelTransitionReport,
+    AltLiftBlocker,
     ALTResurrectionRecord,
     BaselineRefreshCertificate,
+    CapitalToPathContribution,
     CertifiedAbstractionCapital,
+    CrossContextTransferWitness,
+    DownstreamSearchCostDelta,
     ExecutableALTCertificatePacket,
     FormationCostLedger,
     FoundryBottleneck,
@@ -22,9 +27,11 @@ from percolation_inversion_compiler.alt.records import (
     FoundryState,
     HazardEnvelopeCertificate,
     LiquidityCertificate,
+    LiquidityToClosureContribution,
     NegativeLiquidityCertificate,
     OpportunityMeasureContract,
     ProblemSolvingTrace,
+    ReceiverLiquidityLift,
     ReproductionMatrixCertificate,
     RootFinalityCertificate,
     TelemetryCostCertificate,
@@ -41,6 +48,8 @@ from percolation_inversion_compiler.ecology import (
     PacketSourceKind,
     sha256_text,
 )
+from percolation_inversion_compiler.phase_lab import detect_autocatalytic_closure
+from percolation_inversion_compiler.phase_lab.records import EffectivePacketGraph
 from percolation_inversion_compiler.runtime import RuntimeState
 
 
@@ -1141,3 +1150,276 @@ def formation_cost_ledger_from_values(
         unit=str(values.get("unit", "dimensionless")),
         evidence_refs=_string_list(values.get("evidence_refs")),
     )
+
+
+def verify_receiver_liquidity_lift(
+    packet_data: dict[str, object],
+    receiver_context: dict[str, object],
+) -> ReceiverLiquidityLift:
+    """Check whether one ALT artifact improves a receiver context."""
+
+    packet_id = _packet_id(packet_data)
+    receiver_id = str(
+        receiver_context.get("receiver_context_id")
+        or receiver_context.get("context_id")
+        or "receiver-context"
+    )
+    evidence_refs = _string_list(receiver_context.get("evidence_refs")) + _packet_evidence_refs(
+        packet_data
+    )
+    context_present = bool(receiver_context)
+    accepted = (
+        _packet_is_accepted_alt_capital(packet_data)
+        and context_present
+        and bool(evidence_refs)
+    )
+    blockers: list[str] = []
+    if not _packet_is_accepted_alt_capital(packet_data):
+        blockers.append("ALT packet is not accepted operational abstraction capital")
+    if not context_present:
+        blockers.append("receiver context is missing")
+    if not evidence_refs:
+        blockers.append("receiver lift evidence_refs are required")
+    return ReceiverLiquidityLift(
+        lift_id=f"receiver-lift:{packet_id}:{receiver_id}",
+        packet_id=packet_id,
+        receiver_context_id=receiver_id,
+        receiver_context_present=context_present,
+        improves_receiver_context=accepted,
+        evidence_refs=sorted(set(evidence_refs)),
+        blockers=sorted(set(blockers)),
+        accepted=accepted,
+        settled=False,
+    )
+
+
+def verify_alt_ecpt_lift(
+    packets: list[dict[str, object]],
+    graph: EffectivePacketGraph,
+) -> AltEcptLiftReport:
+    """Check whether ALT capital affects ECPT phase proxy components."""
+
+    receiver_lifts: list[ReceiverLiquidityLift] = []
+    transfer_witnesses: list[CrossContextTransferWitness] = []
+    deltas: list[DownstreamSearchCostDelta] = []
+    path_contributions: list[CapitalToPathContribution] = []
+    closure_contributions: list[LiquidityToClosureContribution] = []
+    blockers: list[AltLiftBlocker] = []
+    closure = detect_autocatalytic_closure(graph)
+    accepted_paths = [
+        edge.edge_id
+        for edge in graph.edges
+        if edge.contribution.positive_contribution and edge.evidence.evidence_supported
+    ]
+    closure_ids = [witness.witness_id for witness in closure.closure_witnesses]
+    components: set[str] = set()
+    for packet in packets:
+        packet_id = _packet_id(packet)
+        accepted_capital = _packet_is_accepted_alt_capital(packet)
+        evidence_refs = _packet_evidence_refs(packet)
+        reduction = _search_cost_reduction(packet)
+        if reduction > 0.0:
+            deltas.append(
+                DownstreamSearchCostDelta(
+                    delta_id=f"search-cost-delta:{packet_id}",
+                    baseline_cost=reduction,
+                    candidate_cost=0.0,
+                    lower_bound_reduction=reduction,
+                    evidence_refs=evidence_refs,
+                    accepted=accepted_capital and bool(evidence_refs),
+                    settled=False,
+                )
+            )
+            if accepted_capital and evidence_refs:
+                components.add("downstream_search_cost")
+        receiver_lift = verify_receiver_liquidity_lift(
+            packet,
+            {"receiver_context_id": "graph-receiver-context", "evidence_refs": evidence_refs},
+        )
+        receiver_lifts.append(receiver_lift)
+        if receiver_lift.accepted:
+            components.add("receiver_context")
+        receiver_family = _string_list(packet.get("receiver_family"))
+        if not receiver_family:
+            token = packet.get("token")
+            if isinstance(token, dict):
+                receiver_family = _string_list(token.get("receiver_family"))
+        if len(receiver_family) >= 2:
+            transfer = CrossContextTransferWitness(
+                witness_id=f"cross-context:{packet_id}",
+                source_context=receiver_family[0],
+                target_context=receiver_family[1],
+                transfer_supported=accepted_capital and bool(evidence_refs),
+                evidence_refs=evidence_refs,
+                settled=False,
+            )
+            transfer_witnesses.append(transfer)
+            if transfer.transfer_supported:
+                components.add("cross_context_transfer")
+        path_contribution = CapitalToPathContribution(
+            contribution_id=f"capital-to-path:{packet_id}",
+            packet_id=packet_id,
+            graph_id=graph.graph_id,
+            path_ids=accepted_paths,
+            increases_execution_available_path_density=accepted_capital and bool(accepted_paths),
+            accepted=accepted_capital and bool(accepted_paths),
+            settled=False,
+            reasons=[
+                "path contribution requires accepted graph edges",
+                "ALT capital does not execute paths",
+            ],
+        )
+        path_contributions.append(path_contribution)
+        if path_contribution.accepted:
+            components.add("execution_available_path_density")
+        closure_contribution = LiquidityToClosureContribution(
+            contribution_id=f"liquidity-to-closure:{packet_id}",
+            packet_id=packet_id,
+            graph_id=graph.graph_id,
+            closure_witness_ids=closure_ids,
+            supports_closure=accepted_capital and bool(closure_ids),
+            accepted=accepted_capital and bool(closure_ids),
+            settled=False,
+            reasons=["closure contribution requires evidence-supported closure witnesses"],
+        )
+        closure_contributions.append(closure_contribution)
+        if closure_contribution.accepted:
+            components.add("closure")
+        if not accepted_capital:
+            blockers.append(
+                AltLiftBlocker(
+                    blocker_id=f"alt-lift-blocker:{packet_id}:capital",
+                    packet_id=packet_id,
+                    blocker_type="missing accepted ALT capital",
+                    remediation=(
+                        "admit an ALT packet with finite liquidity, transport, root, "
+                        "telemetry, lifecycle, and hazard checks"
+                    ),
+                )
+            )
+        if not components:
+            blockers.append(
+                AltLiftBlocker(
+                    blocker_id=f"alt-lift-blocker:{packet_id}:ecpt-component",
+                    packet_id=packet_id,
+                    blocker_type="no ECPT component affected",
+                    remediation="provide edge, receiver, path, closure, or bottleneck evidence",
+                )
+            )
+    accepted = bool(components) and not any(
+        blocker.blocker_type == "missing accepted ALT capital" for blocker in blockers
+    )
+    return AltEcptLiftReport(
+        graph_id=graph.graph_id,
+        receiver_liquidity_lifts=receiver_lifts,
+        cross_context_transfer_witnesses=transfer_witnesses,
+        downstream_search_cost_deltas=deltas,
+        capital_to_path_contributions=path_contributions,
+        liquidity_to_closure_contributions=closure_contributions,
+        affected_ecpt_components=sorted(components),
+        blockers=blockers,
+        diagnostic_only_lift_failure=not accepted,
+        accepted=accepted,
+        operationally_usable=accepted,
+        settled=False,
+        reasons=[
+            "ALT lift is protocol-relative only",
+            "positive ALT liquidity does not automatically become ECPT packet capital",
+            *([] if accepted else ["no accepted ECPT component lift was established"]),
+        ],
+    )
+
+
+def verify_alt_liquidity_to_paths(
+    packet_data: dict[str, object],
+    graph: EffectivePacketGraph,
+) -> AltEcptLiftReport:
+    """Check a single ALT packet against graph path contributions."""
+
+    return verify_alt_ecpt_lift([packet_data], graph)
+
+
+def compute_alt_capital_impact(
+    reports: list[dict[str, object]],
+) -> AltEcptLiftReport:
+    """Summarize ALT lift-like impacts from existing reports without promotion."""
+
+    components: set[str] = set()
+    blockers: list[AltLiftBlocker] = []
+    for index, report in enumerate(reports):
+        accepted = bool(report.get("accepted", False)) and bool(
+            report.get("operationally_usable", False)
+        )
+        if accepted:
+            components.add(str(report.get("component", "reported_alt_capital")))
+        else:
+            blockers.append(
+                AltLiftBlocker(
+                    blocker_id=f"alt-capital-impact-blocker:{index}",
+                    packet_id=str(report.get("packet_id", report.get("report_id", index))),
+                    blocker_type="report not accepted operational capital",
+                    remediation="rerun finite ALT and ECPT component checks",
+                )
+            )
+    return AltEcptLiftReport(
+        report_id="alt-capital-impact",
+        affected_ecpt_components=sorted(components),
+        blockers=blockers,
+        diagnostic_only_lift_failure=not bool(components),
+        accepted=bool(components),
+        operationally_usable=bool(components),
+        settled=False,
+        reasons=["capital impact summary is diagnostic and does not settle ALT lift"],
+    )
+
+
+def _packet_id(packet_data: dict[str, object]) -> str:
+    return str(
+        packet_data.get("packet_id")
+        or packet_data.get("decision_id")
+        or packet_data.get("token_id")
+        or "alt-packet"
+    )
+
+
+def _packet_evidence_refs(packet_data: dict[str, object]) -> list[str]:
+    refs = _string_list(packet_data.get("evidence_refs"))
+    token = packet_data.get("token")
+    if isinstance(token, dict):
+        refs.extend(_string_list(token.get("evidence_refs")))
+    certificate = packet_data.get("liquidity_certificate")
+    if isinstance(certificate, dict):
+        refs.extend(_string_list(certificate.get("evidence_refs")))
+        refs.extend(_string_list(certificate.get("proxy_bridge_refs")))
+        refs.extend(_string_list(certificate.get("common_estimand_refs")))
+    return sorted(set(refs))
+
+
+def _packet_is_accepted_alt_capital(packet_data: dict[str, object]) -> bool:
+    if bool(packet_data.get("accepted", False)) and bool(
+        packet_data.get("operationally_usable", False)
+    ):
+        return True
+    if packet_data.get("certified_capital_ref"):
+        return bool(packet_data.get("accepted", False))
+    certificate = packet_data.get("liquidity_certificate")
+    if isinstance(certificate, dict):
+        return bool(certificate.get("accepted", False)) and bool(
+            certificate.get("operationally_usable", False)
+        )
+    return False
+
+
+def _search_cost_reduction(packet_data: dict[str, object]) -> float:
+    value = packet_data.get("downstream_search_cost_reduction_lower_bound")
+    certificate = packet_data.get("liquidity_certificate")
+    if value is None and isinstance(certificate, dict):
+        value = certificate.get("downstream_search_cost_reduction_lower_bound")
+    if value is None:
+        value = packet_data.get("signed_surplus_lower_bound", 0.0)
+    if not isinstance(value, int | float | str):
+        return 0.0
+    try:
+        return max(0.0, float(value))
+    except (TypeError, ValueError):
+        return 0.0

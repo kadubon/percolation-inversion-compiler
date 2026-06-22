@@ -36,7 +36,7 @@ def test_agents_md_exists_and_states_safety_contract() -> None:
 def test_agent_manifest_json_is_machine_readable() -> None:
     data = json.loads((ROOT / "agent-manifest.json").read_text(encoding="utf-8"))
     assert data["name"] == "percolation-inversion-compiler"
-    assert data["version"] == "0.4.4"
+    assert data["version"] == "0.5.0"
     assert "non_goals" in data
     assert "safe_cli_entrypoints" in data
     assert "important_schemas" in data
@@ -44,10 +44,16 @@ def test_agent_manifest_json_is_machine_readable() -> None:
     assert "AgentWorkflowGuide" in data["important_schemas"]
     assert "AgentCommunicationGuide" in data["important_schemas"]
     assert "GeneralIntakeReport" in data["important_schemas"]
+    assert "EffectivePacketGraph" in data["important_schemas"]
+    assert "BottleneckInversionReport" in data["important_schemas"]
+    assert "QueueOccupationReport" in data["important_schemas"]
+    assert "AltEcptLiftReport" in data["important_schemas"]
+    assert "TypedAgentTrace" in data["important_schemas"]
     assert "IntakeProvenanceRecord" in data["important_schemas"]
     assert "AgentMessageEnvelope" in data["important_schemas"]
     assert "AgentMessageVerificationContext" in data["important_schemas"]
     assert "pic demo installed-smoke --profile development" in data["safe_cli_entrypoints"]
+    assert any("pic phase lab" in item for item in data["safe_cli_entrypoints"])
     assert any("pic agent check" in item for item in data["safe_cli_entrypoints"])
     assert data["machine_contract"]["curated_demo_bundle_in_wheel"] is True
     assert data["clone_url"] == "https://github.com/kadubon/percolation-inversion-compiler.git"
@@ -70,9 +76,15 @@ def test_schema_index_json_points_to_schema_bundle_command() -> None:
     assert "AgentNextActionReport" in data["important_schema_names"]
     assert "GeneralIntakeReport" in data["important_schema_names"]
     assert "AgentPacketExchangeReport" in data["important_schema_names"]
+    assert "EffectivePacketGraph" in data["important_schema_names"]
+    assert "BottleneckInversionReport" in data["important_schema_names"]
+    assert "QueueOccupationReport" in data["important_schema_names"]
+    assert "AltEcptLiftReport" in data["important_schema_names"]
+    assert "TypedAgentTrace" in data["important_schema_names"]
     assert "IntakeProvenanceRecord" in data["important_schema_names"]
     assert "AgentMessageVerificationContext" in data["important_schema_names"]
     assert "pic demo installed-smoke --profile development" in data["network_safe_cli"]
+    assert any("pic phase lab" in item for item in data["network_safe_cli"])
     assert data["network_contract"]["curated_demo_bundle_in_wheel"] is True
     assert data["clone_url"] == "https://github.com/kadubon/percolation-inversion-compiler.git"
     assert data["clone_recommended_for_full_use"] is False

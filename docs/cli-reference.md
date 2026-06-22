@@ -117,6 +117,53 @@ formation work, candidate-only external inputs, identity blockers, and residual
 ledger work. It does not execute commands, crawl, promote candidates, or set
 `settled=true`.
 
+## Phase Ecology Lab
+
+```powershell
+uv run pic phase lab init --output-dir pic-phase-lab
+uv run pic phase lab ingest --store pic-phase-lab --report examples/phase_lab/runtime_report_1.json
+uv run pic phase lab ingest --store pic-phase-lab --directory examples/phase_lab
+uv run pic phase lab list-windows --store pic-phase-lab
+uv run pic phase lab observe --store pic-phase-lab --window latest
+uv run pic phase lab graph --store pic-phase-lab --output effective_graph.json
+uv run pic phase lab closure --store pic-phase-lab
+uv run pic phase lab executable-paths --store pic-phase-lab
+uv run pic phase lab threshold-status --store pic-phase-lab --threshold examples/thresholds/asi_proxy_development.json
+uv run pic phase lab certify --store pic-phase-lab --threshold examples/thresholds/asi_proxy_development.json
+uv run pic phase lab compare-window --store pic-phase-lab --baseline previous --candidate latest
+uv run pic phase lab export --store pic-phase-lab --output-dir phase-lab-export
+uv run pic ecology effective-graph --reports examples/phase_lab/runtime_report_1.json --output effective_graph.json
+uv run pic ecology execution-available-paths --graph effective_graph.json
+uv run pic phase closure find --graph effective_graph.json
+uv run pic phase closure certify --graph effective_graph.json
+```
+
+Phase Lab commands are local diagnostics over report data. They do not execute
+packet text or convert candidate-only volume into phase progress.
+
+## BIT, SQOT, ALT Lift, And TRC Diagnostics
+
+```powershell
+uv run pic bit diagnose --graph effective_graph.json
+uv run pic bit invert --bottlenecks examples/bit_engine/bottlenecks.example.json
+uv run pic bit certificate --candidate examples/bit_engine/inversion_candidates.example.json
+uv run pic sqot diagnose-queue --graph effective_graph.json
+uv run pic sqot salience-obstruction --graph effective_graph.json
+uv run pic sqot rebalance --graph effective_graph.json
+uv run pic sqot quarantine --graph effective_graph.json
+uv run pic sqot reserve-check --graph effective_graph.json
+uv run pic alt ecpt-lift --packets examples/packet_exchange/packet_envelope.example.json --graph effective_graph.json
+uv run pic alt receiver-lift --packet examples/packet_exchange/packet_envelope.example.json --receiver-context development
+uv run pic alt liquidity-to-paths --packet examples/packet_exchange/packet_envelope.example.json --graph effective_graph.json
+uv run pic alt capital-impact --reports examples/alt_lift/alt_ecpt_lift.example.json
+uv run pic trc trace-adapter --input examples/trc_adapter/tool_trace_input.example.json
+uv run pic trc tool-trace --events examples/trc_adapter/tool_trace_input.example.json
+uv run pic trc action-boundary --report examples/portability_conformance/runtime_step_report.json
+```
+
+These outputs are diagnostic-only side surfaces. Use their residual and blocker
+fields as repair queues rather than approval or adoption gates.
+
 For GitHub Actions, see `docs/integrations/github-actions.md` and
 `examples/github_action_agent_output_check/README.md` for a read-only,
 artifact-only AI agent output checker workflow built around `pic agent intake`.

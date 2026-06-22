@@ -101,6 +101,11 @@ def test_manifest_and_schema_index_expose_deployment_surfaces() -> None:
         "operator-adoption-sidecar",
         "packet-exchange-sidecar",
         "phase-dashboard-sidecar",
+        "phase-ecology-lab",
+        "bit-inversion-engine",
+        "sqot-controller",
+        "alt-ecpt-lift",
+        "trc-trace-adapter",
     ]
     manifest = json.loads((ROOT / "agent-manifest.json").read_text(encoding="utf-8"))
     schema_index = json.loads((ROOT / "schemas" / "index.json").read_text(encoding="utf-8"))

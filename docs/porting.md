@@ -92,6 +92,22 @@ Recommended connector behavior:
   `--no-allow-live-connectors` or `allow_live_connectors=false` is the opt-out, and external
   intake remains candidate-only until downstream verifier, identity, nonce, rollback, semantic
   edge, and residual policies pass.
+- For v0.5.0 Phase Ecology Lab ports, implement `EffectivePacketGraph`,
+  `PhaseWindowObservation`, `AutocatalyticClosureReport`,
+  `ExecutionAvailablePathReport`, `ASIProxyThresholdStatus`,
+  `CollectivePhaseCertificateCandidate`, `BottleneckInversionReport`,
+  `QueueOccupationReport`, `AltEcptLiftReport`, and `TypedAgentTrace` as
+  diagnostic wire contracts. These records must remain JSON-first,
+  non-executing, and `settled=false` unless a scoped finite verifier route
+  explicitly settles the relevant obligations.
+- Treat the local Phase Lab SQLite store as a reference persistence adapter, not
+  a normative storage contract. Ports may use files, embedded databases, or
+  service storage if the exported JSON bundle preserves event IDs, window IDs,
+  source hashes, residual ledgers, and safety invariants.
+- Keep BIT, SQOT, ALT lift, and TRC trace adapters loosely coupled. A port may
+  swap graph algorithms, queue diagnostics, trace ingestion, or persistence
+  adapters as long as schema fields, candidate-only semantics, and residual
+  blockers remain stable.
 
 ## Provenance And SBOM Ports
 

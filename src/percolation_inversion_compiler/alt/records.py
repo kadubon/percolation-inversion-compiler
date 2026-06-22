@@ -583,3 +583,103 @@ class ALTKernelTransitionReport(BaseModel):
     settled: bool = False
     residual_ledger: Ledger = Field(default_factory=Ledger)
     reasons: list[str] = Field(default_factory=list)
+
+
+class ReceiverLiquidityLift(BaseModel):
+    """Receiver-context contribution from ALT abstraction liquidity."""
+
+    lift_id: str
+    packet_id: str = ""
+    receiver_context_id: str = ""
+    receiver_context_present: bool = False
+    improves_receiver_context: bool = False
+    evidence_refs: list[str] = Field(default_factory=list)
+    blockers: list[str] = Field(default_factory=list)
+    accepted: bool = False
+    settled: bool = False
+
+
+class CrossContextTransferWitness(BaseModel):
+    """Witness that ALT capital transfers across declared receiver contexts."""
+
+    witness_id: str
+    source_context: str = ""
+    target_context: str = ""
+    transfer_supported: bool = False
+    evidence_refs: list[str] = Field(default_factory=list)
+    residuals_preserved: bool = True
+    settled: bool = False
+
+
+class DownstreamSearchCostDelta(BaseModel):
+    """Finite downstream search-cost delta claimed by an ALT token."""
+
+    delta_id: str
+    baseline_cost: float = 0.0
+    candidate_cost: float = 0.0
+    lower_bound_reduction: float = 0.0
+    evidence_refs: list[str] = Field(default_factory=list)
+    accepted: bool = False
+    settled: bool = False
+
+
+class CapitalToPathContribution(BaseModel):
+    """Contribution from certified abstraction capital to execution path density."""
+
+    contribution_id: str
+    packet_id: str = ""
+    graph_id: str = ""
+    path_ids: list[str] = Field(default_factory=list)
+    increases_execution_available_path_density: bool = False
+    accepted: bool = False
+    settled: bool = False
+    reasons: list[str] = Field(default_factory=list)
+
+
+class LiquidityToClosureContribution(BaseModel):
+    """Contribution from ALT liquidity to autocatalytic closure support."""
+
+    contribution_id: str
+    packet_id: str = ""
+    graph_id: str = ""
+    closure_witness_ids: list[str] = Field(default_factory=list)
+    supports_closure: bool = False
+    accepted: bool = False
+    settled: bool = False
+    reasons: list[str] = Field(default_factory=list)
+
+
+class AltLiftBlocker(BaseModel):
+    """Reason an ALT artifact did not lift into ECPT phase components."""
+
+    blocker_id: str
+    packet_id: str = ""
+    blocker_type: str
+    residual_preserved: bool = True
+    remediation: str = ""
+
+
+class AltEcptLiftReport(BaseModel):
+    """ALT-to-ECPT lift report for protocol-relative phase components."""
+
+    report_id: str = "alt-ecpt-lift"
+    graph_id: str = ""
+    receiver_liquidity_lifts: list[ReceiverLiquidityLift] = Field(default_factory=list)
+    cross_context_transfer_witnesses: list[CrossContextTransferWitness] = Field(
+        default_factory=list
+    )
+    downstream_search_cost_deltas: list[DownstreamSearchCostDelta] = Field(default_factory=list)
+    capital_to_path_contributions: list[CapitalToPathContribution] = Field(default_factory=list)
+    liquidity_to_closure_contributions: list[LiquidityToClosureContribution] = Field(
+        default_factory=list
+    )
+    affected_ecpt_components: list[str] = Field(default_factory=list)
+    blockers: list[AltLiftBlocker] = Field(default_factory=list)
+    diagnostic_only_lift_failure: bool = True
+    protocol_relative_only: bool = True
+    proves_real_asi: bool = False
+    accepted: bool = False
+    workflow_usable: bool = True
+    operationally_usable: bool = False
+    settled: bool = False
+    reasons: list[str] = Field(default_factory=list)

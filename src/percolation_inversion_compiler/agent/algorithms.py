@@ -6,6 +6,7 @@ import hashlib
 import importlib.util
 import os
 
+from percolation_inversion_compiler import __version__
 from percolation_inversion_compiler.acceleration import (
     PhaseAccelerationPlan,
     PhaseAccelerationRequest,
@@ -115,8 +116,18 @@ def pip_core_commands(profile: str = "development") -> list[str]:
         f"pic-demo/runtime_step_input.json --profile {profile}",
         f"pic phase benchmark-suite --profile {profile} --format json",
         f"pic phase dashboard --profile {profile} --format json",
+        "pic phase lab init --output-dir pic-demo/phase-lab",
+        "pic phase lab ingest --store pic-demo/phase-lab "
+        "--report pic-demo/phase_lab_runtime_report.json",
+        "pic phase lab observe --store pic-demo/phase-lab --window latest",
+        "pic phase lab graph --store pic-demo/phase-lab",
+        "pic phase lab closure --store pic-demo/phase-lab",
+        "pic phase lab executable-paths --store pic-demo/phase-lab",
+        "pic phase lab certify --store pic-demo/phase-lab "
+        "--threshold pic-demo/phase_lab_threshold.json",
         "pic packet inspect --packet pic-demo/packet_envelope.json",
-        "pic packet merge --packets pic-demo/packet*.json --output pic-demo/merged-packets.json",
+        "pic packet merge --packets pic-demo/packet_envelope.json "
+        "--output pic-demo/merged-packets.json",
         "pic packet lineage --packet pic-demo/merged-packets.json",
         "pic phase observe --reports pic-demo/phase_dashboard.json "
         "--output pic-demo/observation.json",
@@ -147,6 +158,16 @@ def source_checkout_commands(profile: str = "development") -> list[str]:
         "uv run pic ecology bridge-runtime --report "
         "examples/agent_network/general_intake_report.example.json",
         "uv run pic alt admit --packet examples/alt/admission_packet.json",
+        "uv run pic ecology effective-graph --reports examples/phase_lab/runtime_report_1.json",
+        "uv run pic phase lab init --output-dir pic-phase-lab",
+        "uv run pic phase lab ingest --store pic-phase-lab "
+        "--report examples/phase_lab/runtime_report_1.json",
+        "uv run pic phase lab graph --store pic-phase-lab",
+        "uv run pic bit diagnose --graph examples/phase_lab/effective_graph.example.json",
+        "uv run pic sqot diagnose-queue --graph examples/phase_lab/effective_graph.example.json",
+        "uv run pic alt ecpt-lift --packets examples/packet_exchange/packet_envelope.example.json "
+        "--graph examples/phase_lab/effective_graph.example.json",
+        "uv run pic trc trace-adapter --input examples/trc_adapter/tool_trace_input.example.json",
         "uv run pic agent message contract --message examples/agent_network/agent_message.json",
         "uv run pic phase plan --request "
         "examples/phase_acceleration/phase_acceleration_request.json "
@@ -303,6 +324,23 @@ def agent_manifest_payload() -> dict[str, object]:
             "ALTKernelTransitionReport",
             "FoundryControlDashboard",
             "CertifiedAbstractionCapital",
+            "PhaseLabStoreManifest",
+            "PhaseLabIngestReport",
+            "PhaseLabExportManifest",
+            "EffectivePacketGraph",
+            "PhaseWindowObservation",
+            "PhaseWindowComparison",
+            "AutocatalyticClosureReport",
+            "AutocatalyticClosureWitness",
+            "ExecutionAvailablePathReport",
+            "ExecutionAvailableHyperpath",
+            "ASIProxyThreshold",
+            "ASIProxyThresholdStatus",
+            "CollectivePhaseCertificateCandidate",
+            "BottleneckInversionReport",
+            "QueueOccupationReport",
+            "AltEcptLiftReport",
+            "TypedAgentTrace",
         ],
         "machine_contract": {
             "arbitrary_shell_execution": False,
@@ -334,6 +372,9 @@ def agent_manifest_payload() -> dict[str, object]:
             "operator_adoption_sidecar_optional": True,
             "sidecar_absence_is_not_failure": True,
             "benchmark_dashboard_and_packet_exchange_are_diagnostic_only": True,
+            "phase_lab_diagnostics_are_non_executing": True,
+            "phase_lab_outputs_are_settled_false_by_default": True,
+            "bit_sqot_alt_lift_trc_outputs_are_diagnostic_only": True,
             "production_requires_identity_context": True,
             "redirect_chain_urls_are_policy_validated": True,
             "residuals_are_not_failures": True,
@@ -399,6 +440,11 @@ def agent_manifest_payload() -> dict[str, object]:
             "operator-adoption-sidecar",
             "packet-exchange-sidecar",
             "phase-dashboard-sidecar",
+            "phase-ecology-lab",
+            "bit-inversion-engine",
+            "sqot-controller",
+            "alt-ecpt-lift",
+            "trc-trace-adapter",
         ],
         "clone_url": "https://github.com/kadubon/percolation-inversion-compiler.git",
         "clone_recommended_for_full_use": False,
@@ -429,6 +475,7 @@ def agent_manifest_payload() -> dict[str, object]:
                 "pic runtime step with bootstrapped demo files",
                 "pic phase benchmark-suite",
                 "pic phase dashboard",
+                "pic phase lab with bootstrapped Phase Lab files",
                 "pic audit canonical-readiness",
                 "pic packet inspect/merge/lineage with bootstrapped packet files",
                 "pic snapshot list/show",
@@ -469,6 +516,11 @@ def agent_manifest_payload() -> dict[str, object]:
             "ALT reusable abstraction capital foundry dashboards",
             "ALT negative-liquidity deprecation and resurrection",
             "ALT-CARA protocol-relative acceleration certification",
+            "Phase Ecology Lab windowed packet diagnostics",
+            "BIT bottleneck inversion diagnostics",
+            "SQOT queue occupation diagnostics",
+            "ALT-to-ECPT lift diagnostics",
+            "TRC typed trace adapters",
             "CLI AI agent output checking",
             "Python SDK agent runtime embedding",
             "read-only GitHub Actions audit artifact generation",
@@ -489,6 +541,13 @@ def agent_manifest_payload() -> dict[str, object]:
             "docs/agent-to-operator-request.md",
             "docs/integrations/packet-exchange.md",
             "docs/phase-dashboard.md",
+            "docs/phase-ecology-lab.md",
+            "docs/effective-packet-graph.md",
+            "docs/bit-inversion-engine.md",
+            "docs/sqot-queue-sovereignty.md",
+            "docs/alt-ecpt-lift.md",
+            "docs/trc-trace-adapter.md",
+            "docs/threshold-certificates.md",
             "docs/benchmarks/phase-benchmark-suite.md",
             "docs/canonical-implementation-readiness.md",
             "docs/pypi-distribution.md",
@@ -509,6 +568,7 @@ def agent_manifest_payload() -> dict[str, object]:
             "agent-to-agent packet exchange",
             "live metadata ingest",
             "phase acceleration planning",
+            "phase ecology lab diagnostics",
             "verify evidence/routes",
             "promote packets",
             "run/store loop",
@@ -551,6 +611,15 @@ def agent_manifest_payload() -> dict[str, object]:
             "pic adoption packet --format markdown",
             "pic phase benchmark-suite --profile development --format json",
             "pic phase dashboard --profile development --format json",
+            "pic phase lab init --output-dir pic-demo/phase-lab",
+            "pic phase lab ingest --store pic-demo/phase-lab "
+            "--report pic-demo/phase_lab_runtime_report.json",
+            "pic phase lab observe --store pic-demo/phase-lab --window latest",
+            "pic phase lab graph --store pic-demo/phase-lab",
+            "pic phase lab closure --store pic-demo/phase-lab",
+            "pic phase lab executable-paths --store pic-demo/phase-lab",
+            "pic phase lab certify --store pic-demo/phase-lab "
+            "--threshold pic-demo/phase_lab_threshold.json",
             "pic audit canonical-readiness --profile development --format json",
             "pic schema --type OperatorAdoptionPacket",
             "pic schema --type CanonicalImplementationReadinessReport",
@@ -565,6 +634,12 @@ def agent_manifest_payload() -> dict[str, object]:
             "uv run pic ecology policy explain --profile controlled_web",
             "uv run pic ecology bridge-runtime --report general-intake-report.json",
             "uv run pic alt admit --packet examples/alt/admission_packet.json",
+            "uv run pic ecology effective-graph --reports examples/phase_lab/runtime_report_1.json",
+            "uv run pic bit diagnose --graph examples/phase_lab/effective_graph.example.json",
+            "uv run pic sqot diagnose-queue --graph "
+            "examples/phase_lab/effective_graph.example.json",
+            "uv run pic trc trace-adapter --input "
+            "examples/trc_adapter/tool_trace_input.example.json",
             _CMD_ALT_NEGATIVE,
             _CMD_ALT_REFRESH_BASELINE,
             _CMD_ALT_CHECK_CARA,
@@ -590,7 +665,7 @@ def agent_manifest_payload() -> dict[str, object]:
                 "--output identity-context.json"
             ),
         ],
-        "version": "0.4.4",
+        "version": __version__,
     }
 
 
@@ -649,9 +724,9 @@ def build_agent_autonomy_audit(profile: str = "development") -> AgentAutonomyAud
         ),
         _invocation(
             "sidecar-packet-merge",
-            "pic packet merge --packets pic-demo/packet*.json "
+            "pic packet merge --packets pic-demo/packet_envelope.json "
             "--output pic-demo/merged-packets.json",
-            "Merge bootstrapped packet sidecars with Python-side glob expansion.",
+            "Merge bootstrapped packet sidecars without shell glob expansion.",
         ),
         _invocation(
             "agent-full-install",
@@ -673,7 +748,7 @@ def build_agent_autonomy_audit(profile: str = "development") -> AgentAutonomyAud
             "operator adoption sidecars are optional documentation",
             "packet exchange, dashboard, and benchmark sidecars are diagnostic-only",
             "canonical readiness is available from pip through bundled snapshot metadata",
-            "argv arrays avoid shell-specific quoting and glob expansion",
+            "argv arrays avoid shell-specific quoting and do not require shell glob expansion",
             "agent-full extra exposes connector, identity, and service dependencies via pip",
         ],
         remaining_friction_points=[

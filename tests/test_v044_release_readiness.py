@@ -15,7 +15,7 @@ ROOT = Path(__file__).resolve().parents[1]
 runner = CliRunner()
 
 
-def test_v044_version_metadata_is_consistent() -> None:
+def test_v050_version_metadata_is_consistent() -> None:
     pyproject = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
     citation = yaml.safe_load((ROOT / "CITATION.cff").read_text(encoding="utf-8"))
     init_text = (ROOT / "src/percolation_inversion_compiler/__init__.py").read_text(
@@ -23,10 +23,10 @@ def test_v044_version_metadata_is_consistent() -> None:
     )
     changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
 
-    assert pyproject["project"]["version"] == "0.4.4"
-    assert citation["version"] == "0.4.4"
-    assert re.search(r"^__version__\s*=\s*[\"']0\.4\.4[\"']", init_text, re.MULTILINE)
-    assert re.search(r"^## v0\.4\.4 - 2026-06-20$", changelog, re.MULTILINE)
+    assert pyproject["project"]["version"] == "0.5.0"
+    assert citation["version"] == "0.5.0"
+    assert re.search(r"^__version__\s*=\s*[\"']0\.5\.0[\"']", init_text, re.MULTILINE)
+    assert re.search(r"^## v0\.5\.0 - 2026-06-22$", changelog, re.MULTILINE)
 
 
 def test_readme_keeps_core_commands_before_optional_sidecars() -> None:

@@ -1,5 +1,32 @@
 # Changelog
 
+## v0.5.0 - 2026-06-22
+
+- Adds the Phase Ecology Lab: local store initialization, inert JSON/YAML
+  ingest, window listing, observation, effective packet graph construction,
+  closure diagnostics, execution-available path diagnostics, threshold status,
+  certificate candidates, window comparison, and sanitized export.
+- Adds Phase Lab schema exports and SDK surfaces for `EffectivePacketGraph`,
+  `PhaseWindowObservation`, `AutocatalyticClosureWitness`,
+  `ExecutionAvailableHyperpath`, `ASIProxyThresholdStatus`, and
+  `CollectivePhaseCertificateCandidate`.
+- Adds the BIT inversion engine for diagnostic bottleneck classes, minimal
+  enabling conditions, inversion candidates, inversion certificates, activation
+  gain estimates, rollback plans, and baseline comparison.
+- Adds the SQOT controller for queue occupation, salience obstruction,
+  diagnostic reserve, quarantine decisions, rebalance plans, salience
+  sovereignty certificates, and verification queue pressure.
+- Extends ALT with ECPT lift diagnostics for receiver liquidity lift,
+  cross-context transfer witnesses, downstream search-cost deltas,
+  capital-to-path contribution, and liquidity-to-closure contribution.
+- Extends TRC with typed agent trace, typed tool-call trace, action boundary,
+  trace normal form, tolerance ledger, frontier debt, and adapter reports.
+- Adds packaged Phase Lab demo assets, bootstrap commands, examples, docs, and
+  artifact guards so bare pip installs can exercise the new diagnostics.
+- Preserves v0.4.4 compact output shape and safety semantics: new v0.5.0
+  surfaces are diagnostic-only, non-executing, protocol-relative, residual
+  preserving, and `settled=false` by default.
+
 ## v0.4.4 - 2026-06-20
 
 - Adds optional adoption sidecars for operator-facing packets and agent-to-operator
