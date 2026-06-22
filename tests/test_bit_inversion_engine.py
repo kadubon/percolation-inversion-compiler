@@ -24,4 +24,3 @@ def test_bit_inversion_candidates_are_recommendation_only() -> None:
     assert candidate.recommendation_only is True
     assert candidate.mutates_repositories_shells_networks_or_models is False
     assert candidate.settled is False
-

@@ -36,4 +36,3 @@ def test_phase_lab_store_ingests_local_reports_without_settlement(tmp_path: Path
     assert observation.settled is False
     assert graph.accepted_packet_capital == 1
     assert graph.non_contributing_volume == 0
-

@@ -1169,9 +1169,7 @@ def verify_receiver_liquidity_lift(
     )
     context_present = bool(receiver_context)
     accepted = (
-        _packet_is_accepted_alt_capital(packet_data)
-        and context_present
-        and bool(evidence_refs)
+        _packet_is_accepted_alt_capital(packet_data) and context_present and bool(evidence_refs)
     )
     blockers: list[str] = []
     if not _packet_is_accepted_alt_capital(packet_data):

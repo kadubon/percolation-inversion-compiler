@@ -52,9 +52,7 @@ class PhaseLabStore:
             )
         with self._connect() as connection:
             self._create_schema(connection)
-            event_count = int(
-                connection.execute("select count(*) from events").fetchone()[0]
-            )
+            event_count = int(connection.execute("select count(*) from events").fetchone()[0])
             windows = self.list_windows()
         latest = windows[-1].window_id if windows else None
         return PhaseLabStoreManifest(

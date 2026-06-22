@@ -24,4 +24,3 @@ def test_raw_candidate_volume_does_not_increase_positive_phase_components() -> N
     assert report.graph.non_contributing_volume == 5
     assert report.raw_volume_positive_contribution == 0
     assert report.settled is False
-

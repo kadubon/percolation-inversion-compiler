@@ -26,4 +26,3 @@ def test_phase_certificate_abstains_when_evidence_is_missing() -> None:
     assert candidate.certificate_status == "abstain"
     assert candidate.proves_real_asi is False
     assert candidate.settled is False
-

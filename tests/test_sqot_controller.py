@@ -28,4 +28,3 @@ def test_sqot_rebalance_plan_does_not_execute_or_delete() -> None:
     assert plan.executes_actions is False
     assert plan.deletes_packets is False
     assert all(not decision.applied for decision in plan.quarantine_decisions)
-

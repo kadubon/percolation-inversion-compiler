@@ -43,13 +43,13 @@ def test_phase_observe_expands_literal_glob_patterns(tmp_path: Path) -> None:
     result = runner.invoke(
         app,
         [
-                "phase",
-                "observe",
-                "--reports",
-                str(target / "phase_dashboard*.json"),
-                "--output",
-                str(output),
-            ],
+            "phase",
+            "observe",
+            "--reports",
+            str(target / "phase_dashboard*.json"),
+            "--output",
+            str(output),
+        ],
     )
 
     assert result.exit_code == 0

@@ -21,4 +21,3 @@ def test_trc_trace_adapter_treats_tool_calls_as_data() -> None:
     assert report.executed_action_count == 0
     assert report.proves_physical_truth is False
     assert report.settled is False
-

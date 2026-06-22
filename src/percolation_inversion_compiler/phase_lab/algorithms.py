@@ -391,11 +391,7 @@ def compare_phase_windows(
         ),
         "residual_debt": float(candidate.residual_debt - baseline.residual_debt),
     }
-    positive = [
-        key
-        for key, value in metrics.items()
-        if key != "residual_debt" and value > 0
-    ]
+    positive = [key for key, value in metrics.items() if key != "residual_debt" and value > 0]
     return PhaseWindowComparison(
         baseline_window_id=baseline.window.window_id,
         candidate_window_id=candidate.window.window_id,
@@ -469,12 +465,16 @@ def detect_autocatalytic_closure(graph: EffectivePacketGraph) -> AutocatalyticCl
                 )
             )
     status = "candidate" if witness_ids and not defects else "abstain"
-    abstentions = [] if witness_ids else [
-        ClosureAbstentionReason(
-            reason_id="closure-abstain:no-evidence-supported-cycle",
-            reason="closure requires evidence-supported accepted edges",
-        )
-    ]
+    abstentions = (
+        []
+        if witness_ids
+        else [
+            ClosureAbstentionReason(
+                reason_id="closure-abstain:no-evidence-supported-cycle",
+                reason="closure requires evidence-supported accepted edges",
+            )
+        ]
+    )
     candidate = ClosureCertificateCandidate(
         certificate_status=status,
         witness_ids=witness_ids,
@@ -782,9 +782,7 @@ def _node_from_event(event: PhaseLabEvent) -> EffectivePacketNode:
         blockers=blockers,
     )
     status = (
-        "accepted"
-        if eligible
-        else ("candidate-only" if event.candidate_only else "diagnostic")
+        "accepted" if eligible else ("candidate-only" if event.candidate_only else "diagnostic")
     )
     contribution = PacketContributionStatus(
         status=status,
@@ -958,8 +956,7 @@ def _unsafe_reasons(
     text = json.dumps(payload, sort_keys=True, default=str).lower()
     reasons = []
     if any(
-        marker in text
-        for marker in ("rm -rf", "powershell", "cmd.exe", "bash ", "pip install")
+        marker in text for marker in ("rm -rf", "powershell", "cmd.exe", "bash ", "pip install")
     ):
         reasons.append("embedded command-like text remains inert")
     if missing:

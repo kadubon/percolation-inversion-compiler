@@ -107,10 +107,7 @@ def diagnose_bottlenecks(graph: EffectivePacketGraph) -> BottleneckInversionRepo
 def invert_bottlenecks(report: BottleneckInversionReport) -> BottleneckInversionReport:
     """Build recommendation-only inversion candidates for diagnosed bottlenecks."""
 
-    candidates = [
-        _candidate_for_bottleneck(bottleneck)
-        for bottleneck in report.bottlenecks
-    ]
+    candidates = [_candidate_for_bottleneck(bottleneck) for bottleneck in report.bottlenecks]
     return report.model_copy(
         update={
             "inversion_candidates": candidates,

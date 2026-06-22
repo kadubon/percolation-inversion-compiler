@@ -32,4 +32,3 @@ def test_closure_abstains_without_evidence_supported_edge() -> None:
     assert report.certificate_candidate.certificate_status == "abstain"
     assert report.closure_witnesses == []
     assert report.settled is False
-

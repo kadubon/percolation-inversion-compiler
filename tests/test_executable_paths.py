@@ -34,4 +34,3 @@ def test_execution_available_paths_do_not_grant_authority_or_execute() -> None:
     assert report.executed_path_count == 0
     assert report.paths[0].authority_status.grants_execution is False
     assert report.paths[0].not_executed is True
-

@@ -32,4 +32,3 @@ def test_candidate_only_external_reports_do_not_pass_thresholds() -> None:
     assert observation.effective_node_count == 0
     assert status.certificate_status == "abstain"
     assert status.settled is False
-

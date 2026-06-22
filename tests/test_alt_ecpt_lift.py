@@ -17,4 +17,3 @@ def test_alt_ecpt_lift_fails_closed_without_ecpt_component() -> None:
     assert report.diagnostic_only_lift_failure is True
     assert report.settled is False
     assert report.affected_ecpt_components == []
-
