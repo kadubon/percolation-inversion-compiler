@@ -56,32 +56,32 @@ jobs:
           uv run pic provenance verify --manifest "dist/percolation-inversion-compiler-${VERSION}.provenance.json"
 
       - name: Attest wheel
-        uses: actions/attest@59d89421af93a897026c735860bf21b6eb4f7b26 # v4
+        uses: actions/attest@a1948c3f048ba23858d222213b7c278aabede763 # v4
         with:
           subject-path: dist/percolation_inversion_compiler-${{ env.VERSION }}-py3-none-any.whl
 
       - name: Attest source distribution
-        uses: actions/attest@59d89421af93a897026c735860bf21b6eb4f7b26 # v4
+        uses: actions/attest@a1948c3f048ba23858d222213b7c278aabede763 # v4
         with:
           subject-path: dist/percolation_inversion_compiler-${{ env.VERSION }}.tar.gz
 
       - name: Attest schema bundle
-        uses: actions/attest@59d89421af93a897026c735860bf21b6eb4f7b26 # v4
+        uses: actions/attest@a1948c3f048ba23858d222213b7c278aabede763 # v4
         with:
           subject-path: dist/percolation-inversion-compiler-${{ env.VERSION }}.schemas.zip
 
       - name: Attest provenance manifest
-        uses: actions/attest@59d89421af93a897026c735860bf21b6eb4f7b26 # v4
+        uses: actions/attest@a1948c3f048ba23858d222213b7c278aabede763 # v4
         with:
           subject-path: dist/percolation-inversion-compiler-${{ env.VERSION }}.provenance.json
 
       - name: Attest PIC SBOM
-        uses: actions/attest@59d89421af93a897026c735860bf21b6eb4f7b26 # v4
+        uses: actions/attest@a1948c3f048ba23858d222213b7c278aabede763 # v4
         with:
           subject-path: dist/percolation-inversion-compiler-${{ env.VERSION }}.sbom.json
 
       - name: Attest CycloneDX SBOM
-        uses: actions/attest@59d89421af93a897026c735860bf21b6eb4f7b26 # v4
+        uses: actions/attest@a1948c3f048ba23858d222213b7c278aabede763 # v4
         with:
           subject-path: dist/percolation-inversion-compiler-${{ env.VERSION }}.cyclonedx.json
 
