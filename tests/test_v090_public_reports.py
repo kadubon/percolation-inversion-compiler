@@ -5,6 +5,7 @@ from pathlib import Path
 
 from typer.testing import CliRunner
 
+import percolation_inversion_compiler.interop as public_interop
 from percolation_inversion_compiler.cli import app
 from percolation_inversion_compiler.interop import (
     cache_invalidation_report,
@@ -195,3 +196,518 @@ def test_performance_report_keeps_local_only_non_claims() -> None:
     assert report["jsonl_lines_processed"] == 3
     assert report["settled"] is False
     assert "performance_report_is_local_diagnostic" in report["non_claims"]
+
+
+def test_v090_public_report_matrix_keeps_unsettled_contract() -> None:
+    packet = {
+        "packet_id": "packet:v090",
+        "claim": "candidate claim",
+        "construct_definition": "construct",
+        "construct_evidence": {"witness": True},
+        "externality_hazard_ledger": {"hazard": 0},
+        "hazard_ledger": {"hazard": 0},
+        "measurement_protocol": "protocol",
+        "mission_bridge": "bridge",
+        "mission_law": {"law": "mission"},
+        "negative_controls": ["control"],
+        "target_scope": "target",
+    }
+    cost = {
+        "cost_id": "cost:v090",
+        "cost_coordinates": ["latency"],
+        "irreversible_loss_absent": True,
+        "scalarization": "max",
+        "upper_bounds": {"latency": 10},
+    }
+    token = {
+        "token_id": "token:v090",
+        "counterfactual_contrast": "contrast",
+        "cost_ledger": {"latency": 1},
+        "dependency_graph": ["dep"],
+        "deprecation_conditions": ["stale"],
+        "failure_contract": "fail closed",
+        "interface": {"input": "trace"},
+        "leakage_exclusion": True,
+        "lineage_closed": True,
+        "mechanism": "mechanism",
+        "parents": ["trace:v090"],
+        "provenance": {"source": "trace"},
+        "scope": "target",
+        "verifier_binding": "verifier",
+    }
+    trace = {
+        "trace_id": "trace:v090",
+        "clock": "logical",
+        "events": [{"event_id": "e1"}],
+        "provenance": {"source": "fixture"},
+        "resource_flows": [
+            {
+                "flow_id": "flow:v090",
+                "trace_index": 1,
+                "rollback_compensation_free": False,
+            }
+        ],
+        "steps": [{"step": "observe"}],
+    }
+    certificates = [
+        {
+            "certificate_id": "cert:v090",
+            "finite_witness": True,
+            "gain": 2,
+            "cost": 1,
+            "unit_ledger": {"unit": "packet"},
+        }
+    ]
+    queue_state = {
+        "state_id": "queue:v090",
+        "audit_fuel": 3,
+        "checker_thresholds": {"max_cost": 10},
+        "diagnostic_reserve": 1,
+        "mandatory_obligations": ["verify"],
+        "mechanism_compatibility_status": "accepted",
+        "root_checker_integrity": True,
+        "semantic_egress_status": "accepted",
+        "verification_cost_status": "in_band",
+    }
+    resource_state = {
+        "state_id": "resource:v090",
+        "conversions": [
+            {
+                "conversion_id": "conv:v090",
+                "from": "tokens",
+                "to": "checks",
+                "loss": 0.1,
+                "meta_occupation_charge": 1,
+                "rate": 2,
+            }
+        ],
+        "diagnostic_reserve": 2,
+        "diagnostic_reserve_lower_bound": 1,
+        "diagnostic_reserve_upper_bound": 3,
+        "modalities": {"tokens": 2, "checks": 1},
+    }
+
+    cases = [
+        ("token_lineage_report", (token,), {}),
+        ("token_interface_standard_report", (token, {"required_fields": ["token_id"]}), {}),
+        ("trace_instrumentation_contract_report", (trace, {"requires_clock": True}), {}),
+        (
+            "trace_sufficiency_report",
+            (
+                trace,
+                {
+                    "estimand_id": "estimand:v090",
+                    "identification_assumptions": ["finite"],
+                    "negative_controls": ["nc"],
+                    "target_quantity": "effect",
+                },
+            ),
+            {},
+        ),
+        (
+            "mechanism_ablation_report",
+            (
+                token,
+                {
+                    "control_condition": "control",
+                    "confound_charge": 0,
+                    "metric": "gain",
+                    "proxy_charge": 0,
+                    "surface_charge": 0,
+                    "transport_charge": 0,
+                    "treatment_condition": "treatment",
+                    "verifier_binding": "verifier",
+                },
+            ),
+            {},
+        ),
+        (
+            "opportunity_measure_report",
+            (
+                {
+                    "target_id": "target",
+                    "mission_law": {},
+                    "population": "p",
+                    "sampling_frame": "f",
+                    "cost_model": {},
+                },
+            ),
+            {},
+        ),
+        ("fcu_check_report", (cost,), {}),
+        ("construct_validity_report", (packet,), {}),
+        (
+            "lifecycle_cost_report",
+            (
+                {
+                    **packet,
+                    "lifecycle_cost_ledger": {
+                        "formation": 1,
+                        "deployment": 1,
+                        "validation": 1,
+                        "maintenance": 1,
+                        "depreciation": 1,
+                    },
+                    "telemetry_contract": {},
+                },
+            ),
+            {},
+        ),
+        (
+            "telemetry_check_report",
+            (
+                {
+                    "telemetry_id": "telemetry:v090",
+                    "events": [],
+                    "clock": "logical",
+                    "resource_use": [],
+                },
+                {},
+            ),
+            {},
+        ),
+        (
+            "dynamic_risk_report",
+            (
+                {
+                    "ledger_id": "risk:v090",
+                    "risk_coordinates": ["r"],
+                    "update_rule": "bounded",
+                    "hazard_charge_upper_bound": 1,
+                },
+            ),
+            {},
+        ),
+        (
+            "stopped_sheaf_report",
+            (
+                [
+                    {
+                        "evidence_id": "e1",
+                        "stopped": True,
+                        "resource_event": {},
+                        "closure_witness": {},
+                    }
+                ],
+            ),
+            {},
+        ),
+        (
+            "confidence_sequence_report",
+            ([{"evidence_id": "e1", "predictable": True, "alpha": 0.05}],),
+            {},
+        ),
+        (
+            "boundary_quotient_report",
+            (
+                {
+                    "quotient_id": "q",
+                    "target_id": "t",
+                    "boundary_error_ledger": {},
+                    "coupling_error_ledger": {},
+                    "context": {},
+                    "tolerance": 0.1,
+                },
+                {"target_id": "t"},
+            ),
+            {},
+        ),
+        (
+            "atlas_check_report",
+            ({"atlas_id": "atlas", "strata": [], "transition_maps": [], "boundary_ledger": {}},),
+            {},
+        ),
+        (
+            "activation_cache_report",
+            (
+                {
+                    "state_id": "cache",
+                    "activation_mode": "direct",
+                    "dependency_hash": "h",
+                    "invalidation_keys": ["k"],
+                },
+            ),
+            {},
+        ),
+        (
+            "queue_morphism_report",
+            (
+                {"diagnostic_reserve": 1, "rollback_priority": 2, "blocking_residuals": 0},
+                {"diagnostic_reserve": 1, "rollback_priority": 2, "blocking_residuals": 0},
+            ),
+            {},
+        ),
+        ("exchange_tensor_report", (resource_state,), {}),
+        ("diagnostic_reserve_report", (resource_state,), {}),
+        (
+            "protocol_mutation_report",
+            ({"state_id": "protocol", "protocol_mutated": True, "quarantined": True},),
+            {},
+        ),
+        (
+            "checker_cost_report",
+            (
+                {
+                    "state_id": "checker",
+                    "checker_cost": 1,
+                    "cost_budget": 2,
+                    "verification_queue": [],
+                },
+            ),
+            {},
+        ),
+        (
+            "trc_observation_window_report",
+            (
+                {
+                    "window_id": "window",
+                    "observer": "observer",
+                    "start": 0,
+                    "end": 1,
+                    "relative_scope": "scope",
+                    "verifier": "verifier",
+                },
+            ),
+            {},
+        ),
+        (
+            "lifecycle_scheduler_report",
+            ({"certificates": [{"certificate_id": "c1", "lifecycle_status": "stale"}]},),
+            {},
+        ),
+        (
+            "tolerance_scheduler_report",
+            ({"certificates": [{"certificate_id": "c1", "tolerance_status": "stale"}]},),
+            {},
+        ),
+        (
+            "efficiency_archive_report",
+            ({"frontier_id": "frontier", "frontier": [{"gain": 2, "cost": 1}]},),
+            {},
+        ),
+        (
+            "mechanism_cube_report",
+            (
+                {
+                    "cube_id": "cube",
+                    "direct_supply_charge": 0,
+                    "observation_drift_charge": 0,
+                    "logging_drift_charge": 0,
+                    "factorization_error_charge": 0,
+                    "rank_failure_charge": 0,
+                    "proxy_bridge_charge": 0,
+                },
+            ),
+            {},
+        ),
+        (
+            "release_interval_report",
+            (
+                {
+                    "program_id": "program",
+                    "unit_ledger": {},
+                    "primal_witness": {},
+                    "dual_witness": {},
+                    "solver_gap": 0,
+                },
+            ),
+            {},
+        ),
+        (
+            "martingale_partition_report",
+            ({"audit_id": "audit", "partition": [], "filtration": [], "deficiency_bound": 0},),
+            {},
+        ),
+        (
+            "anchor_transfer_report",
+            (
+                {
+                    "certificate_id": "anchor",
+                    "source_anchor": "s",
+                    "target_anchor": "t",
+                    "cross_validation": {},
+                    "transfer_error_bound": 0,
+                },
+            ),
+            {},
+        ),
+        ("performance_bench_report", ({"cache_entries": 1},), {}),
+        ("cache_status_report", (), {}),
+        ("cache_rebuild_report", (), {}),
+        ("sqot_protocol_integrity_report", (queue_state,), {}),
+        ("sqot_resource_exchange_report", (resource_state,), {}),
+        (
+            "probe_stop_report",
+            (
+                {
+                    "probe_id": "probe",
+                    "diagnostic_reserve": 2,
+                    "probe_cost": 1,
+                    "meta_occupation_band": 2,
+                    "meta_occupation_charge": 1,
+                },
+            ),
+            {},
+        ),
+        ("bit_mec_frontier_report", (certificates,), {}),
+        ("bit_certificate_compiler_report", (certificates,), {}),
+        ("bit_unit_compatibility_report", (certificates,), {}),
+        (
+            "cegar_simulation_barrier_report",
+            (
+                {
+                    "barrier_id": "barrier",
+                    "finite_transition_table": [],
+                    "refinement_record": {},
+                    "bad_state_bound_certified": True,
+                },
+            ),
+            {},
+        ),
+        (
+            "dynamic_regime_acceleration_report",
+            (
+                {
+                    "surface_id": "surface",
+                    "dynamic_baseline_resource_matched": True,
+                    "positivity_floor": 0.1,
+                    "censoring_charge": 0,
+                    "competing_stop_charge": 0,
+                    "truncation_charge": 0,
+                    "arrival_gain_lower_bound": 0.2,
+                },
+            ),
+            {},
+        ),
+    ]
+
+    for name, args, kwargs in cases:
+        report = getattr(public_interop, name)(*args, **kwargs)
+        assert report["ok"] is True, name
+        assert report["settled"] is False, name
+        assert report["schema_version"].startswith("pic."), name
+        assert any("not" in item or "is_" in item for item in report["non_claims"]), name
+
+
+def test_v090_public_report_residual_branches_are_fail_closed() -> None:
+    branch_reports = [
+        public_interop.token_lineage_report({"token_id": "token:orphan"}),
+        public_interop.token_dedup_report(
+            [
+                {"token_id": "token:a", "claim": "same mechanism with bounded proxy charge"},
+                {"token_id": "token:b", "claim": "same mechanism with bounded proxy charges"},
+            ]
+        ),
+        public_interop.trace_instrumentation_contract_report(
+            {"trace_id": "trace:no-clock", "events": [{}]},
+            {"required_fields": ["trace_id", "events"], "requires_clock": True},
+        ),
+        public_interop.trace_sufficiency_report(
+            {"trace_id": "trace:thin"},
+            {"estimand_id": "estimand", "target_quantity": "effect"},
+        ),
+        public_interop.mechanism_ablation_report(
+            {"token_id": "token:thin"},
+            {"control_condition": "c", "treatment_condition": "t", "metric": "gain"},
+        ),
+        public_interop.mission_validity_report(
+            {
+                "packet_id": "packet:hazard",
+                "construct_evidence": {},
+                "externality_hazards": ["spillover"],
+                "hazard_ledger": {},
+                "mission_law": {},
+                "target_scope": "target",
+            }
+        ),
+        public_interop.construct_validity_report(
+            {
+                "packet_id": "packet:construct",
+                "aggregate_benchmark_success": True,
+                "construct_definition": "construct",
+                "measurement_protocol": "protocol",
+                "negative_controls": [],
+            }
+        ),
+        public_interop.telemetry_check_report(
+            {"telemetry_id": "telemetry:failed", "status": "failed", "events": [], "clock": "t"},
+            {"required_fields": ["events", "clock"]},
+        ),
+        public_interop.stopped_sheaf_report([{"evidence_id": "e:open"}]),
+        public_interop.confidence_sequence_report([{"evidence_id": "e:unpredictable"}]),
+        public_interop.ecpt_quotient_report([], profile="unknown-profile"),
+        public_interop.boundary_quotient_report(
+            {
+                "quotient_id": "quotient:mismatch",
+                "boundary_error_ledger": {},
+                "context": {},
+                "coupling_error_ledger": {},
+                "target_id": "source-target",
+                "tolerance": 0.1,
+            },
+            {"target_id": "destination-target"},
+        ),
+        public_interop.activation_cache_report(
+            {
+                "state_id": "cache:sampler",
+                "activation_mode": "sampler",
+                "dependency_hash": "h",
+                "invalidation_keys": ["k"],
+            }
+        ),
+        public_interop.activation_cache_report(
+            {
+                "state_id": "cache:factorized",
+                "activation_mode": "factorized",
+                "dependency_hash": "h",
+                "invalidation_keys": ["k"],
+            }
+        ),
+        public_interop.queue_morphism_report(
+            {
+                "blocking_residuals": 1,
+                "diagnostic_reserve": 1,
+                "rollback_priority": 1,
+            },
+            {
+                "blocking_residuals": 0,
+                "diagnostic_reserve": 2,
+                "rollback_priority": 3,
+            },
+        ),
+        public_interop.diagnostic_reserve_report(
+            {
+                "state_id": "reserve:outside",
+                "diagnostic_reserve": 5,
+                "diagnostic_reserve_lower_bound": 1,
+                "diagnostic_reserve_upper_bound": 3,
+            }
+        ),
+        public_interop.protocol_mutation_report(
+            {"state_id": "protocol:mutated", "protocol_mutated": True}
+        ),
+        public_interop.checker_cost_report(
+            {
+                "state_id": "checker:over",
+                "checker_cost": 5,
+                "cost_budget": 1,
+                "verification_queue": [],
+            }
+        ),
+        public_interop.trc_resource_flow_report({"trace_id": "trace:no-flow"}),
+        public_interop.efficiency_archive_report(
+            {"frontier_id": "frontier:risk", "promotes_risk_provisional": True}
+        ),
+        public_interop.unseen_frontier_report([]),
+    ]
+
+    blockers = {blocker for report in branch_reports for blocker in report.get("blockers", [])}
+
+    assert "lineage_origin_required" in blockers
+    assert "clock_required" in blockers
+    assert "support_or_negative_controls_required" in blockers
+    assert "externality_hazard_ledger_required" in blockers
+    assert "telemetry_failure_charge_required" in blockers
+    assert "target_profile_mismatch" in blockers
+    assert "diagnostic_reserve_above_band" not in blockers
+    assert all(report["settled"] is False for report in branch_reports)
