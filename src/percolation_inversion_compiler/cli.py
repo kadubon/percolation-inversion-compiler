@@ -168,14 +168,33 @@ from percolation_inversion_compiler.identity import (
     verify_agent_identity,
 )
 from percolation_inversion_compiler.interop import (
+    a2a_agent_card_report,
+    a2a_task_handoff_report,
+    activation_construction_report,
     alt_ecpt_bridge_report,
+    baseline_envelope_check,
+    bit_certificate_compiler_report,
+    bit_mec_frontier_report,
     bit_registry_report,
     bit_tasks_from_registry,
+    capital_witness_report,
     ccr_residuals_from_phase_plan,
     ccr_tasks_from_phase_plan,
+    cegar_simulation_barrier_report,
+    deployment_admissibility_report,
     diagnose_sqot_queue_state,
+    dynamic_regime_acceleration_report,
     jsonl_text,
+    mcp_tool_descriptor_report,
+    mcp_tool_invocation_preflight,
     operation_gate_report,
+    path_law_response_policy_report,
+    phase_acceleration_report,
+    phase_response_control_step,
+    probe_stop_report,
+    sqot_protocol_integrity_report,
+    sqot_resource_exchange_report,
+    target_validity_check,
     trace_check_report,
     trace_normal_form_report,
     trace_packet_candidate,
@@ -309,6 +328,8 @@ alt_bridge_app = typer.Typer(help="Bridge ALT diagnostics into adjacent protocol
 bit_app = typer.Typer(help="Run practical BIT bottleneck inversion diagnostics.")
 ecpt_app = typer.Typer(help="Run ECPT active phase-control planning tools.")
 sqot_app = typer.Typer(help="Run SQOT salience-queue scheduling tools.")
+mcp_app = typer.Typer(help="Check MCP tool descriptors and invocation preflights.")
+a2a_app = typer.Typer(help="Check A2A agent cards and task handoffs.")
 ecology_app = typer.Typer(help="Run ECPT capability packet ecology tools.")
 ecology_policy_app = typer.Typer(help="Explain bounded general-intake policy presets.")
 runtime_app = typer.Typer(help="Run ECPT active agent runtime loops and local service.")
@@ -337,6 +358,8 @@ alt_app.add_typer(alt_bridge_app, name="bridge")
 app.add_typer(bit_app, name="bit")
 app.add_typer(ecpt_app, name="ecpt")
 app.add_typer(sqot_app, name="sqot")
+app.add_typer(mcp_app, name="mcp")
+app.add_typer(a2a_app, name="a2a")
 app.add_typer(ecology_app, name="ecology")
 ecology_app.add_typer(ecology_policy_app, name="policy")
 app.add_typer(runtime_app, name="runtime")
@@ -5282,6 +5305,274 @@ def ecpt_route_obligations(
             }
         )
     _dump({"routed_obligations": routed}, output)
+
+
+@phase_app.command("acceleration-report")
+def phase_acceleration_report_command(
+    target: Annotated[Path, typer.Option("--target", help="ASI-proxy target JSON/YAML.")],
+    baseline: Annotated[
+        Path,
+        typer.Option("--baseline", help="Baseline upper envelope JSON/YAML."),
+    ],
+    capital: Annotated[
+        Path,
+        typer.Option("--capital", help="Runtime capital witness JSONL."),
+    ],
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Emit target-valid CARA phase acceleration diagnostics."""
+
+    _dump(
+        phase_acceleration_report(
+            load_data(target),
+            load_data(baseline),
+            _load_jsonl_events(capital),
+        ),
+        output,
+    )
+
+
+@alt_app.command("capital-witness")
+def alt_capital_witness_command(
+    packet: Annotated[Path, typer.Option("--packet", help="ALT packet/report JSON/YAML.")],
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Emit a runtime capital witness without promoting proxy-only evidence."""
+
+    _dump(capital_witness_report(load_data(packet)), output)
+
+
+@alt_app.command("deployment-admissibility")
+def alt_deployment_admissibility_command(
+    packet: Annotated[Path, typer.Option("--packet", help="ALT packet/report JSON/YAML.")],
+    profile: Annotated[str, typer.Option("--profile", help="Profile name.")] = "development",
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Check deployment admissibility without provider dispatch."""
+
+    _dump(deployment_admissibility_report(load_data(packet), profile=profile), output)
+
+
+@ecpt_app.command("target-validity-check")
+def ecpt_target_validity_check_command(
+    target: Annotated[Path, typer.Option("--target", help="ASI-proxy target JSON/YAML.")],
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Check target validity before acceleration comparison."""
+
+    _dump(target_validity_check(load_data(target)), output)
+
+
+@ecpt_app.command("baseline-envelope-check")
+def ecpt_baseline_envelope_check_command(
+    baseline: Annotated[
+        Path,
+        typer.Option("--baseline", help="Baseline upper envelope JSON/YAML."),
+    ],
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Check baseline upper-envelope completeness and freshness."""
+
+    _dump(baseline_envelope_check(load_data(baseline)), output)
+
+
+@ecpt_app.command("activation-check")
+def ecpt_activation_check_command(
+    state: Annotated[Path, typer.Option("--state", help="Finite ECPT state/graph JSON/YAML.")],
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Build a finite ECPT activation construction report."""
+
+    _dump(activation_construction_report(load_data(state)), output)
+
+
+@ecpt_app.command("phase-response-step")
+def ecpt_phase_response_step_command(
+    state: Annotated[Path, typer.Option("--state", help="Finite ECPT state JSON/YAML.")],
+    control: Annotated[Path, typer.Option("--control", help="Control action JSON/YAML.")],
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Report one finite phase-response control step."""
+
+    _dump(phase_response_control_step(load_data(state), load_data(control)), output)
+
+
+@ecpt_app.command("response-policy")
+def ecpt_response_policy_command(
+    trajectory: Annotated[Path, typer.Option("--trajectory", help="Trajectory JSON/YAML.")],
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Check a path-law response policy report."""
+
+    _dump(path_law_response_policy_report(load_data(trajectory)), output)
+
+
+@sqot_app.command("protocol-integrity")
+def sqot_protocol_integrity_command(
+    state: Annotated[Path, typer.Option("--state", help="SQOT protocol state JSON/YAML.")],
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Check SQOT protocol integrity without scalar-only safety promotion."""
+
+    _dump(sqot_protocol_integrity_report(load_data(state)), output)
+
+
+@sqot_app.command("resource-exchange")
+def sqot_resource_exchange_command(
+    state: Annotated[Path, typer.Option("--state", help="SQOT resource exchange JSON/YAML.")],
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Check cross-modal resource exchange ledgers."""
+
+    _dump(sqot_resource_exchange_report(load_data(state)), output)
+
+
+@sqot_app.command("probe-stop")
+def sqot_probe_stop_command(
+    probe_tree: Annotated[
+        Path,
+        typer.Option("--probe-tree", help="Finite probe tree JSON/YAML."),
+    ],
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Check whether probe planning should stop, abstain, or quarantine."""
+
+    _dump(probe_stop_report(load_data(probe_tree)), output)
+
+
+@bit_app.command("mec-frontier")
+def bit_mec_frontier_command(
+    certificates: Annotated[
+        Path,
+        typer.Option("--certificates", help="BIT certificate JSONL."),
+    ],
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Extract a finite minimal-effective-condition frontier."""
+
+    _dump(bit_mec_frontier_report(_load_jsonl_events(certificates)), output)
+
+
+@bit_app.command("compiler-report")
+def bit_compiler_report_command(
+    certificates: Annotated[
+        Path,
+        typer.Option("--certificates", help="BIT certificate JSONL."),
+    ],
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Compile finite certificate diagnostics without promoting settlement."""
+
+    _dump(bit_certificate_compiler_report(_load_jsonl_events(certificates)), output)
+
+
+@bit_app.command("cegar-barrier")
+def bit_cegar_barrier_command(
+    barrier: Annotated[Path, typer.Option("--barrier", help="CEGAR barrier JSON/YAML.")],
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Check finite CEGAR simulation barrier evidence."""
+
+    _dump(cegar_simulation_barrier_report(load_data(barrier)), output)
+
+
+@bit_app.command("dynamic-regime")
+def bit_dynamic_regime_command(
+    surface: Annotated[
+        Path,
+        typer.Option("--surface", help="Dynamic-regime acceleration surface JSON/YAML."),
+    ],
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Check a dynamic-regime acceleration surface."""
+
+    _dump(dynamic_regime_acceleration_report(load_data(surface)), output)
+
+
+@mcp_app.command("descriptor-check")
+def mcp_descriptor_check_command(
+    descriptor: Annotated[Path, typer.Option("--descriptor", help="MCP descriptor JSON/YAML.")],
+    profile: Annotated[str, typer.Option("--profile", help="Profile name.")] = "development",
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Check an MCP tool descriptor as untrusted candidate evidence."""
+
+    _dump(mcp_tool_descriptor_report(load_data(descriptor), profile=profile), output)
+
+
+@mcp_app.command("invocation-preflight")
+def mcp_invocation_preflight_command(
+    descriptor: Annotated[Path, typer.Option("--descriptor", help="MCP descriptor JSON/YAML.")],
+    call: Annotated[Path, typer.Option("--call", help="MCP call JSON/YAML.")],
+    profile: Annotated[str, typer.Option("--profile", help="Profile name.")] = "development",
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Preflight an MCP invocation without dispatching the tool."""
+
+    _dump(
+        mcp_tool_invocation_preflight(load_data(descriptor), load_data(call), profile=profile),
+        output,
+    )
+
+
+@a2a_app.command("card-check")
+def a2a_card_check_command(
+    card: Annotated[Path, typer.Option("--card", help="A2A agent card JSON/YAML.")],
+    profile: Annotated[str, typer.Option("--profile", help="Profile name.")] = "development",
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Check an A2A agent card without granting delegated authority."""
+
+    _dump(a2a_agent_card_report(load_data(card), profile=profile), output)
+
+
+@a2a_app.command("handoff-check")
+def a2a_handoff_check_command(
+    handoff: Annotated[Path, typer.Option("--handoff", help="A2A handoff JSON/YAML.")],
+    profile: Annotated[str, typer.Option("--profile", help="Profile name.")] = "development",
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Check an A2A task handoff as provider evidence, not settlement."""
+
+    _dump(a2a_task_handoff_report(load_data(handoff), profile=profile), output)
 
 
 @trc_app.command("trace-adapter")

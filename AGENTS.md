@@ -6,11 +6,13 @@ This repository is an AI agent runtime verification and ECPT collective phase ac
 
 It is not an ASI detector, a real ASI proof system, or a self-modifying AI system. It does not require self-rewrite, fine-tuning, or model-weight changes.
 
-v0.4.3 is the PyPI practical runtime snapshot with a beta API surface. The PyPI
+v0.8.0 is the PyPI practical runtime snapshot with a beta API surface. The PyPI
 package is enough for `pic agent explain`, `pic agent check --text "..."`,
 `pic phase plan --compact --text "..."`, `pic agent accelerate --compact`,
 `pic demo installed-smoke`, `pic demo bootstrap`, `pic agent intake --text "..."`,
-`pic snapshot list`, and `pic schema --all --output-dir schemas`. Clone this
+`pic snapshot list`, `pic schema --all --output-dir schemas`, `pic phase
+acceleration-report`, `pic mcp descriptor-check`, `pic a2a handoff-check`,
+`pic sqot protocol-integrity`, and `pic bit mec-frontier`. Clone this
 repository when commands need the root `examples/...` tree, canonical TeX
 audits, development fixtures, or release engineering checks.
 

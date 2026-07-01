@@ -4,10 +4,10 @@
 - Run local quality gates, publish safety scan, Bandit, pip-audit, and Zizmor.
 - Run `uv build` and check only the target-version artifacts before any PyPI
   publication, for example
-  `uv run python -m twine check dist\percolation_inversion_compiler-0.7.0-py3-none-any.whl dist\percolation_inversion_compiler-0.7.0.tar.gz`.
+  `uv run python -m twine check dist\percolation_inversion_compiler-0.8.0-py3-none-any.whl dist\percolation_inversion_compiler-0.8.0.tar.gz`.
   Local `dist/` directories may contain old release artifacts; do not publish
   local `dist/*`. Prefer the clean GitHub Trusted Publishing workflow.
-- Run `uv run python scripts\check_distribution_artifacts.py --dist-dir dist --version 0.7.0` and confirm the
+- Run `uv run python scripts\check_distribution_artifacts.py --dist-dir dist --version 0.8.0` and confirm the
   wheel contains `py.typed`, bundled theory snapshots, and only the curated
   `percolation_inversion_compiler.data.demo` assets, including Phase Lab
   runtime-report and threshold fixtures.

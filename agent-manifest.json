@@ -26,7 +26,11 @@
     "alt-ecpt-lift",
     "trc-trace-adapter",
     "ccr-interop",
-    "trc-operation-readiness"
+    "trc-operation-readiness",
+    "target-valid-cara-acceleration",
+    "mcp-a2a-safety-reports",
+    "sqot-protocol-integrity",
+    "bit-mec-frontier"
   ],
   "full_feature_stages": [
     "orient",
@@ -74,6 +78,8 @@
     "SafePhaseAction",
     "PhaseTrajectoryReport",
     "PhaseAccelerationBenchmarkReport",
+    "phase-acceleration-report",
+    "runtime-capital-witness",
     "ProtocolRelativeBenchmarkMetric",
     "PhaseBenchmarkTask",
     "PhaseBenchmarkCaseResult",
@@ -367,6 +373,10 @@
     "docs/trc-trace-adapter.md",
     "docs/ccr-pic-roundtrip.md",
     "docs/asi-proxy-acceleration.md",
+    "docs/operation-gate.md",
+    "docs/real-world-impact.md",
+    "docs/mcp-a2a-safety.md",
+    "docs/cross-repo-conformance.md",
     "docs/threshold-certificates.md",
     "docs/benchmarks/phase-benchmark-suite.md",
     "docs/canonical-implementation-readiness.md",
@@ -406,6 +416,11 @@
     "pic phase lab closure --store pic-demo/phase-lab",
     "pic phase lab executable-paths --store pic-demo/phase-lab",
     "pic phase lab certify --store pic-demo/phase-lab --threshold pic-demo/phase_lab_threshold.json",
+    "pic phase acceleration-report --target examples/asi_proxy_acceleration_bundle/target.json --baseline examples/asi_proxy_acceleration_bundle/baseline_upper_envelope.json --capital examples/asi_proxy_acceleration_bundle/capital_witnesses.jsonl",
+    "pic mcp descriptor-check --descriptor examples/asi_proxy_acceleration_bundle/mcp_descriptor.good.json --profile development",
+    "pic a2a handoff-check --handoff examples/asi_proxy_acceleration_bundle/a2a_handoff.good.json --profile development",
+    "pic sqot protocol-integrity --state examples/asi_proxy_acceleration_bundle/sqot_protocol_integrity.missing_root.json",
+    "pic bit mec-frontier --certificates examples/asi_proxy_acceleration_bundle/bit_mec_certificates.jsonl",
     "pic audit canonical-readiness --profile development --format json",
     "pic schema --type OperatorAdoptionPacket",
     "pic schema --type CanonicalImplementationReadinessReport",
@@ -444,5 +459,5 @@
     "pypi_fallback": "python -m pip install uv",
     "windows_powershell": "powershell -ExecutionPolicy ByPass -c \"irm https://astral.sh/uv/install.ps1 | iex\""
   },
-  "version": "0.7.0"
+  "version": "0.8.0"
 }

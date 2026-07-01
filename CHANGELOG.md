@@ -1,5 +1,26 @@
 # Changelog
 
+## v0.8.0 - 2026-07-01
+
+- Adds target-valid ASI-proxy/CARA reports over declared targets, baseline
+  upper envelopes, admitted runtime capital witnesses, candidate hitting times,
+  and positive-margin acceleration diagnostics. Proxy-only evidence is
+  non-contributing and stale or missing baselines fail closed.
+- Adds structured MCP descriptor reports, MCP invocation preflight reports, A2A
+  agent-card reports, and A2A task-handoff reports. These are candidate
+  evidence checks and never delegated execution authority. Descriptors changed
+  after approval fail closed at descriptor-report and invocation-preflight time.
+- Tightens CARA report booleans: target-law, authority, hazard, viability,
+  baseline, admitted-witness, proxy-only, and raw-net floor blockers set
+  `ok=false` while preserving explicit residuals.
+- Strengthens TRC operation gates so physical dispatch readiness requires
+  accepted/fresh certificate statuses, scoped authority, emergency stop,
+  rollback escrow, hazard envelope, verifier windows, resource/tolerance budget,
+  and side-effect-policy acceptance.
+- Adds ECPT activation/response, SQOT protocol/resource/probe, BIT MEC/compiler,
+  CEGAR, and dynamic-regime report helpers plus CLI routes and v0.8
+  conformance tests.
+
 ## v0.7.0 - 2026-07-01
 
 - Adds `pic.trc_operation_gate_report.v1` and `pic trc operation-gate` for

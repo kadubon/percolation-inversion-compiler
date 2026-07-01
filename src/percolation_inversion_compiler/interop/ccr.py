@@ -683,6 +683,34 @@ def _parse_time(value: Any) -> datetime | None:
     return parsed if parsed.tzinfo else parsed.replace(tzinfo=UTC)
 
 
+def _status(value: Any) -> str:
+    if isinstance(value, Mapping):
+        return str(value.get("status", "")).strip().lower()
+    return str(value or "").strip().lower()
+
+
+def _status_ok(value: Any, allowed: set[str]) -> bool:
+    return _status(value) in allowed
+
+
+def _fresh_until(value: Mapping[str, Any], reference: datetime | None) -> bool:
+    if reference is None:
+        return False
+    expires_at = value.get("expires_at") or value.get("fresh_until")
+    parsed = _parse_time(expires_at)
+    return parsed is not None and parsed > reference
+
+
+def _certificate_fresh(value: Any, reference: datetime | None) -> bool:
+    cert = _mapping(value)
+    status = _status(cert)
+    if status in {"fresh", "recomputed"}:
+        return True
+    if status not in {"accepted", "approved", "available", "tested", "verified", "active"}:
+        return False
+    return _fresh_until(cert, reference) or bool(cert.get("fresh") is True)
+
+
 def _reference_time(
     trace_nf: Mapping[str, Any],
     nf: Mapping[str, Any],
@@ -762,6 +790,152 @@ def _gate(ok: bool, residuals: Sequence[Mapping[str, Any]], *, note: str = "") -
         "note": note,
         "residual_kinds": sorted({str(item.get("kind")) for item in residuals if item.get("kind")}),
     }
+
+
+def _physical_dispatch_residuals(
+    trace_id: str,
+    provider_profile: Mapping[str, Any],
+    reference: datetime | None,
+    side_effect_policy: str,
+) -> list[dict[str, Any]]:
+    residuals: list[dict[str, Any]] = []
+    physical_domain = _mapping(provider_profile.get("physical_domain_profile"))
+    actuator_class = str(provider_profile.get("actuator_class") or "")
+    allowed_actuators = set(_list_field(provider_profile, "allowed_actuator_classes")) | set(
+        _list_field(physical_domain, "allowed_actuator_classes")
+    )
+    human_authority = _mapping(provider_profile.get("human_operator_authority"))
+    emergency_stop = _mapping(provider_profile.get("emergency_stop"))
+    runtime_certificate = _mapping(provider_profile.get("runtime_assurance_certificate"))
+    shield_certificate = _mapping(provider_profile.get("shield_certificate"))
+    rollback_escrow = _mapping(provider_profile.get("rollback_escrow"))
+    hazard_envelope = _mapping(
+        provider_profile.get("hazard_envelope")
+        or provider_profile.get("hazard_envelope_certificate")
+    )
+    observation_window = _mapping(provider_profile.get("observation_window"))
+    tolerance_ledger = _mapping(provider_profile.get("tolerance_ledger"))
+    resource_use = _mapping(provider_profile.get("resource_use"))
+    resource_limit = _mapping(provider_profile.get("resource_limit"))
+
+    checks: list[tuple[bool, str]] = [
+        (
+            _status_ok(physical_domain, {"accepted", "approved"}),
+            "physical_profile_not_accepted",
+        ),
+        (
+            not allowed_actuators or actuator_class in allowed_actuators,
+            "actuator_class_not_allowed",
+        ),
+        (
+            _status_ok(human_authority, {"approved", "active"})
+            and _fresh_until(human_authority, reference),
+            "human_operator_authority_not_approved",
+        ),
+        (
+            _status_ok(emergency_stop, {"accepted", "tested", "available"}),
+            "emergency_stop_not_tested",
+        ),
+        (
+            _certificate_fresh(runtime_certificate, reference)
+            and _status(runtime_certificate) in {"accepted", "fresh", "approved"},
+            "runtime_assurance_certificate_not_accepted",
+        ),
+        (
+            not (provider_profile.get("requires_shield_certificate") or shield_certificate)
+            or (
+                _certificate_fresh(shield_certificate, reference)
+                and _status(shield_certificate) in {"accepted", "fresh", "approved"}
+            ),
+            "shield_certificate_not_accepted",
+        ),
+        (
+            _status_ok(rollback_escrow, {"available", "verified"}),
+            "rollback_escrow_not_verified",
+        ),
+        (
+            _certificate_fresh(hazard_envelope, reference)
+            and _status(hazard_envelope) in {"accepted", "fresh", "approved"},
+            "hazard_envelope_not_accepted",
+        ),
+        (
+            observation_window.get("has_verifier") is True
+            or _status_ok(observation_window.get("verifier"), {"accepted", "approved", "active"}),
+            "observation_verifier_required",
+        ),
+        (
+            _within_numeric_budget(resource_use, resource_limit),
+            "resource_use_exceeds_profile",
+        ),
+        (
+            _tolerance_within_budget(tolerance_ledger),
+            "tolerance_budget_exceeded",
+        ),
+        (
+            _lifecycle_fresh(provider_profile, reference),
+            "lifecycle_certificate_stale",
+        ),
+        (
+            side_effect_policy
+            in {
+                "physical_provider_allowed",
+                "provider_physical_allowed",
+                "controlled_physical_allowed",
+            },
+            "side_effect_policy_not_dispatchable",
+        ),
+        (
+            not provider_profile.get("requires_mcp_tool")
+            or bool(provider_profile.get("mcp_tool_gate_accepted")),
+            "mcp_tool_gate_not_accepted",
+        ),
+        (
+            not provider_profile.get("requires_a2a_agent")
+            or bool(provider_profile.get("a2a_agent_gate_accepted")),
+            "a2a_agent_gate_not_accepted",
+        ),
+    ]
+    for ok, kind in checks:
+        if not ok:
+            residuals.append(_trace_residual(trace_id, "physical-dispatch", kind, True))
+    return residuals
+
+
+def _within_numeric_budget(usage: Mapping[str, Any], limit: Mapping[str, Any]) -> bool:
+    if not usage or not limit:
+        return True
+    for key, value in usage.items():
+        if key not in limit:
+            continue
+        used = _optional_float(value)
+        allowed = _optional_float(limit.get(key))
+        if used is not None and allowed is not None and used > allowed:
+            return False
+    return True
+
+
+def _tolerance_within_budget(tolerance: Mapping[str, Any]) -> bool:
+    if not tolerance:
+        return True
+    for key, value in tolerance.items():
+        if key.endswith("_budget"):
+            continue
+        budget = tolerance.get(f"{key}_budget") or tolerance.get("budget")
+        observed = _optional_float(value)
+        allowed = _optional_float(budget)
+        if observed is not None and allowed is not None and observed > allowed:
+            return False
+    return True
+
+
+def _lifecycle_fresh(provider_profile: Mapping[str, Any], reference: datetime | None) -> bool:
+    cert = _mapping(
+        provider_profile.get("lifecycle_certificate")
+        or provider_profile.get("certificate_lifecycle")
+    )
+    if not cert:
+        return bool(provider_profile.get("lifecycle_recomputed"))
+    return _certificate_fresh(cert, reference)
 
 
 def _authority_residuals(
@@ -1005,6 +1179,9 @@ def operation_gate_report(
                         "description": f"missing {label}",
                     }
                 )
+        physical_missing.extend(
+            _physical_dispatch_residuals(trace_id, profile, reference, side_effect_policy)
+        )
     physical_dispatch_ready = provider_policy_allows and physical_requested and not physical_missing
 
     authority_residuals = _gate_residuals(residuals, _AUTHORITY_RESIDUAL_KINDS)
@@ -1577,6 +1754,1054 @@ def _list_field(data: Mapping[str, Any], key: str) -> list[str]:
     if isinstance(value, list | tuple | set):
         return [str(item) for item in value if str(item)]
     return [str(value)] if str(value) else []
+
+
+def _report_residual(
+    prefix: str,
+    subject: Any,
+    kind: str,
+    blocking: bool = True,
+    *,
+    description: str | None = None,
+) -> dict[str, Any]:
+    return {
+        "blocking": blocking,
+        "description": description or kind.replace("_", " "),
+        "kind": kind,
+        "residual_id": f"{prefix}:{_short_hash([subject, kind])}",
+    }
+
+
+def _blocking_kinds(residuals: Sequence[Mapping[str, Any]]) -> list[str]:
+    return sorted({str(item.get("kind")) for item in residuals if item.get("blocking")})
+
+
+def _required_residuals(
+    prefix: str,
+    subject: Any,
+    data: Mapping[str, Any],
+    fields: Sequence[str],
+) -> list[dict[str, Any]]:
+    return [
+        _report_residual(prefix, subject, f"missing_{field}")
+        for field in fields
+        if data.get(field) in (None, "", [], {})
+    ]
+
+
+def _profile_settings(profile: str | Mapping[str, Any]) -> dict[str, Any]:
+    defaults = {
+        "allowed_auth_scopes": ["read", "local", "local_fixture", "fixture"],
+        "allowed_egress_policies": ["none", "disabled", "allowlist"],
+        "allowed_side_effect_classes": ["read_only", "none", "diagnostic"],
+        "max_byte_limit": 1_000_000,
+        "max_timeout_budget": 30,
+        "require_descriptor_provenance": False,
+        "require_signature": False,
+        "trusted_server_statuses": ["trusted", "approved", "accepted"],
+    }
+    if isinstance(profile, Mapping):
+        return {**defaults, "profile": "custom", **dict(profile)}
+    normalized = str(profile or "development").lower()
+    strict = normalized in {"production", "adversarial"}
+    return {
+        **defaults,
+        "profile": normalized,
+        "require_descriptor_provenance": strict,
+        "require_signature": strict,
+    }
+
+
+def _list_any(value: Any) -> list[str]:
+    if value in (None, ""):
+        return []
+    if isinstance(value, list | tuple | set):
+        return [str(item) for item in value if item not in (None, "")]
+    return [str(value)]
+
+
+def _lower_tokens(value: Any) -> set[str]:
+    return {item.strip().lower() for item in _list_any(value) if item.strip()}
+
+
+def _dangerous_text(value: Any) -> bool:
+    text = json.dumps(value, sort_keys=True, default=str).lower()
+    markers = [
+        "ignore previous",
+        "system prompt",
+        "developer message",
+        "rm -rf",
+        "powershell",
+        "bash -lc",
+        "curl ",
+        "wget ",
+        "ssh ",
+        "http://",
+        "https://",
+        "subprocess",
+        "exec(",
+        "eval(",
+    ]
+    return any(marker in text for marker in markers)
+
+
+def _records_any(value: Any) -> list[dict[str, Any]]:
+    if not isinstance(value, list):
+        return []
+    return [dict(item) for item in value if isinstance(item, Mapping)]
+
+
+def mcp_tool_descriptor_report(
+    descriptor: Mapping[str, Any],
+    *,
+    profile: str | Mapping[str, Any] = "development",
+) -> dict[str, Any]:
+    """Check an MCP tool descriptor as untrusted candidate evidence."""
+
+    settings = _profile_settings(profile)
+    server_id = str(descriptor.get("server_id") or descriptor.get("server") or "")
+    tool_name = str(descriptor.get("tool_name") or descriptor.get("name") or "")
+    canonical_name = f"{server_id}/{tool_name}" if server_id and tool_name else ""
+    descriptor_version = str(
+        descriptor.get("descriptor_version") or descriptor.get("version") or ""
+    )
+    server_status = str(
+        descriptor.get("server_trust_status") or descriptor.get("trust_status") or ""
+    ).lower()
+    side_effect_class = str(descriptor.get("side_effect_class") or "unknown").lower()
+    egress_policy = str(descriptor.get("egress_policy") or "unknown").lower()
+    auth_scope = _list_any(descriptor.get("auth_scope") or descriptor.get("auth_scopes"))
+    subject = canonical_name or _digest(descriptor)
+    residuals = _required_residuals(
+        "mcp",
+        subject,
+        descriptor,
+        ("server_id", "tool_name", "descriptor_version", "side_effect_class"),
+    )
+    if server_status not in _lower_tokens(settings["trusted_server_statuses"]):
+        residuals.append(_report_residual("mcp", subject, "server_trust_not_accepted"))
+    if settings["require_descriptor_provenance"] and not (
+        descriptor.get("provenance") or descriptor.get("signature")
+    ):
+        residuals.append(_report_residual("mcp", subject, "descriptor_provenance_required"))
+    if settings["require_signature"] and not descriptor.get("signature"):
+        residuals.append(_report_residual("mcp", subject, "descriptor_signature_required"))
+    if side_effect_class not in _lower_tokens(settings["allowed_side_effect_classes"]):
+        residuals.append(_report_residual("mcp", subject, "side_effect_class_not_allowed"))
+    if egress_policy not in _lower_tokens(settings["allowed_egress_policies"]):
+        residuals.append(_report_residual("mcp", subject, "egress_policy_not_allowed"))
+    if not set(token.lower() for token in auth_scope).issubset(
+        _lower_tokens(settings["allowed_auth_scopes"])
+    ):
+        residuals.append(_report_residual("mcp", subject, "auth_scope_not_allowed"))
+
+    diagnostic_residuals: list[dict[str, Any]] = []
+    dangerous_keys = sorted(
+        key
+        for key in descriptor
+        if str(key).lower()
+        in {"system_prompt", "developer_message", "secrets", "password", "shell", "exec"}
+    )
+    if dangerous_keys:
+        residuals.append(
+            {
+                **_report_residual("mcp", subject, "dangerous_metadata_fields"),
+                "fields": dangerous_keys,
+            }
+        )
+    if _dangerous_text(descriptor.get("description")):
+        diagnostic_residuals.append(
+            _report_residual(
+                "mcp",
+                subject,
+                "prompt_injection_bearing_description_risk",
+                False,
+            )
+        )
+    if descriptor.get("descriptor_changed_after_approval") is True:
+        residuals.append(_report_residual("mcp", subject, "descriptor_rug_pull_blocked"))
+
+    input_schema = descriptor.get("input_schema") or descriptor.get("inputSchema")
+    output_schema = descriptor.get("output_schema") or descriptor.get("outputSchema")
+    blockers = _blocking_kinds([*residuals, *diagnostic_residuals])
+    return {
+        "accepted": not blockers,
+        "auth_scope": auth_scope,
+        "blockers": blockers,
+        "canonical_tool_name": canonical_name,
+        "descriptor_changed_after_approval": bool(
+            descriptor.get("descriptor_changed_after_approval")
+        ),
+        "descriptor_hash": _digest(descriptor),
+        "descriptor_version": descriptor_version,
+        "egress_policy": egress_policy,
+        "input_schema_hash": _digest(input_schema) if input_schema else None,
+        "non_claims": [
+            *NON_CLAIMS,
+            "mcp_descriptor_is_candidate_evidence_not_execution_authority",
+        ],
+        "ok": True,
+        "output_schema_hash": _digest(output_schema) if output_schema else None,
+        "profile": settings["profile"],
+        "residuals": sorted([*residuals, *diagnostic_residuals], key=lambda item: item["kind"]),
+        "schema_version": "pic.mcp_tool_descriptor_report.v1",
+        "server_id": server_id,
+        "server_trust_status": server_status,
+        "settled": False,
+        "side_effect_class": side_effect_class,
+        "tool_name": tool_name,
+    }
+
+
+def mcp_tool_invocation_preflight(
+    descriptor: Mapping[str, Any],
+    call: Mapping[str, Any],
+    *,
+    profile: str | Mapping[str, Any] = "development",
+) -> dict[str, Any]:
+    """Preflight an MCP tool call without dispatching it."""
+
+    descriptor_report = mcp_tool_descriptor_report(descriptor, profile=profile)
+    settings = _profile_settings(profile)
+    canonical = str(descriptor_report.get("canonical_tool_name") or "")
+    requested = str(
+        call.get("canonical_tool_name") or call.get("tool") or call.get("tool_name") or ""
+    )
+    side_effect_class = str(descriptor_report.get("side_effect_class") or "unknown").lower()
+    residuals = [
+        dict(item)
+        for item in descriptor_report.get("residuals", [])
+        if isinstance(item, Mapping) and item.get("blocking")
+    ]
+    subject = requested or canonical or _digest(call)
+    if not descriptor_report.get("accepted"):
+        residuals.append(_report_residual("mcp-call", subject, "descriptor_not_accepted"))
+    if canonical and requested and requested not in {canonical, canonical.split("/", 1)[-1]}:
+        residuals.append(_report_residual("mcp-call", subject, "canonical_tool_name_mismatch"))
+    if side_effect_class not in {"read_only", "none", "diagnostic"} and not call.get(
+        "approval_ref"
+    ):
+        residuals.append(_report_residual("mcp-call", subject, "per_call_approval_required"))
+    if side_effect_class not in _lower_tokens(settings["allowed_side_effect_classes"]):
+        residuals.append(_report_residual("mcp-call", subject, "side_effect_class_not_allowed"))
+    if not call.get("output_redaction_policy"):
+        residuals.append(_report_residual("mcp-call", subject, "output_redaction_policy_required"))
+    if call.get("trace_logging_enabled") is not True:
+        residuals.append(_report_residual("mcp-call", subject, "trace_logging_required"))
+    if descriptor_report.get("descriptor_changed_after_approval"):
+        residuals.append(_report_residual("mcp-call", subject, "descriptor_rug_pull_blocked"))
+    if call.get("tool_name_collision") is True:
+        residuals.append(_report_residual("mcp-call", subject, "tool_name_collision"))
+    if _dangerous_text(call.get("arguments") or call.get("input") or call):
+        residuals.append(_report_residual("mcp-call", subject, "hidden_escalation_in_arguments"))
+    timeout = _optional_float(call.get("timeout_budget"))
+    byte_limit = _optional_float(call.get("byte_limit"))
+    if timeout is not None and timeout > _float_value(settings.get("max_timeout_budget"), 30):
+        residuals.append(_report_residual("mcp-call", subject, "timeout_budget_exceeded"))
+    if byte_limit is not None and byte_limit > _float_value(
+        settings.get("max_byte_limit"), 1_000_000
+    ):
+        residuals.append(_report_residual("mcp-call", subject, "byte_limit_exceeded"))
+
+    blockers = _blocking_kinds(residuals)
+    return {
+        "blockers": blockers,
+        "canonical_tool_name": canonical,
+        "descriptor_report": descriptor_report,
+        "executed": False,
+        "invocation_ready": not blockers,
+        "network_call_performed": False,
+        "non_claims": [
+            *NON_CLAIMS,
+            "mcp_invocation_preflight_is_not_tool_dispatch",
+        ],
+        "ok": True,
+        "profile": settings["profile"],
+        "requested_tool_name": requested,
+        "residuals": sorted(residuals, key=lambda item: item["kind"]),
+        "schema_version": "pic.mcp_tool_invocation_preflight.v1",
+        "settled": False,
+    }
+
+
+def a2a_agent_card_report(
+    card: Mapping[str, Any],
+    *,
+    profile: str | Mapping[str, Any] = "development",
+) -> dict[str, Any]:
+    """Check an A2A agent card without inferring delegated authority."""
+
+    settings = _profile_settings(profile)
+    agent_id = str(card.get("agent_id") or card.get("id") or "")
+    residuals = _required_residuals(
+        "a2a-card",
+        agent_id or _digest(card),
+        card,
+        ("agent_id", "endpoint", "task_schema", "declared_authority"),
+    )
+    endpoint = _mapping(card.get("endpoint"))
+    if not (endpoint.get("provenance") or endpoint.get("url")):
+        residuals.append(_report_residual("a2a-card", agent_id, "endpoint_provenance_required"))
+    if settings["require_signature"] and not card.get("signature"):
+        residuals.append(_report_residual("a2a-card", agent_id, "agent_card_signature_required"))
+    blockers = _blocking_kinds(residuals)
+    return {
+        "accepted": not blockers,
+        "agent_id": agent_id,
+        "blockers": blockers,
+        "endpoint_hash": _digest(endpoint) if endpoint else None,
+        "non_claims": [
+            *NON_CLAIMS,
+            "a2a_agent_card_is_not_delegated_tool_authority",
+        ],
+        "ok": True,
+        "profile": settings["profile"],
+        "residuals": sorted(residuals, key=lambda item: item["kind"]),
+        "schema_version": "pic.a2a_agent_card_report.v1",
+        "settled": False,
+    }
+
+
+def a2a_task_handoff_report(
+    handoff: Mapping[str, Any],
+    *,
+    profile: str | Mapping[str, Any] = "development",
+) -> dict[str, Any]:
+    """Check an A2A task handoff as provider evidence, not settlement."""
+
+    settings = _profile_settings(profile)
+    handoff_id = str(handoff.get("handoff_id") or handoff.get("task_id") or _short_hash(handoff))
+    residuals = _required_residuals(
+        "a2a-handoff",
+        handoff_id,
+        handoff,
+        ("agent_card_ref", "task_schema", "handoff_scope", "replay_nonce", "idempotency_key"),
+    )
+    if not handoff.get("declared_authority"):
+        residuals.append(_report_residual("a2a-handoff", handoff_id, "declared_authority_required"))
+    if handoff.get("delegated_tool_execution") is True:
+        residuals.append(
+            _report_residual("a2a-handoff", handoff_id, "delegated_execution_not_inferred")
+        )
+    blockers = _blocking_kinds(residuals)
+    return {
+        "accepted": not blockers,
+        "blockers": blockers,
+        "handoff_id": handoff_id,
+        "non_claims": [
+            *NON_CLAIMS,
+            "a2a_handoff_result_is_provider_evidence_not_settlement",
+            "a2a_message_does_not_grant_delegated_tool_execution",
+        ],
+        "ok": True,
+        "profile": settings["profile"],
+        "residuals": sorted(residuals, key=lambda item: item["kind"]),
+        "schema_version": "pic.a2a_task_handoff_report.v1",
+        "settled": False,
+    }
+
+
+def _target_status_residuals(target_id: str, target: Mapping[str, Any]) -> list[dict[str, Any]]:
+    residuals: list[dict[str, Any]] = []
+    for field in ("mission_law", "generated_law", "externality_law"):
+        if not _status_ok(target.get(field), {"accepted", "approved", "fresh", "active"}):
+            residuals.append(_report_residual("target", target_id, f"{field}_not_accepted"))
+    if not _status_ok(target.get("hazard_envelope"), {"accepted", "approved", "active"}):
+        residuals.append(_report_residual("target", target_id, "hazard_envelope_not_accepted"))
+    if not _status_ok(target.get("authority_envelope"), {"accepted", "approved", "active"}):
+        residuals.append(_report_residual("target", target_id, "authority_envelope_not_approved"))
+    if not _status_ok(target.get("capability_envelope"), {"accepted", "approved", "active"}):
+        residuals.append(_report_residual("target", target_id, "capability_envelope_not_accepted"))
+    if not _status_ok(target.get("viability_set"), {"accepted", "approved", "active"}):
+        residuals.append(_report_residual("target", target_id, "viability_set_not_accepted"))
+    if target.get("target_set_changed_after_observation") is True:
+        residuals.append(_report_residual("target", target_id, "target_changed_after_observation"))
+    return residuals
+
+
+def target_validity_check(target: Mapping[str, Any]) -> dict[str, Any]:
+    target_id = str(target.get("target_id") or "target")
+    required = (
+        "capability_basis",
+        "target_set",
+        "mission_law",
+        "generated_law",
+        "externality_law",
+        "hazard_envelope",
+        "authority_envelope",
+        "capability_envelope",
+        "viability_set",
+        "raw_net_capital_floor",
+        "horizon",
+        "target_validity_certificate_ref",
+        "baseline_upper_envelope_ref",
+    )
+    residuals = _required_residuals("target", target_id, target, required)
+    if target.get("observed_outcome_ref") and not target.get(
+        "target_set_locked_before_observation"
+    ):
+        residuals.append(_report_residual("target", target_id, "target_changed_after_observation"))
+    residuals.extend(_target_status_residuals(target_id, target))
+    blockers = _blocking_kinds(residuals)
+    authority_ok = _status_ok(target.get("authority_envelope"), {"accepted", "approved", "active"})
+    hazard_ok = _status_ok(target.get("hazard_envelope"), {"accepted", "approved", "active"})
+    opportunity_law_ok = all(
+        _status_ok(target.get(field), {"accepted", "approved", "fresh", "active"})
+        for field in ("mission_law", "generated_law", "externality_law")
+    )
+    viability_ok = _status_ok(target.get("viability_set"), {"accepted", "approved", "active"})
+    return {
+        "authority_ok": authority_ok,
+        "blockers": blockers,
+        "hazard_ok": hazard_ok,
+        "non_claims": [*NON_CLAIMS, "target_validity_is_protocol_relative"],
+        "ok": not blockers,
+        "opportunity_law_ok": opportunity_law_ok,
+        "residuals": sorted(residuals, key=lambda item: item["kind"]),
+        "schema_version": "pic.target_validity_certificate.v1",
+        "settled": False,
+        "target_id": target_id,
+        "target_validity_ok": not blockers,
+        "viability_ok": viability_ok,
+    }
+
+
+def baseline_envelope_check(baseline: Mapping[str, Any]) -> dict[str, Any]:
+    baseline_id = str(baseline.get("baseline_id") or "baseline")
+    required = (
+        "baseline_policy_class",
+        "resource_envelope",
+        "model_toolchain_environment_versions",
+        "control_observability",
+        "upper_bound_method",
+        "confidence_budget",
+        "refresh_contract",
+        "path_law_refs",
+        "envelope_coordinates",
+    )
+    residuals = _required_residuals("baseline", baseline_id, baseline, required)
+    if baseline.get("stale") is True:
+        residuals.append(_report_residual("baseline", baseline_id, "baseline_refresh_required"))
+    if baseline.get("resource_matched") is False:
+        residuals.append(_report_residual("baseline", baseline_id, "baseline_not_resource_matched"))
+    control_observability = baseline.get("control_observability")
+    if isinstance(control_observability, Mapping) and not _status_ok(
+        control_observability, {"accepted", "approved", "active"}
+    ):
+        residuals.append(
+            _report_residual("baseline", baseline_id, "control_observability_not_accepted")
+        )
+    blockers = _blocking_kinds(residuals)
+    return {
+        "baseline_envelope_ok": not blockers,
+        "baseline_id": baseline_id,
+        "blockers": blockers,
+        "non_claims": [*NON_CLAIMS, "baseline_upper_envelope_is_not_oracle_truth"],
+        "ok": not blockers,
+        "residuals": sorted(residuals, key=lambda item: item["kind"]),
+        "schema_version": "pic.baseline_upper_envelope_check.v1",
+        "settled": False,
+    }
+
+
+def capital_witness_report(packet: Mapping[str, Any]) -> dict[str, Any]:
+    packet_id = _packet_id(packet)
+    coordinate = str(
+        packet.get("coordinate") or _mapping(packet.get("capital")).get("coordinate") or packet_id
+    )
+    capital_lower = _float_value(packet.get("capital_lower_bound"), packet.get("capital_lower"))
+    cost_upper = _float_value(packet.get("cost_upper_bound"), packet.get("cost_upper"))
+    hazard_upper = _float_value(
+        packet.get("hazard_charge_upper_bound"),
+        packet.get("hazard_upper"),
+    )
+    transport_upper = _float_value(
+        packet.get("transport_charge_upper_bound"),
+        packet.get("transport_upper"),
+    )
+    signed_surplus = _float_value(
+        packet.get("signed_surplus_lower_bound"),
+        capital_lower - cost_upper - hazard_upper - transport_upper,
+    )
+    value_type = str(packet.get("value_estimand_type") or "proxy_only")
+    residuals = _required_residuals(
+        "capital",
+        packet_id,
+        packet,
+        ("coordinate", "baseline_ref", "transport_ref", "finality_ref"),
+    )
+    boolean_fields = (
+        "mission_valid",
+        "transport_valid",
+        "finality_valid",
+        "hazard_constrained",
+        "gauge_compatible",
+        "raw_net_solvent",
+    )
+    for field in boolean_fields:
+        if packet.get(field) is not True:
+            residuals.append(_report_residual("capital", packet_id, f"{field}_not_verified"))
+    if value_type == "proxy_only":
+        residuals.append(_report_residual("capital", packet_id, "proxy_only_not_admitted"))
+    if signed_surplus <= 0:
+        residuals.append(_report_residual("capital", packet_id, "nonpositive_signed_surplus"))
+    if packet.get("negative_liquidity") is True:
+        residuals.append(_report_residual("capital", packet_id, "negative_liquidity"))
+    if packet.get("lifecycle_stale") is True:
+        residuals.append(_report_residual("capital", packet_id, "stale_lifecycle"))
+    if packet.get("authority_fresh") is False:
+        residuals.append(_report_residual("capital", packet_id, "authority_not_fresh"))
+    blockers = _blocking_kinds(residuals)
+    admitted = not blockers
+    return {
+        "blockers": blockers,
+        "capital_admitted": admitted,
+        "capital_lower_bound": capital_lower,
+        "coordinate": coordinate,
+        "cost_upper_bound": cost_upper,
+        "evidence_refs": _list_any(packet.get("evidence_refs")),
+        "finality_valid": packet.get("finality_valid") is True,
+        "gauge_compatible": packet.get("gauge_compatible") is True,
+        "hazard_charge_upper_bound": hazard_upper,
+        "hazard_constrained": packet.get("hazard_constrained") is True,
+        "mission_valid": packet.get("mission_valid") is True,
+        "non_claims": [
+            *NON_CLAIMS,
+            "accepted_report_does_not_imply_capital_admitted",
+            "proxy_only_cannot_increase_safe_capital",
+        ],
+        "ok": True,
+        "packet_refs": _list_any(packet.get("packet_refs") or packet_id),
+        "raw_net_solvent": packet.get("raw_net_solvent") is True,
+        "residuals": sorted(residuals, key=lambda item: item["kind"]),
+        "schema_version": "pic.runtime_capital_witness.v1",
+        "settled": False,
+        "signed_surplus_lower_bound": signed_surplus,
+        "transport_charge_upper_bound": transport_upper,
+        "transport_valid": packet.get("transport_valid") is True,
+        "value_estimand_type": value_type,
+        "verifier_refs": _list_any(packet.get("verifier_refs")),
+        "witness_id": str(packet.get("witness_id") or f"capital:{_short_hash(packet)}"),
+    }
+
+
+def deployment_admissibility_report(
+    packet: Mapping[str, Any],
+    *,
+    profile: str | Mapping[str, Any] = "development",
+) -> dict[str, Any]:
+    packet_id = _packet_id(packet)
+    residuals = _required_residuals(
+        "deployment",
+        packet_id,
+        packet,
+        ("guard_certificate", "current_certificate", "authority_envelope"),
+    )
+    if not _status_ok(_mapping(packet.get("guard_certificate")), {"accepted", "fresh", "approved"}):
+        residuals.append(
+            _report_residual("deployment", packet_id, "guard_certificate_not_accepted")
+        )
+    if not _certificate_fresh(packet.get("current_certificate"), datetime.now(UTC)):
+        residuals.append(_report_residual("deployment", packet_id, "current_certificate_not_fresh"))
+    if not _status_ok(_mapping(packet.get("authority_envelope")), {"approved", "active"}):
+        residuals.append(_report_residual("deployment", packet_id, "authority_not_approved"))
+    blockers = _blocking_kinds(residuals)
+    return {
+        "admissible": not blockers,
+        "blockers": blockers,
+        "non_claims": [*NON_CLAIMS, "deployment_admissible_is_not_provider_dispatch"],
+        "ok": True,
+        "packet_id": packet_id,
+        "profile": _profile_settings(profile)["profile"],
+        "residuals": sorted(residuals, key=lambda item: item["kind"]),
+        "schema_version": "pic.deployment_admissibility_report.v1",
+        "settled": False,
+    }
+
+
+def phase_acceleration_report(
+    target: Mapping[str, Any],
+    baseline: Mapping[str, Any],
+    capital_witnesses: Sequence[Mapping[str, Any]],
+) -> dict[str, Any]:
+    target_report = target_validity_check(target)
+    baseline_report = baseline_envelope_check(baseline)
+    witnesses = [
+        dict(item)
+        if str(item.get("schema_version")) == "pic.runtime_capital_witness.v1"
+        else capital_witness_report(item)
+        for item in capital_witnesses
+    ]
+    residuals: list[dict[str, Any]] = [
+        *[dict(item) for item in target_report["residuals"]],
+        *[dict(item) for item in baseline_report["residuals"]],
+    ]
+    k_alt: dict[str, float] = {}
+    for witness in witnesses:
+        if witness.get("capital_admitted") is True:
+            coord = str(witness.get("coordinate"))
+            k_alt[coord] = k_alt.get(coord, 0.0) + _float_value(
+                witness.get("signed_surplus_lower_bound")
+            )
+        elif witness.get("value_estimand_type") == "proxy_only":
+            residuals.append(
+                _report_residual("phase", witness.get("witness_id"), "proxy_only_non_contributing")
+            )
+    k_baseline = _baseline_coordinates(baseline)
+    thresholds = _target_thresholds(target)
+    if not k_alt:
+        residuals.append(
+            _report_residual(
+                "phase",
+                target.get("target_id") or "target",
+                "runtime_capital_witness_required",
+            )
+        )
+    raw_net_floor = _float_value(target.get("raw_net_capital_floor"))
+    if sum(k_alt.values()) < raw_net_floor:
+        residuals.append(
+            _report_residual(
+                "phase",
+                target.get("target_id") or "target",
+                "raw_net_capital_floor_not_met",
+            )
+        )
+    if not thresholds:
+        residuals.append(
+            _report_residual(
+                "phase",
+                target.get("target_id") or "target",
+                "target_set_evaluator_required",
+            )
+        )
+    margin_values = [
+        k_alt.get(coord, 0.0) - k_baseline.get(coord, 0.0)
+        for coord in sorted(set(k_alt) | set(k_baseline) | set(thresholds))
+    ]
+    margin_delta = min(margin_values) if margin_values else None
+    tau_alt = {
+        coord: 0 if k_alt.get(coord, 0.0) >= threshold else None
+        for coord, threshold in sorted(thresholds.items())
+    }
+    tau_baseline = {
+        coord: 0 if k_baseline.get(coord, 0.0) >= threshold else None
+        for coord, threshold in sorted(thresholds.items())
+    }
+    blockers = _blocking_kinds(residuals)
+    certified_candidate = (
+        bool(thresholds)
+        and target_report["ok"]
+        and baseline_report["ok"]
+        and not blockers
+        and margin_delta is not None
+        and margin_delta > 0
+        and any(value == 0 for value in tau_alt.values())
+        and not all(value == 0 for value in tau_baseline.values())
+    )
+    report_ok = bool(target_report["ok"] and baseline_report["ok"] and not blockers)
+    return {
+        "authority_ok": target_report["authority_ok"],
+        "baseline_envelope_ok": baseline_report["ok"],
+        "blockers": blockers,
+        "capital_witnesses": witnesses,
+        "certified_acceleration_candidate": certified_candidate,
+        "finality_ok": all(item.get("finality_valid") is True for item in witnesses)
+        if witnesses
+        else False,
+        "hazard_ok": target_report["hazard_ok"],
+        "horizon": target.get("horizon"),
+        "k_alt_lower": dict(sorted(k_alt.items())),
+        "k_baseline_upper": dict(sorted(k_baseline.items())),
+        "margin_delta": margin_delta,
+        "non_claims": [
+            *NON_CLAIMS,
+            "certified_acceleration_candidate_is_not_real_asi_proof",
+            "target_baseline_and_witnesses_are_protocol_relative",
+        ],
+        "ok": report_ok,
+        "opportunity_law_ok": target_report["opportunity_law_ok"],
+        "residuals": sorted(residuals, key=lambda item: item["kind"]),
+        "schema_version": "pic.phase_acceleration_report.v1",
+        "settled": False,
+        "target_id": target.get("target_id"),
+        "target_validity_ok": target_report["ok"],
+        "tau_alt": tau_alt,
+        "tau_baseline_upper": tau_baseline,
+        "viability_ok": target_report["viability_ok"],
+    }
+
+
+def activation_construction_report(state_or_graph: Mapping[str, Any]) -> dict[str, Any]:
+    state_id = str(state_or_graph.get("state_id") or state_or_graph.get("graph_id") or "state")
+    configs = _records_any(
+        state_or_graph.get("configurations")
+        or state_or_graph.get("states")
+        or state_or_graph.get("nodes")
+    )
+    residuals: list[dict[str, Any]] = []
+    if not configs:
+        residuals.append(_report_residual("ecpt", state_id, "finite_configuration_set_required"))
+    if len(configs) > 64 and not state_or_graph.get("factor_graph"):
+        residuals.append(_report_residual("ecpt", state_id, "factor_graph_required"))
+    if state_or_graph.get("sampler_mode") and not state_or_graph.get("sample_ledger"):
+        residuals.append(_report_residual("ecpt", state_id, "sampler_ledger_required"))
+    utilities = [
+        _float_value(cfg.get("gain"))
+        - _float_value(cfg.get("burden"))
+        - _float_value(cfg.get("debt"))
+        - _float_value(cfg.get("queue_cost"))
+        - _float_value(cfg.get("capacity_price"))
+        - _float_value(cfg.get("incompatibility"))
+        + _float_value(cfg.get("acceleration_drive"))
+        for cfg in configs
+    ]
+    weights = [max(0.0, utility) + 1.0 for utility in utilities]
+    total = sum(weights) or 1.0
+    blockers = _blocking_kinds(residuals)
+    return {
+        "accepted": not blockers,
+        "activation_probabilities": [
+            {
+                "configuration_id": str(configs[index].get("configuration_id") or index),
+                "probability": round(weight / total, 12),
+                "utility": utilities[index],
+            }
+            for index, weight in enumerate(weights)
+        ],
+        "blockers": blockers,
+        "certified_intervals": bool(state_or_graph.get("error_ledger")),
+        "non_claims": [*NON_CLAIMS, "no_global_gibbs_claim_without_certificate"],
+        "ok": True,
+        "residuals": sorted(residuals, key=lambda item: item["kind"]),
+        "schema_version": "pic.activation_construction_certificate.v1",
+        "settled": False,
+        "state_id": state_id,
+    }
+
+
+def phase_response_control_step(
+    state: Mapping[str, Any],
+    control: Mapping[str, Any],
+) -> dict[str, Any]:
+    report = activation_construction_report(state)
+    control_id = str(control.get("control_id") or control.get("action_id") or "control")
+    residuals = [dict(item) for item in report["residuals"]]
+    if not control.get("control_surface"):
+        residuals.append(_report_residual("ecpt-control", control_id, "control_surface_required"))
+    utility = (
+        _float_value(control.get("gain"))
+        - _float_value(control.get("burden"))
+        - _float_value(control.get("debt"))
+        - _float_value(control.get("queue_cost"))
+        - _float_value(control.get("capacity_price"))
+        - _float_value(control.get("incompatibility"))
+        + _float_value(control.get("acceleration_drive"))
+    )
+    blockers = _blocking_kinds(residuals)
+    return {
+        "accepted": not blockers,
+        "blockers": blockers,
+        "control_id": control_id,
+        "non_claims": [*NON_CLAIMS, "phase_response_step_is_advisory"],
+        "ok": True,
+        "residuals": sorted(residuals, key=lambda item: item["kind"]),
+        "schema_version": "pic.phase_response_control_step.v1",
+        "settled": False,
+        "utility_interval": [utility, utility]
+        if not state.get("error_ledger")
+        else [utility - 1, utility + 1],
+    }
+
+
+def path_law_response_policy_report(trajectory: Mapping[str, Any]) -> dict[str, Any]:
+    trajectory_id = str(trajectory.get("trajectory_id") or "trajectory")
+    residuals = _required_residuals(
+        "ecpt-policy",
+        trajectory_id,
+        trajectory,
+        ("path_law_refs", "response_policy", "control_surface"),
+    )
+    blockers = _blocking_kinds(residuals)
+    return {
+        "accepted": not blockers,
+        "blockers": blockers,
+        "non_claims": [*NON_CLAIMS, "response_policy_is_not_execution_authority"],
+        "ok": True,
+        "residuals": sorted(residuals, key=lambda item: item["kind"]),
+        "schema_version": "pic.path_law_response_policy.v1",
+        "settled": False,
+        "trajectory_id": trajectory_id,
+    }
+
+
+def sqot_protocol_integrity_report(state: Mapping[str, Any]) -> dict[str, Any]:
+    state_id = str(state.get("protocol_id") or state.get("state_id") or "protocol")
+    residuals = _required_residuals(
+        "sqot-protocol",
+        state_id,
+        state,
+        ("mandatory_obligations", "checker_thresholds", "audit_fuel", "diagnostic_reserve"),
+    )
+    if state.get("hidden_protocol_mutation") or state.get("protocol_mutation_edges"):
+        residuals.append(_report_residual("sqot-protocol", state_id, "hidden_protocol_mutation"))
+    if not state.get("root_checker_integrity"):
+        residuals.append(
+            _report_residual("sqot-protocol", state_id, "root_checker_integrity_missing")
+        )
+    if state.get("semantic_egress_status") not in {"accepted", "closed", "not_applicable"}:
+        residuals.append(_report_residual("sqot-protocol", state_id, "semantic_egress_unresolved"))
+    if state.get("verification_cost_status") == "over_band":
+        residuals.append(_report_residual("sqot-protocol", state_id, "verification_cost_over_band"))
+    if state.get("mechanism_compatibility_status") in {None, "", "missing"}:
+        residuals.append(_report_residual("sqot-protocol", state_id, "mechanism_witness_missing"))
+    blockers = _blocking_kinds(residuals)
+    return {
+        "accepted": not blockers,
+        "audit_fuel": state.get("audit_fuel"),
+        "blockers": blockers,
+        "checker_thresholds": state.get("checker_thresholds"),
+        "diagnostic_reserve": state.get("diagnostic_reserve"),
+        "mandatory_obligations": state.get("mandatory_obligations"),
+        "mechanism_compatibility_status": state.get("mechanism_compatibility_status"),
+        "meta_vulnerability": state.get("meta_vulnerability"),
+        "non_claims": [*NON_CLAIMS, "single_scalar_cannot_certify_sqot_safety"],
+        "ok": True,
+        "protocol_mutation_edges": state.get("protocol_mutation_edges", []),
+        "protocol_state_hash": _digest(state),
+        "queue_morphism_status": state.get("queue_morphism_status"),
+        "residuals": sorted(residuals, key=lambda item: item["kind"]),
+        "root_checker_integrity": state.get("root_checker_integrity"),
+        "schema_version": "pic.sqot_protocol_integrity_report.v1",
+        "semantic_egress_status": state.get("semantic_egress_status"),
+        "settled": False,
+        "verification_cost_status": state.get("verification_cost_status"),
+    }
+
+
+def sqot_resource_exchange_report(state: Mapping[str, Any]) -> dict[str, Any]:
+    state_id = str(state.get("exchange_id") or state.get("state_id") or "resource-exchange")
+    conversions = _records_any(state.get("conversions") or state.get("resource_conversions"))
+    residuals: list[dict[str, Any]] = []
+    if not conversions:
+        residuals.append(
+            _report_residual("sqot-exchange", state_id, "resource_conversion_required")
+        )
+    for conversion in conversions:
+        subject = conversion.get("conversion_id") or state_id
+        if not conversion.get("from") or not conversion.get("to"):
+            residuals.append(_report_residual("sqot-exchange", subject, "unknown_conversion"))
+        if conversion.get("rate") in (None, "") or conversion.get("loss") in (None, ""):
+            residuals.append(
+                _report_residual("sqot-exchange", subject, "conversion_rate_loss_required")
+            )
+        if _float_value(conversion.get("meta_occupation_charge")) <= 0:
+            residuals.append(
+                _report_residual("sqot-exchange", subject, "meta_occupation_charge_required")
+            )
+        if conversion.get("arbitrage_obstruction") is True:
+            residuals.append(
+                _report_residual("sqot-exchange", subject, "exchange_arbitrage_obstruction")
+            )
+    blockers = _blocking_kinds(residuals)
+    return {
+        "accepted": not blockers,
+        "blockers": blockers,
+        "conversions": conversions,
+        "non_claims": [*NON_CLAIMS, "local_resource_safety_does_not_imply_cross_modal_safety"],
+        "ok": True,
+        "residuals": sorted(residuals, key=lambda item: item["kind"]),
+        "schema_version": "pic.sqot_resource_exchange_report.v1",
+        "settled": False,
+    }
+
+
+def probe_stop_report(probe_tree: Mapping[str, Any]) -> dict[str, Any]:
+    probe_id = str(probe_tree.get("probe_id") or "probe")
+    reserve = _float_value(probe_tree.get("diagnostic_reserve"), 0)
+    cost = _float_value(probe_tree.get("probe_cost"), probe_tree.get("cost"))
+    meta_band = _float_value(probe_tree.get("meta_occupation_band"), 1)
+    meta_charge = _float_value(probe_tree.get("meta_occupation_charge"), 0)
+    residuals: list[dict[str, Any]] = []
+    if cost > reserve:
+        residuals.append(_report_residual("probe", probe_id, "probe_cost_exceeds_reserve"))
+    if meta_charge > meta_band:
+        residuals.append(_report_residual("probe", probe_id, "meta_occupation_band_exceeded"))
+    blockers = _blocking_kinds(residuals)
+    return {
+        "accepted": not blockers,
+        "blockers": blockers,
+        "no_action_certificate": bool(blockers),
+        "non_claims": [*NON_CLAIMS, "probe_plan_is_not_provider_execution"],
+        "ok": True,
+        "residuals": sorted(residuals, key=lambda item: item["kind"]),
+        "schema_version": "pic.probe_stop_report.v1",
+        "settled": False,
+    }
+
+
+def bit_mec_frontier_report(certificates: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
+    residuals: list[dict[str, Any]] = []
+    accepted: list[dict[str, Any]] = []
+    for index, certificate in enumerate(certificates):
+        cert_id = str(certificate.get("certificate_id") or f"certificate:{index}")
+        if not certificate.get("finite_witness"):
+            residuals.append(_report_residual("bit-mec", cert_id, "finite_witness_required"))
+            continue
+        if not certificate.get("unit_ledger"):
+            residuals.append(_report_residual("bit-mec", cert_id, "unit_ledger_required"))
+            continue
+        accepted.append(dict(certificate))
+    frontier = _pareto_frontier(accepted)
+    blockers = _blocking_kinds(residuals)
+    return {
+        "accepted": not blockers,
+        "blockers": blockers,
+        "frontier": frontier,
+        "non_claims": [*NON_CLAIMS, "mec_frontier_reports_only_finite_witnesses"],
+        "ok": True,
+        "residuals": sorted(residuals, key=lambda item: item["kind"]),
+        "schema_version": "pic.bit_mec_frontier_report.v1",
+        "settled": False,
+    }
+
+
+def bit_certificate_compiler_report(certificates: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
+    frontier = bit_mec_frontier_report(certificates)
+    return {
+        "accepted": frontier["accepted"],
+        "blockers": frontier["blockers"],
+        "compiled_certificate_count": len(frontier["frontier"]),
+        "non_claims": [*NON_CLAIMS, "compiler_report_does_not_promote_diagnostic_clauses"],
+        "ok": True,
+        "residuals": frontier["residuals"],
+        "schema_version": "pic.bit_certificate_compiler_report.v1",
+        "settled": False,
+    }
+
+
+def bit_unit_compatibility_report(certificates: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
+    units = {
+        json.dumps(certificate.get("unit_ledger"), sort_keys=True, default=str)
+        for certificate in certificates
+        if certificate.get("unit_ledger") is not None
+    }
+    residuals = []
+    if len(units) > 1:
+        residuals.append(_report_residual("bit-unit", "unit-ledger", "unit_mixing_blocked"))
+    blockers = _blocking_kinds(residuals)
+    return {
+        "accepted": not blockers,
+        "blockers": blockers,
+        "non_claims": [*NON_CLAIMS, "unit_compatibility_is_coordinate_local"],
+        "ok": True,
+        "residuals": residuals,
+        "schema_version": "pic.bit_unit_compatibility_report.v1",
+        "settled": False,
+    }
+
+
+def cegar_simulation_barrier_report(barrier: Mapping[str, Any]) -> dict[str, Any]:
+    barrier_id = str(barrier.get("barrier_id") or "barrier")
+    residuals: list[dict[str, Any]] = []
+    if not (barrier.get("finite_transition_table") or barrier.get("interval_table")):
+        residuals.append(_report_residual("cegar", barrier_id, "finite_transition_table_required"))
+    if not (barrier.get("simulation_contraction") or barrier.get("refinement_record")):
+        residuals.append(_report_residual("cegar", barrier_id, "refinement_record_required"))
+    if barrier.get("uncovered_counterexamples"):
+        residuals.append(_report_residual("cegar", barrier_id, "uncovered_counterexample"))
+    if not barrier.get("bad_state_bound_certified"):
+        residuals.append(_report_residual("cegar", barrier_id, "bad_state_bound_uncertified"))
+    blockers = _blocking_kinds(residuals)
+    return {
+        "accepted": not blockers,
+        "blockers": blockers,
+        "non_claims": [*NON_CLAIMS, "simulation_barrier_is_not_real_physical_outcome_proof"],
+        "ok": True,
+        "residuals": sorted(residuals, key=lambda item: item["kind"]),
+        "schema_version": "pic.cegar_simulation_barrier_report.v1",
+        "settled": False,
+    }
+
+
+def dynamic_regime_acceleration_report(surface: Mapping[str, Any]) -> dict[str, Any]:
+    surface_id = str(surface.get("surface_id") or "surface")
+    residuals: list[dict[str, Any]] = []
+    if surface.get("dynamic_baseline_resource_matched") is not True:
+        residuals.append(
+            _report_residual("dynamic", surface_id, "dynamic_baseline_not_resource_matched")
+        )
+    if _float_value(surface.get("positivity_floor")) <= 0:
+        residuals.append(_report_residual("dynamic", surface_id, "positivity_floor_required"))
+    for key in ("censoring_charge", "competing_stop_charge", "truncation_charge"):
+        if surface.get(key) in (None, ""):
+            residuals.append(_report_residual("dynamic", surface_id, f"{key}_required"))
+    arrival_gain_lower = _float_value(surface.get("arrival_gain_lower_bound"))
+    blockers = _blocking_kinds(residuals)
+    return {
+        "accepted": not blockers,
+        "arrival_gain_lower_bound": arrival_gain_lower if not blockers else None,
+        "blockers": blockers,
+        "non_claims": [*NON_CLAIMS, "arrival_gain_is_local_to_declared_risk_set_convention"],
+        "ok": True,
+        "residuals": sorted(residuals, key=lambda item: item["kind"]),
+        "schema_version": "pic.dynamic_regime_acceleration_report.v1",
+        "settled": False,
+    }
+
+
+def _baseline_coordinates(baseline: Mapping[str, Any]) -> dict[str, float]:
+    raw = baseline.get("envelope_coordinates")
+    if isinstance(raw, Mapping):
+        return {str(key): _float_value(value) for key, value in raw.items()}
+    coords: dict[str, float] = {}
+    for item in _records_any(raw):
+        coords[str(item.get("coordinate"))] = _float_value(
+            item.get("upper_bound"), item.get("value")
+        )
+    return coords
+
+
+def _target_thresholds(target: Mapping[str, Any]) -> dict[str, float]:
+    target_set = _mapping(target.get("target_set"))
+    raw = target_set.get("thresholds") or target_set.get("coordinate_thresholds")
+    if isinstance(raw, Mapping):
+        return {str(key): _float_value(value) for key, value in raw.items()}
+    thresholds: dict[str, float] = {}
+    for item in _records_any(raw):
+        thresholds[str(item.get("coordinate"))] = _float_value(
+            item.get("threshold"), item.get("value")
+        )
+    return thresholds
+
+
+def _pareto_frontier(items: Sequence[Mapping[str, Any]]) -> list[dict[str, Any]]:
+    frontier: list[dict[str, Any]] = []
+    for candidate in items:
+        candidate_metrics = _mec_metrics(candidate)
+        dominated = False
+        for other in items:
+            if other is candidate:
+                continue
+            other_metrics = _mec_metrics(other)
+            if all(
+                other_metrics[key] <= candidate_metrics[key] for key in candidate_metrics
+            ) and any(other_metrics[key] < candidate_metrics[key] for key in candidate_metrics):
+                dominated = True
+                break
+        if not dominated:
+            frontier.append(dict(candidate))
+    return sorted(
+        frontier,
+        key=lambda item: str(item.get("certificate_id") or item.get("witness_id") or item),
+    )
+
+
+def _mec_metrics(item: Mapping[str, Any]) -> dict[str, float]:
+    return {
+        "cost": _float_value(item.get("cost")),
+        "friction": _float_value(item.get("friction")),
+        "load": _float_value(item.get("load")),
+    }
 
 
 def _optional_float(*values: Any) -> float | None:

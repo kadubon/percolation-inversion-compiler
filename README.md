@@ -10,7 +10,7 @@ New to PIC? Start with the [GitHub Wiki](https://github.com/kadubon/percolation-
 
 Related OSS: [Collective Capability Runtime](https://github.com/kadubon/collective-capability-runtime) is the companion open-source Python runtime for coordinating multi-agent tasks, leases, blackboard events, packet distillation, provider imports, residual tracking, and release audits. Use PIC when you need packet-level checks, verifier routing, schemas, Phase Ecology Lab diagnostics, or protocol-relative certificate candidates. Use CCR when you need an auditable local runtime that coordinates many agents and can import PIC-compatible reports without treating them as automatic settlement or execution authority.
 
-Distribution status: v0.7.0 is a practical runtime snapshot with a beta API
+Distribution status: v0.8.0 is a practical runtime snapshot with a beta API
 surface. Install the core package from PyPI with `pip install
 percolation-inversion-compiler`; use `pip install
 "percolation-inversion-compiler[identity,connectors,server]"` when you need
@@ -63,6 +63,18 @@ phase/BIT/SQOT/ALT residual work to CCR, and run a local PIC-to-CCR benchmark
 bundle without treating candidate plans as execution authority. It also blocks
 expired or fixture-only authority envelopes from operation readiness and
 separates ALT `accepted` from `capital_admitted`.
+
+v0.8.0 adds the target-valid ASI-proxy/CARA acceleration layer. A phase
+acceleration report compares a declared target set, admitted lower-bound runtime
+capital witnesses, and a resource-matched baseline upper envelope. Proxy-only
+evidence cannot increase safe capital; missing baselines, stale certificates,
+unknown budgets, missing authority, and physical observation gaps remain
+residuals. PIC also emits structured MCP descriptor reports, MCP invocation
+preflight reports, A2A handoff reports, SQOT protocol-integrity/resource
+exchange diagnostics, BIT MEC frontier reports, and stricter TRC physical gate
+checks. `provider_dispatch_ready` is not dispatch, `physical_dispatch_ready` is
+not physical outcome proof, and `certified_acceleration_candidate` is not real
+ASI proof.
 
 v0.5.0 adds the Phase Ecology Lab for windowed multi-packet diagnostics: effective packet graphs, closure, execution-available paths, BIT bottleneck inversion, SQOT queue obstruction, ALT-to-ECPT lift, TRC typed trace adapters, and threshold/certificate candidates. These surfaces are diagnostic, non-executing, protocol-relative, and residual-preserving.
 

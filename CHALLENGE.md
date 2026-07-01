@@ -23,6 +23,12 @@ authority boundaries.
   residual-ready, never silently zero.
 - Negative liquidity, hazards, and settlement blockers are preserved as
   first-class residuals.
+- Target-valid CARA acceleration requires a declared target set, a
+  resource-matched baseline upper envelope, and admitted lower-bound capital
+  witnesses.
+- MCP descriptors and A2A handoffs are candidate evidence, not delegated
+  authority.
+- `physical_dispatch_ready` is not physical outcome proof.
 
 ## Minimal Run
 
@@ -33,6 +39,7 @@ pic alt bridge ecpt --packet examples/alt/admission_packet.json --profile develo
 pic sqot diagnose-queue --state examples/sqot_queue.json --emit ccr-tasks
 pic trc trace-normalize --input examples/asi_proxy_benchmark_bundle/trc_agent_trace.json
 pic trc trace-check --trace trace_nf.json
+pic phase acceleration-report --target examples/asi_proxy_acceleration_bundle/target.json --baseline examples/asi_proxy_acceleration_bundle/baseline_upper_envelope.json --capital examples/asi_proxy_acceleration_bundle/capital_witnesses.jsonl
 ```
 
 The run should produce at least one candidate packet or packet-compatible
