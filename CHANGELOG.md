@@ -1,5 +1,20 @@
 # Changelog
 
+## v0.9.0 - 2026-07-02
+
+- Adds the agent-operable ASI-proxy loop layer for token extraction,
+  admissibility, duplicate suppression, observation residuals, compact outputs,
+  interval-aware acceleration reports, cache invalidation, and local
+  performance diagnostics.
+- Adds v0.9 public report schemas, the cross-repo
+  `examples/asi_proxy_loop_bundle/`, and first-time-agent docs for loop
+  protocol, token extraction, TRC operation observation, SQOT resource tensors,
+  BIT frontiers, and cross-repo conformance.
+- Preserves all safety boundaries: token extraction is not settlement, token
+  admissibility is not capital admission, safe commands are hints, cache hits
+  are not proof, provider preflight is not dispatch, and physical readiness is
+  not physical outcome proof.
+
 ## v0.8.0 - 2026-07-01
 
 - Adds target-valid ASI-proxy/CARA reports over declared targets, baseline

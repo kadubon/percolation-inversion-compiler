@@ -53,3 +53,13 @@ operation.
 
 The emitted JSON is intended for CCR import and scheduling. PIC remains the
 checker and compiler layer.
+
+## v0.9 Loop Challenge
+
+The current challenge is lower-friction ASI-proxy phase formation without
+weakening safety boundaries. A conforming agent should extract token
+candidates, check token admissibility, suppress duplicate mass, route
+observation residuals, refresh stale baselines, and preserve every blocker as a
+residual. It must not treat `accepted`, `capital_admitted`,
+`operation_ready`, `provider_dispatch_ready`, `physical_dispatch_ready`, or a
+cache hit as execution, settlement, or physical outcome proof.

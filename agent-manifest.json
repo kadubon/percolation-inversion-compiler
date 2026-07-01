@@ -30,7 +30,11 @@
     "target-valid-cara-acceleration",
     "mcp-a2a-safety-reports",
     "sqot-protocol-integrity",
-    "bit-mec-frontier"
+    "bit-mec-frontier",
+    "token-extraction",
+    "trc-observation-residuals",
+    "cache-index-performance",
+    "agent-loop-protocol"
   ],
   "full_feature_stages": [
     "orient",
@@ -417,6 +421,10 @@
     "pic phase lab executable-paths --store pic-demo/phase-lab",
     "pic phase lab certify --store pic-demo/phase-lab --threshold pic-demo/phase_lab_threshold.json",
     "pic phase acceleration-report --target examples/asi_proxy_acceleration_bundle/target.json --baseline examples/asi_proxy_acceleration_bundle/baseline_upper_envelope.json --capital examples/asi_proxy_acceleration_bundle/capital_witnesses.jsonl",
+    "pic token extract-pipeline --trace examples/asi_proxy_benchmark_bundle/trc_agent_trace.json --compact",
+    "pic token admissibility --token examples/asi_proxy_loop_bundle/pic_token_admissibility.example.json --compact",
+    "pic performance report --json",
+    "pic cache status --json",
     "pic mcp descriptor-check --descriptor examples/asi_proxy_acceleration_bundle/mcp_descriptor.good.json --profile development",
     "pic a2a handoff-check --handoff examples/asi_proxy_acceleration_bundle/a2a_handoff.good.json --profile development",
     "pic sqot protocol-integrity --state examples/asi_proxy_acceleration_bundle/sqot_protocol_integrity.missing_root.json",
@@ -459,5 +467,5 @@
     "pypi_fallback": "python -m pip install uv",
     "windows_powershell": "powershell -ExecutionPolicy ByPass -c \"irm https://astral.sh/uv/install.ps1 | iex\""
   },
-  "version": "0.8.0"
+  "version": "0.9.0"
 }

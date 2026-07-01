@@ -28,6 +28,13 @@ REQUIRED_WHEEL_MEMBERS = {
     "percolation_inversion_compiler/data/snapshots/ecpt.json",
     "percolation_inversion_compiler/data/snapshots/sqot.json",
     "percolation_inversion_compiler/data/snapshots/trc.json",
+    "percolation_inversion_compiler/data/schemas/token-extraction-pipeline-report.schema.json",
+    "percolation_inversion_compiler/data/schemas/token-admissibility-report.schema.json",
+    "percolation_inversion_compiler/data/schemas/performance-report.schema.json",
+    "percolation_inversion_compiler/data/examples/asi_proxy_loop_bundle/target.json",
+    "percolation_inversion_compiler/data/examples/asi_proxy_loop_bundle/performance_report.example.json",
+    "percolation_inversion_compiler/data/docs/asi-proxy-loop.md",
+    "percolation_inversion_compiler/data/docs/cross-repo-loop-conformance.md",
 }
 REQUIRED_SDIST_SUFFIXES = {
     "src/percolation_inversion_compiler/py.typed",
@@ -47,6 +54,13 @@ REQUIRED_SDIST_SUFFIXES = {
     "src/percolation_inversion_compiler/data/snapshots/ecpt.json",
     "src/percolation_inversion_compiler/data/snapshots/sqot.json",
     "src/percolation_inversion_compiler/data/snapshots/trc.json",
+    "schemas/token-extraction-pipeline-report.schema.json",
+    "schemas/token-admissibility-report.schema.json",
+    "schemas/performance-report.schema.json",
+    "examples/asi_proxy_loop_bundle/target.json",
+    "examples/asi_proxy_loop_bundle/performance_report.example.json",
+    "docs/asi-proxy-loop.md",
+    "docs/cross-repo-loop-conformance.md",
 }
 FORBIDDEN_WHEEL_SUFFIXES = {
     ".7z",

@@ -187,6 +187,95 @@ def test_mcp_invocation_preflight_rejects_untrusted_or_unsafe_calls() -> None:
     }.issubset(report["blockers"])
 
 
+def test_operation_gate_uses_structured_mcp_and_a2a_reports() -> None:
+    descriptor = mcp_tool_descriptor_report(
+        {
+            "auth_scope": ["read"],
+            "descriptor_version": "1",
+            "egress_policy": "none",
+            "server_id": "srv",
+            "server_trust_status": "trusted",
+            "side_effect_class": "read_only",
+            "tool_name": "read",
+        }
+    )
+    invocation = mcp_tool_invocation_preflight(
+        {
+            "auth_scope": ["read"],
+            "descriptor_version": "1",
+            "egress_policy": "none",
+            "server_id": "srv",
+            "server_trust_status": "trusted",
+            "side_effect_class": "read_only",
+            "tool_name": "read",
+        },
+        {
+            "arguments": {"path": "README.md"},
+            "canonical_tool_name": "read",
+            "output_redaction_policy": "none",
+            "per_call_approval_ref": "approval:mcp",
+            "trace_logging_enabled": True,
+        },
+    )
+    card = {
+        "accepted": True,
+        "agent_card_hash": "sha256:agent",
+        "schema_version": "pic.a2a_agent_card_report.v1",
+    }
+    handoff = {
+        "accepted": True,
+        "agent_card_hash": "sha256:agent",
+        "handoff_hash": "sha256:handoff",
+        "schema_version": "pic.a2a_task_handoff_report.v1",
+    }
+
+    gate = operation_gate_report(
+        _physical_trace(),
+        provider_profile={
+            "a2a_agent_card_report": card,
+            "a2a_task_handoff_report": handoff,
+            "allow_execute": True,
+            "explicit_execute": True,
+            "mcp_tool_descriptor_report": descriptor,
+            "mcp_tool_invocation_preflight": invocation,
+            "requires_a2a_agent": True,
+            "requires_mcp_tool": True,
+            "side_effect_policy": "controlled_provider_allowed",
+            "trusted_issuers": ["operator:test"],
+        },
+    )
+
+    assert gate["mcp_tool_gate"]["ok"] is True
+    assert gate["mcp_tool_gate"]["descriptor_hash"] == descriptor["descriptor_hash"]
+    assert gate["a2a_agent_gate"]["ok"] is True
+    assert gate["a2a_agent_gate"]["agent_card_hash"] == "sha256:agent"
+
+
+def test_operation_gate_blocks_structured_legacy_mismatch() -> None:
+    gate = operation_gate_report(
+        _physical_trace(),
+        provider_profile={
+            "allow_execute": True,
+            "explicit_execute": True,
+            "mcp_tool_descriptor_report": {
+                "accepted": True,
+                "descriptor_hash": "sha256:descriptor",
+            },
+            "mcp_tool_gate_accepted": False,
+            "mcp_tool_invocation_preflight": {
+                "accepted": True,
+                "descriptor_hash": "sha256:descriptor",
+            },
+            "side_effect_policy": "controlled_provider_allowed",
+            "trusted_issuers": ["operator:test"],
+        },
+    )
+
+    assert gate["mcp_tool_gate"]["ok"] is False
+    assert "mcp_gate_structured_legacy_mismatch" in gate["execution_blockers"]
+    assert "mcp_gate_structured_legacy_mismatch" in {item["kind"] for item in gate["residuals"]}
+
+
 def test_phase_acceleration_fails_closed_without_baseline_and_proxy_only_is_non_contributing() -> (
     None
 ):
@@ -230,6 +319,8 @@ def test_phase_acceleration_fails_closed_without_baseline_and_proxy_only_is_non_
     assert report["ok"] is False
     assert "missing_baseline_policy_class" in report["blockers"]
     assert "proxy_only_non_contributing" in report["blockers"]
+    assert report["certified_acceleration_interval_candidate"] is False
+    assert report["interval_residuals"]
 
 
 def test_target_validity_rejects_unapproved_authority() -> None:

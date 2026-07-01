@@ -170,34 +170,81 @@ from percolation_inversion_compiler.identity import (
 from percolation_inversion_compiler.interop import (
     a2a_agent_card_report,
     a2a_task_handoff_report,
+    activation_cache_report,
     activation_construction_report,
     alt_ecpt_bridge_report,
+    anchor_transfer_report,
+    atlas_check_report,
     baseline_envelope_check,
     bit_certificate_compiler_report,
     bit_mec_frontier_report,
     bit_registry_report,
     bit_tasks_from_registry,
+    boundary_quotient_report,
+    cache_invalidation_report,
+    cache_rebuild_report,
+    cache_status_report,
     capital_witness_report,
     ccr_residuals_from_phase_plan,
     ccr_tasks_from_phase_plan,
     cegar_simulation_barrier_report,
+    checker_cost_report,
+    confidence_sequence_report,
+    construct_validity_report,
     deployment_admissibility_report,
     diagnose_sqot_queue_state,
+    diagnostic_reserve_report,
+    duplicate_inflation_report,
     dynamic_regime_acceleration_report,
+    dynamic_risk_report,
+    ecpt_quotient_report,
+    efficiency_archive_report,
+    evidence_product_report,
+    exchange_tensor_report,
+    fcu_check_report,
     jsonl_text,
+    leakage_audit_report,
+    lifecycle_cost_report,
+    lifecycle_scheduler_report,
+    martingale_partition_report,
     mcp_tool_descriptor_report,
     mcp_tool_invocation_preflight,
+    mechanism_ablation_report,
+    mechanism_cube_report,
+    mission_validity_report,
     operation_gate_report,
+    opportunity_measure_report,
     path_law_response_policy_report,
+    performance_bench_report,
+    performance_report,
     phase_acceleration_report,
     phase_response_control_step,
     probe_stop_report,
+    protocol_mutation_report,
+    queue_morphism_report,
+    release_interval_report,
+    resource_tensor_report,
     sqot_protocol_integrity_report,
     sqot_resource_exchange_report,
+    stopped_sheaf_report,
     target_validity_check,
+    telemetry_check_report,
+    token_admissibility_report,
+    token_dedup_report,
+    token_extraction_pipeline_report,
+    token_interface_standard_report,
+    token_lineage_report,
+    tolerance_scheduler_report,
     trace_check_report,
+    trace_instrumentation_contract_report,
     trace_normal_form_report,
     trace_packet_candidate,
+    trace_sufficiency_report,
+    transport_certificate_report,
+    trc_observation_consistency_report,
+    trc_observation_window_report,
+    trc_resource_flow_report,
+    unseen_frontier_report,
 )
 from percolation_inversion_compiler.io import (
     audit_canonical_suite,
@@ -325,6 +372,8 @@ phase_closure_app = typer.Typer(help="Find and certify effective graph closure c
 packet_app = typer.Typer(help="Inspect and merge data-only packet-exchange sidecars.")
 alt_app = typer.Typer(help="Run ALT abstraction-liquidity foundry tools.")
 alt_bridge_app = typer.Typer(help="Bridge ALT diagnostics into adjacent protocol reports.")
+token_app = typer.Typer(help="Run ALT token extraction and admissibility reports.")
+trace_app = typer.Typer(help="Run trace instrumentation and sufficiency reports.")
 bit_app = typer.Typer(help="Run practical BIT bottleneck inversion diagnostics.")
 ecpt_app = typer.Typer(help="Run ECPT active phase-control planning tools.")
 sqot_app = typer.Typer(help="Run SQOT salience-queue scheduling tools.")
@@ -339,6 +388,8 @@ agent_app = typer.Typer(help="Agent-facing shortcuts for PIC runtime integration
 agent_inbox_app = typer.Typer(help="Manage local agent inbox/outbox records.")
 agent_message_app = typer.Typer(help="Create, verify, and ingest agent message envelopes.")
 trc_app = typer.Typer(help="Run TRC typed trace adapter diagnostics.")
+performance_app = typer.Typer(help="Emit local deterministic performance reports.")
+cache_app = typer.Typer(help="Emit cache status, rebuild, and invalidation reports.")
 app.add_typer(demo_app, name="demo")
 app.add_typer(audit_app, name="audit")
 app.add_typer(snapshot_app, name="snapshot")
@@ -355,6 +406,8 @@ phase_app.add_typer(phase_closure_app, name="closure")
 app.add_typer(packet_app, name="packet")
 app.add_typer(alt_app, name="alt")
 alt_app.add_typer(alt_bridge_app, name="bridge")
+app.add_typer(token_app, name="token")
+app.add_typer(trace_app, name="trace")
 app.add_typer(bit_app, name="bit")
 app.add_typer(ecpt_app, name="ecpt")
 app.add_typer(sqot_app, name="sqot")
@@ -369,6 +422,8 @@ app.add_typer(agent_app, name="agent")
 agent_app.add_typer(agent_inbox_app, name="inbox")
 agent_app.add_typer(agent_message_app, name="message")
 app.add_typer(trc_app, name="trc")
+app.add_typer(performance_app, name="performance")
+app.add_typer(cache_app, name="cache")
 console = Console()
 
 
@@ -400,6 +455,45 @@ def _dump_jsonl(items: list[dict[str, Any]], output: Path | None = None) -> None
             sys.stdout.flush()
         except (BrokenPipeError, OSError):
             raise typer.Exit(0) from None
+
+
+def _compact_report(data: Any) -> dict[str, Any]:
+    if hasattr(data, "model_dump"):
+        payload = data.model_dump(mode="json")
+    elif isinstance(data, dict):
+        payload = data
+    else:
+        payload = {"value": data}
+    residuals = [item for item in payload.get("residuals", []) if isinstance(item, dict)]
+    blockers = payload.get("blockers")
+    if not isinstance(blockers, list):
+        blockers = [
+            str(item.get("kind"))
+            for item in residuals
+            if item.get("blocking") is True and item.get("kind")
+        ]
+    next_actions = payload.get("next_safe_actions")
+    if isinstance(next_actions, list) and next_actions:
+        next_safe_action = str(next_actions[0])
+    else:
+        safe_commands = payload.get("safe_commands")
+        if isinstance(safe_commands, list) and safe_commands:
+            next_safe_action = str(safe_commands[0])
+        elif isinstance(payload.get("recommended_action"), dict):
+            next_safe_action = str(payload["recommended_action"].get("safe_command", ""))
+        else:
+            next_safe_action = ""
+    return {
+        "accepted": payload.get("accepted"),
+        "blockers": sorted({str(item) for item in blockers if str(item)}),
+        "next_safe_action": next_safe_action,
+        "non_claims": list(payload.get("non_claims", [])),
+        "ok": bool(payload.get("ok", False)),
+        "residual_count": len(residuals),
+        "schema_version": "pic.compact_report.v1",
+        "settled": bool(payload.get("settled", False)),
+        "source_schema_version": payload.get("schema_version"),
+    }
 
 
 def _output_format(value: str) -> str:
@@ -1794,6 +1888,10 @@ def alt_tokenize(
 @alt_app.command("check-token")
 def alt_check_token(
     token: Annotated[Path, typer.Option("--token", help="AbstractionToken JSON/YAML.")],
+    compact: Annotated[
+        bool,
+        typer.Option("--compact/--full", help="Emit compact agent JSON."),
+    ] = False,
     output: Annotated[
         Path | None, typer.Option("--output", "-o", help="Write JSON output.")
     ] = None,
@@ -1803,7 +1901,238 @@ def alt_check_token(
     from percolation_inversion_compiler.alt import AbstractionToken
 
     result = check_token_admissibility(AbstractionToken.model_validate(load_data(token)))
-    _dump(result.model_dump(mode="json"), output)
+    payload = _compact_report(result) if compact else result.model_dump(mode="json")
+    _dump(payload, output)
+
+
+@token_app.command("extract-pipeline")
+def token_extract_pipeline_command(
+    trace: Annotated[Path, typer.Option("--trace", help="Finite trace JSON/YAML.")],
+    compact: Annotated[
+        bool,
+        typer.Option("--compact/--full", help="Emit compact agent JSON."),
+    ] = False,
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Emit an ALT trace-to-token pipeline report without executing the token."""
+
+    report = token_extraction_pipeline_report(load_data(trace))
+    _dump(_compact_report(report) if compact else report, output)
+
+
+@token_app.command("admissibility")
+def token_admissibility_command(
+    token: Annotated[Path, typer.Option("--token", help="Token candidate JSON/YAML.")],
+    compact: Annotated[
+        bool,
+        typer.Option("--compact/--full", help="Emit compact agent JSON."),
+    ] = False,
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Check token admissibility clauses without capital admission."""
+
+    report = token_admissibility_report(load_data(token))
+    _dump(_compact_report(report) if compact else report, output)
+
+
+@token_app.command("lineage")
+def token_lineage_command(
+    token: Annotated[Path, typer.Option("--token", help="Token candidate JSON/YAML.")],
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Emit token lineage and canonical hashes without settlement promotion."""
+
+    _dump(token_lineage_report(load_data(token)), output)
+
+
+@token_app.command("dedup")
+def token_dedup_command(
+    tokens: Annotated[Path, typer.Option("--tokens", help="Token candidates JSONL.")],
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Detect exact aliases and near-duplicate token candidates."""
+
+    _dump(token_dedup_report(_load_jsonl_events(tokens)), output)
+
+
+@token_app.command("interface-check")
+def token_interface_check_command(
+    token: Annotated[Path, typer.Option("--token", help="Token candidate JSON/YAML.")],
+    standard: Annotated[Path, typer.Option("--standard", help="Interface standard JSON/YAML.")],
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Check a token's finite interface contract."""
+
+    _dump(token_interface_standard_report(load_data(token), load_data(standard)), output)
+
+
+@token_app.command("mechanism-ablation")
+def token_mechanism_ablation_command(
+    token: Annotated[Path, typer.Option("--token", help="Token candidate JSON/YAML.")],
+    ablation: Annotated[Path, typer.Option("--ablation", help="Ablation design JSON/YAML.")],
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Check mechanism-ablation evidence and required charges."""
+
+    _dump(mechanism_ablation_report(load_data(token), load_data(ablation)), output)
+
+
+@token_app.command("leakage-audit")
+def token_leakage_audit_command(
+    token: Annotated[Path, typer.Option("--token", help="Token candidate JSON/YAML.")],
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Check finite leakage exclusions for a token candidate."""
+
+    _dump(leakage_audit_report(load_data(token)), output)
+
+
+@trace_app.command("instrumentation-check")
+def trace_instrumentation_check_command(
+    trace: Annotated[Path, typer.Option("--trace", help="Trace JSON/YAML.")],
+    contract: Annotated[
+        Path,
+        typer.Option("--contract", help="Instrumentation contract JSON/YAML."),
+    ],
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Check trace instrumentation against a finite contract."""
+
+    _dump(trace_instrumentation_contract_report(load_data(trace), load_data(contract)), output)
+
+
+@trace_app.command("sufficiency-check")
+def trace_sufficiency_check_command(
+    trace: Annotated[Path, typer.Option("--trace", help="Trace JSON/YAML.")],
+    estimand: Annotated[Path, typer.Option("--estimand", help="Estimand JSON/YAML.")],
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Check whether a trace is sufficient for a declared estimand."""
+
+    _dump(trace_sufficiency_report(load_data(trace), load_data(estimand)), output)
+
+
+@alt_app.command("mission-validity")
+def alt_mission_validity_command(
+    packet: Annotated[Path, typer.Option("--packet", help="ALT packet/report JSON/YAML.")],
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Check mission-validity evidence without converting proxy evidence to capital."""
+
+    _dump(mission_validity_report(load_data(packet)), output)
+
+
+@alt_app.command("opportunity-law")
+def alt_opportunity_law_command(
+    target: Annotated[Path, typer.Option("--target", help="Target/opportunity JSON/YAML.")],
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Construct an opportunity-measure diagnostic report."""
+
+    _dump(opportunity_measure_report(load_data(target)), output)
+
+
+@alt_app.command("transport-check")
+def alt_transport_check_command(
+    source: Annotated[Path, typer.Option("--source", help="Source law/scope JSON/YAML.")],
+    target: Annotated[Path, typer.Option("--target", help="Target law/scope JSON/YAML.")],
+    certificate: Annotated[
+        Path,
+        typer.Option("--certificate", help="Transport certificate JSON/YAML."),
+    ],
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Check source-to-target transport evidence without capital promotion."""
+
+    _dump(
+        transport_certificate_report(load_data(source), load_data(target), load_data(certificate)),
+        output,
+    )
+
+
+@alt_app.command("construct-validity")
+def alt_construct_validity_command(
+    packet: Annotated[Path, typer.Option("--packet", help="ALT packet/report JSON/YAML.")],
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Check construct-validity evidence for mission-relative claims."""
+
+    _dump(construct_validity_report(load_data(packet)), output)
+
+
+@alt_app.command("fcu-check")
+def alt_fcu_check_command(
+    cost: Annotated[Path, typer.Option("--cost", help="FCU/cost ledger JSON/YAML.")],
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Check FCU exchange and scalarization ledgers."""
+
+    _dump(fcu_check_report(load_data(cost)), output)
+
+
+@alt_app.command("lifecycle-cost")
+def alt_lifecycle_cost_command(
+    packet: Annotated[Path, typer.Option("--packet", help="ALT packet/report JSON/YAML.")],
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Check lifecycle-cost fields without settlement promotion."""
+
+    _dump(lifecycle_cost_report(load_data(packet)), output)
+
+
+@alt_app.command("telemetry-check")
+def alt_telemetry_check_command(
+    telemetry: Annotated[Path, typer.Option("--telemetry", help="Telemetry JSON/YAML.")],
+    contract: Annotated[Path, typer.Option("--contract", help="Telemetry contract JSON/YAML.")],
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Check closed-loop telemetry against a finite contract."""
+
+    _dump(telemetry_check_report(load_data(telemetry), load_data(contract)), output)
+
+
+@alt_app.command("dynamic-risk")
+def alt_dynamic_risk_command(
+    ledger: Annotated[Path, typer.Option("--ledger", help="Dynamic risk ledger JSON/YAML.")],
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Check dynamic-risk ledgers without status promotion."""
+
+    _dump(dynamic_risk_report(load_data(ledger)), output)
 
 
 @alt_app.command("check-transport")
@@ -5318,32 +5647,39 @@ def phase_acceleration_report_command(
         Path,
         typer.Option("--capital", help="Runtime capital witness JSONL."),
     ],
+    compact: Annotated[
+        bool,
+        typer.Option("--compact/--full", help="Emit compact agent JSON."),
+    ] = False,
     output: Annotated[
         Path | None, typer.Option("--output", "-o", help="Write JSON output.")
     ] = None,
 ) -> None:
     """Emit target-valid CARA phase acceleration diagnostics."""
 
-    _dump(
-        phase_acceleration_report(
-            load_data(target),
-            load_data(baseline),
-            _load_jsonl_events(capital),
-        ),
-        output,
+    report = phase_acceleration_report(
+        load_data(target),
+        load_data(baseline),
+        _load_jsonl_events(capital),
     )
+    _dump(_compact_report(report) if compact else report, output)
 
 
 @alt_app.command("capital-witness")
 def alt_capital_witness_command(
     packet: Annotated[Path, typer.Option("--packet", help="ALT packet/report JSON/YAML.")],
+    compact: Annotated[
+        bool,
+        typer.Option("--compact/--full", help="Emit compact agent JSON."),
+    ] = False,
     output: Annotated[
         Path | None, typer.Option("--output", "-o", help="Write JSON output.")
     ] = None,
 ) -> None:
     """Emit a runtime capital witness without promoting proxy-only evidence."""
 
-    _dump(capital_witness_report(load_data(packet)), output)
+    report = capital_witness_report(load_data(packet))
+    _dump(_compact_report(report) if compact else report, output)
 
 
 @alt_app.command("deployment-admissibility")
@@ -5423,16 +5759,83 @@ def ecpt_response_policy_command(
     _dump(path_law_response_policy_report(load_data(trajectory)), output)
 
 
+@ecpt_app.command("quotient-check")
+def ecpt_quotient_check_command(
+    packets: Annotated[Path, typer.Option("--packets", help="Packet/token JSONL.")],
+    profile: Annotated[str, typer.Option("--profile", help="Profile name.")] = "development",
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Check split-certified quotient evidence and duplicate-mass exclusion."""
+
+    _dump(ecpt_quotient_report(_load_jsonl_events(packets), profile=profile), output)
+
+
+@ecpt_app.command("boundary-quotient")
+def ecpt_boundary_quotient_command(
+    quotient: Annotated[Path, typer.Option("--quotient", help="Quotient report JSON/YAML.")],
+    target: Annotated[Path, typer.Option("--target", help="Target JSON/YAML.")],
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Check boundary-aware quotient residual ledgers."""
+
+    _dump(boundary_quotient_report(load_data(quotient), load_data(target)), output)
+
+
+@ecpt_app.command("duplicate-inflation")
+def ecpt_duplicate_inflation_command(
+    packets: Annotated[Path, typer.Option("--packets", help="Packet/token JSONL.")],
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Report duplicate mass without allowing support inflation."""
+
+    _dump(duplicate_inflation_report(_load_jsonl_events(packets)), output)
+
+
+@ecpt_app.command("atlas-check")
+def ecpt_atlas_check_command(
+    atlas: Annotated[Path, typer.Option("--atlas", help="Stratified atlas JSON/YAML.")],
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Check a stratified packet atlas."""
+
+    _dump(atlas_check_report(load_data(atlas)), output)
+
+
+@ecpt_app.command("activation-cache")
+def ecpt_activation_cache_command(
+    state: Annotated[Path, typer.Option("--state", help="Activation state/cache JSON/YAML.")],
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Check activation-construction cache invalidation fields."""
+
+    _dump(activation_cache_report(load_data(state)), output)
+
+
 @sqot_app.command("protocol-integrity")
 def sqot_protocol_integrity_command(
     state: Annotated[Path, typer.Option("--state", help="SQOT protocol state JSON/YAML.")],
+    compact: Annotated[
+        bool,
+        typer.Option("--compact/--full", help="Emit compact agent JSON."),
+    ] = False,
     output: Annotated[
         Path | None, typer.Option("--output", "-o", help="Write JSON output.")
     ] = None,
 ) -> None:
     """Check SQOT protocol integrity without scalar-only safety promotion."""
 
-    _dump(sqot_protocol_integrity_report(load_data(state)), output)
+    report = sqot_protocol_integrity_report(load_data(state))
+    _dump(_compact_report(report) if compact else report, output)
 
 
 @sqot_app.command("resource-exchange")
@@ -5445,6 +5848,79 @@ def sqot_resource_exchange_command(
     """Check cross-modal resource exchange ledgers."""
 
     _dump(sqot_resource_exchange_report(load_data(state)), output)
+
+
+@sqot_app.command("queue-morphism")
+def sqot_queue_morphism_command(
+    source: Annotated[Path, typer.Option("--source", help="Source queue JSON/YAML.")],
+    target: Annotated[Path, typer.Option("--target", help="Target queue JSON/YAML.")],
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Check whether a queue morphism preserves diagnostic coordinates."""
+
+    _dump(queue_morphism_report(load_data(source), load_data(target)), output)
+
+
+@sqot_app.command("resource-tensor")
+def sqot_resource_tensor_command(
+    state: Annotated[Path, typer.Option("--state", help="SQOT resource state JSON/YAML.")],
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Check typed resource tensor diagnostics."""
+
+    _dump(resource_tensor_report(load_data(state)), output)
+
+
+@sqot_app.command("exchange-tensor")
+def sqot_exchange_tensor_command(
+    state: Annotated[Path, typer.Option("--state", help="SQOT exchange tensor JSON/YAML.")],
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Check resource exchange tensor loss and meta-occupation."""
+
+    _dump(exchange_tensor_report(load_data(state)), output)
+
+
+@sqot_app.command("diagnostic-reserve")
+def sqot_diagnostic_reserve_command(
+    state: Annotated[Path, typer.Option("--state", help="SQOT reserve state JSON/YAML.")],
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Check diagnostic reserve band evidence."""
+
+    _dump(diagnostic_reserve_report(load_data(state)), output)
+
+
+@sqot_app.command("protocol-mutation")
+def sqot_protocol_mutation_command(
+    state: Annotated[Path, typer.Option("--state", help="SQOT protocol mutation state JSON/YAML.")],
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Check protocol mutation certificates and quarantine status."""
+
+    _dump(protocol_mutation_report(load_data(state)), output)
+
+
+@sqot_app.command("checker-cost")
+def sqot_checker_cost_command(
+    state: Annotated[Path, typer.Option("--state", help="Checker-cost ledger JSON/YAML.")],
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Check finite checker-cost queue occupation."""
+
+    _dump(checker_cost_report(load_data(state)), output)
 
 
 @sqot_app.command("probe-stop")
@@ -5468,13 +5944,117 @@ def bit_mec_frontier_command(
         Path,
         typer.Option("--certificates", help="BIT certificate JSONL."),
     ],
+    compact: Annotated[
+        bool,
+        typer.Option("--compact/--full", help="Emit compact agent JSON."),
+    ] = False,
     output: Annotated[
         Path | None, typer.Option("--output", "-o", help="Write JSON output.")
     ] = None,
 ) -> None:
     """Extract a finite minimal-effective-condition frontier."""
 
-    _dump(bit_mec_frontier_report(_load_jsonl_events(certificates)), output)
+    report = bit_mec_frontier_report(_load_jsonl_events(certificates))
+    _dump(_compact_report(report) if compact else report, output)
+
+
+@bit_app.command("unseen-frontier")
+def bit_unseen_frontier_command(
+    discoveries: Annotated[Path, typer.Option("--discoveries", help="Discovery JSONL.")],
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Report unseen, duplicate, and false-entry frontier masses separately."""
+
+    _dump(unseen_frontier_report(_load_jsonl_events(discoveries)), output)
+
+
+@bit_app.command("mechanism-cube")
+def bit_mechanism_cube_command(
+    cube: Annotated[Path, typer.Option("--cube", help="Mechanism cube JSON/YAML.")],
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Check mechanism-factorized channel cube charges."""
+
+    _dump(mechanism_cube_report(load_data(cube)), output)
+
+
+@bit_app.command("release-interval")
+def bit_release_interval_command(
+    program: Annotated[Path, typer.Option("--program", help="Release program JSON/YAML.")],
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Check exactness-certified release interval witnesses."""
+
+    _dump(release_interval_report(load_data(program)), output)
+
+
+@bit_app.command("martingale-partition")
+def bit_martingale_partition_command(
+    audit: Annotated[Path, typer.Option("--audit", help="Partition audit JSON/YAML.")],
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Check martingale partition deficiency evidence."""
+
+    _dump(martingale_partition_report(load_data(audit)), output)
+
+
+@bit_app.command("anchor-transfer")
+def bit_anchor_transfer_command(
+    certificate: Annotated[
+        Path,
+        typer.Option("--certificate", help="Anchor-transfer certificate JSON/YAML."),
+    ],
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Check cross-validated anchor transfer evidence."""
+
+    _dump(anchor_transfer_report(load_data(certificate)), output)
+
+
+@bit_app.command("stopped-sheaf")
+def bit_stopped_sheaf_command(
+    evidence: Annotated[Path, typer.Option("--evidence", help="Evidence JSONL.")],
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Check stopped evidence sheaf hooks."""
+
+    _dump(stopped_sheaf_report(_load_jsonl_events(evidence)), output)
+
+
+@bit_app.command("confidence-sequence")
+def bit_confidence_sequence_command(
+    evidence: Annotated[Path, typer.Option("--evidence", help="Evidence JSONL.")],
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Check confidence-sequence finite evidence hooks."""
+
+    _dump(confidence_sequence_report(_load_jsonl_events(evidence)), output)
+
+
+@bit_app.command("evidence-product")
+def bit_evidence_product_command(
+    evidence: Annotated[Path, typer.Option("--evidence", help="Evidence JSONL.")],
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Check closed-testing evidence product witnesses."""
+
+    _dump(evidence_product_report(_load_jsonl_events(evidence)), output)
 
 
 @bit_app.command("compiler-report")
@@ -5537,16 +6117,22 @@ def mcp_invocation_preflight_command(
     descriptor: Annotated[Path, typer.Option("--descriptor", help="MCP descriptor JSON/YAML.")],
     call: Annotated[Path, typer.Option("--call", help="MCP call JSON/YAML.")],
     profile: Annotated[str, typer.Option("--profile", help="Profile name.")] = "development",
+    compact: Annotated[
+        bool,
+        typer.Option("--compact/--full", help="Emit compact agent JSON."),
+    ] = False,
     output: Annotated[
         Path | None, typer.Option("--output", "-o", help="Write JSON output.")
     ] = None,
 ) -> None:
     """Preflight an MCP invocation without dispatching the tool."""
 
-    _dump(
-        mcp_tool_invocation_preflight(load_data(descriptor), load_data(call), profile=profile),
-        output,
+    report = mcp_tool_invocation_preflight(
+        load_data(descriptor),
+        load_data(call),
+        profile=profile,
     )
+    _dump(_compact_report(report) if compact else report, output)
 
 
 @a2a_app.command("card-check")
@@ -5566,13 +6152,18 @@ def a2a_card_check_command(
 def a2a_handoff_check_command(
     handoff: Annotated[Path, typer.Option("--handoff", help="A2A handoff JSON/YAML.")],
     profile: Annotated[str, typer.Option("--profile", help="Profile name.")] = "development",
+    compact: Annotated[
+        bool,
+        typer.Option("--compact/--full", help="Emit compact agent JSON."),
+    ] = False,
     output: Annotated[
         Path | None, typer.Option("--output", "-o", help="Write JSON output.")
     ] = None,
 ) -> None:
     """Check an A2A task handoff as provider evidence, not settlement."""
 
-    _dump(a2a_task_handoff_report(load_data(handoff), profile=profile), output)
+    report = a2a_task_handoff_report(load_data(handoff), profile=profile)
+    _dump(_compact_report(report) if compact else report, output)
 
 
 @trc_app.command("trace-adapter")
@@ -5631,6 +6222,10 @@ def trc_operation_gate_command(
         Path | None,
         typer.Option("--provider-profile", help="Provider/authority gate profile JSON/YAML."),
     ] = None,
+    compact: Annotated[
+        bool,
+        typer.Option("--compact/--full", help="Emit compact agent JSON."),
+    ] = False,
     output: Annotated[
         Path | None, typer.Option("--output", "-o", help="Write JSON output.")
     ] = None,
@@ -5640,7 +6235,86 @@ def trc_operation_gate_command(
     profile = load_data(provider_profile) if provider_profile else None
     if profile is not None and not isinstance(profile, dict):
         raise typer.BadParameter("provider profile must be a JSON/YAML object")
-    _dump(operation_gate_report(load_data(trace), provider_profile=profile), output)
+    report = operation_gate_report(load_data(trace), provider_profile=profile)
+    _dump(_compact_report(report) if compact else report, output)
+
+
+@trc_app.command("observation-window")
+def trc_observation_window_command(
+    window: Annotated[Path, typer.Option("--window", help="Observation window JSON/YAML.")],
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Check a relative observation window."""
+
+    _dump(trc_observation_window_report(load_data(window)), output)
+
+
+@trc_app.command("observation-consistency")
+def trc_observation_consistency_command(
+    window: Annotated[Path, typer.Option("--window", help="Observation window JSON/YAML.")],
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Check observation consistency without proving physical outcomes."""
+
+    _dump(trc_observation_consistency_report(load_data(window)), output)
+
+
+@trc_app.command("resource-flow")
+def trc_resource_flow_command(
+    trace: Annotated[Path, typer.Option("--trace", help="Trace JSON/YAML.")],
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Emit trace-indexed resource-flow diagnostics."""
+
+    _dump(trc_resource_flow_report(load_data(trace)), output)
+
+
+@trc_app.command("lifecycle-scheduler")
+def trc_lifecycle_scheduler_command(
+    certificates: Annotated[
+        Path,
+        typer.Option("--certificates", help="Lifecycle certificates JSON/YAML."),
+    ],
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Emit lifecycle recomputation scheduler diagnostics."""
+
+    _dump(lifecycle_scheduler_report(load_data(certificates)), output)
+
+
+@trc_app.command("tolerance-scheduler")
+def trc_tolerance_scheduler_command(
+    certificates: Annotated[
+        Path,
+        typer.Option("--certificates", help="Tolerance certificates JSON/YAML."),
+    ],
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Emit tolerance recomputation scheduler diagnostics."""
+
+    _dump(tolerance_scheduler_report(load_data(certificates)), output)
+
+
+@trc_app.command("efficiency-archive")
+def trc_efficiency_archive_command(
+    frontier: Annotated[Path, typer.Option("--frontier", help="Efficiency frontier JSON/YAML.")],
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Check resource-efficiency archive promotion boundaries."""
+
+    _dump(efficiency_archive_report(load_data(frontier)), output)
 
 
 @trc_app.command("trace-to-packet")
@@ -5695,6 +6369,83 @@ def trc_action_boundary_command(
 
     report = action_boundary_from_runtime_report(load_data(report_path))
     _dump(report.model_dump(mode="json"), output)
+
+
+@performance_app.command("report")
+def performance_report_command(
+    json_output: Annotated[
+        bool,
+        typer.Option("--json", help="Accepted for parity; output is always JSON."),
+    ] = False,
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Emit local deterministic performance diagnostics."""
+
+    _ = json_output
+    _dump(performance_report(), output)
+
+
+@performance_app.command("bench")
+def performance_bench_command(
+    fixture: Annotated[Path, typer.Option("--fixture", help="Small benchmark fixture JSON/YAML.")],
+    json_output: Annotated[
+        bool,
+        typer.Option("--json", help="Accepted for parity; output is always JSON."),
+    ] = False,
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Run a local deterministic benchmark report over a fixture."""
+
+    _ = json_output
+    _dump(performance_bench_report(load_data(fixture)), output)
+
+
+@cache_app.command("status")
+def cache_status_command(
+    json_output: Annotated[
+        bool,
+        typer.Option("--json", help="Accepted for parity; output is always JSON."),
+    ] = False,
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Emit cache status diagnostics."""
+
+    _ = json_output
+    _dump(cache_status_report(), output)
+
+
+@cache_app.command("rebuild")
+def cache_rebuild_command(
+    json_output: Annotated[
+        bool,
+        typer.Option("--json", help="Accepted for parity; output is always JSON."),
+    ] = False,
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Emit a deterministic cache rebuild report."""
+
+    _ = json_output
+    _dump(cache_rebuild_report(), output)
+
+
+@cache_app.command("invalidation")
+def cache_invalidation_command(
+    file: Annotated[Path, typer.Option("--file", help="Artifact JSON/YAML to invalidate.")],
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Compute dependency-hash based cache invalidation diagnostics."""
+
+    _dump(cache_invalidation_report(load_data(file)), output)
 
 
 @app.command(name="compile")

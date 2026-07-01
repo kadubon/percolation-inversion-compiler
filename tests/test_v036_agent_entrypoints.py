@@ -36,7 +36,7 @@ def test_agents_md_exists_and_states_safety_contract() -> None:
 def test_agent_manifest_json_is_machine_readable() -> None:
     data = json.loads((ROOT / "agent-manifest.json").read_text(encoding="utf-8"))
     assert data["name"] == "percolation-inversion-compiler"
-    assert data["version"] == "0.8.0"
+    assert data["version"] == "0.9.0"
     assert "non_goals" in data
     assert "safe_cli_entrypoints" in data
     assert "important_schemas" in data

@@ -244,3 +244,15 @@ diagnostic packet candidates.
 - Do not remove public schemas.
 - Keep development mode usable without identity context.
 - Keep production mode stricter but diagnostic and residual-preserving.
+
+## v0.9 Agent Loop Addendum
+
+Use `pic token extract-pipeline`, `pic token admissibility`, `pic trc
+observation-window`, `pic trc resource-flow`, `pic performance report`, and
+`pic cache invalidation` as finite local checks before handing work to CCR.
+Token extraction is not settlement. Token admissibility is not capital
+admission. Safe commands are hints, not authority. Cache hits are valid only
+under schema, dependency, profile, authority, and hazard hashes.
+
+For the smallest searchable cross-repo fixture set, use
+`examples/asi_proxy_loop_bundle/`. It is local-only and non-executing.

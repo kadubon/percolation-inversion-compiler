@@ -1,6 +1,6 @@
 [project]
 name = "percolation-inversion-compiler"
-version = "0.8.0"
+version = "0.9.0"
 description = "ECPT collective phase certificate runtime and finite verifier-routing SDK with ALT abstraction-liquidity foundry, ASI-proxy packet percolation, semantic edge checks, residual ledgers, provenance, and agent integration."
 readme = "README.md"
 requires-python = ">=3.11"
@@ -115,6 +115,16 @@ artifacts = [
   "src/percolation_inversion_compiler/data/**/*.json",
   "src/percolation_inversion_compiler/data/**/*.txt",
 ]
+
+[tool.hatch.build.targets.wheel.force-include]
+"agent-manifest.json" = "percolation_inversion_compiler/data/agent-manifest.json"
+"schemas" = "percolation_inversion_compiler/data/schemas"
+"examples/asi_proxy_loop_bundle" = "percolation_inversion_compiler/data/examples/asi_proxy_loop_bundle"
+"docs/asi-proxy-loop.md" = "percolation_inversion_compiler/data/docs/asi-proxy-loop.md"
+"docs/agent-loop-protocol.md" = "percolation_inversion_compiler/data/docs/agent-loop-protocol.md"
+"docs/token-extraction.md" = "percolation_inversion_compiler/data/docs/token-extraction.md"
+"docs/performance.md" = "percolation_inversion_compiler/data/docs/performance.md"
+"docs/cross-repo-loop-conformance.md" = "percolation_inversion_compiler/data/docs/cross-repo-loop-conformance.md"
 
 [tool.hatch.build.targets.sdist]
 exclude = [
