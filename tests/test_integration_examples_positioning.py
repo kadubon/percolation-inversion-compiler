@@ -106,6 +106,8 @@ def test_manifest_and_schema_index_expose_deployment_surfaces() -> None:
         "sqot-controller",
         "alt-ecpt-lift",
         "trc-trace-adapter",
+        "ccr-interop",
+        "trc-operation-readiness",
     ]
     manifest = json.loads((ROOT / "agent-manifest.json").read_text(encoding="utf-8"))
     schema_index = json.loads((ROOT / "schemas" / "index.json").read_text(encoding="utf-8"))

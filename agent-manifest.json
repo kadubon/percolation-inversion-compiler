@@ -24,7 +24,9 @@
     "bit-inversion-engine",
     "sqot-controller",
     "alt-ecpt-lift",
-    "trc-trace-adapter"
+    "trc-trace-adapter",
+    "ccr-interop",
+    "trc-operation-readiness"
   ],
   "full_feature_stages": [
     "orient",
@@ -141,7 +143,9 @@
     "BottleneckInversionReport",
     "QueueOccupationReport",
     "AltEcptLiftReport",
-    "TypedAgentTrace"
+    "TypedAgentTrace",
+    "TraceNormalForm",
+    "TraceCheckReport"
   ],
   "install_modes": [
     {
@@ -335,6 +339,8 @@
     "SQOT queue occupation diagnostics",
     "ALT-to-ECPT lift diagnostics",
     "TRC typed trace adapters",
+    "TRC operation-readiness checks",
+    "CCR residual and task interop",
     "CLI AI agent output checking",
     "Python SDK agent runtime embedding",
     "read-only GitHub Actions audit artifact generation",
@@ -359,6 +365,8 @@
     "docs/sqot-queue-sovereignty.md",
     "docs/alt-ecpt-lift.md",
     "docs/trc-trace-adapter.md",
+    "docs/ccr-pic-roundtrip.md",
+    "docs/asi-proxy-acceleration.md",
     "docs/threshold-certificates.md",
     "docs/benchmarks/phase-benchmark-suite.md",
     "docs/canonical-implementation-readiness.md",
@@ -436,5 +444,5 @@
     "pypi_fallback": "python -m pip install uv",
     "windows_powershell": "powershell -ExecutionPolicy ByPass -c \"irm https://astral.sh/uv/install.ps1 | iex\""
   },
-  "version": "0.5.0"
+  "version": "0.6.0"
 }

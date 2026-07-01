@@ -10,7 +10,7 @@ New to PIC? Start with the [GitHub Wiki](https://github.com/kadubon/percolation-
 
 Related OSS: [Collective Capability Runtime](https://github.com/kadubon/collective-capability-runtime) is the companion open-source Python runtime for coordinating multi-agent tasks, leases, blackboard events, packet distillation, provider imports, residual tracking, and release audits. Use PIC when you need packet-level checks, verifier routing, schemas, Phase Ecology Lab diagnostics, or protocol-relative certificate candidates. Use CCR when you need an auditable local runtime that coordinates many agents and can import PIC-compatible reports without treating them as automatic settlement or execution authority.
 
-Distribution status: v0.5.0 is a practical runtime snapshot with a beta API
+Distribution status: v0.6.0 is a practical runtime snapshot with a beta API
 surface. Install the core package from PyPI with `pip install
 percolation-inversion-compiler`; use `pip install
 "percolation-inversion-compiler[identity,connectors,server]"` when you need
@@ -57,9 +57,14 @@ safe next-step planner for verified work reuse and bottleneck removal. See
 
 The runtime is fail-closed: planning can recommend finite ASI-proxy actions, but `settled` remains false unless scoped verifier rules discharge the required finite obligations. In production, signed identities and Sybil-resistance ledgers can prevent duplicate-key, clone-fanout, revoked, expired, or unsigned agent populations from producing accepted collective certificates. Residual external obligations remain explicit.
 
+v0.6.0 adds CCR-oriented interop and TRC operation-readiness checks: agents can
+normalize traces, check finite operation blockers, emit packet candidates, export
+phase/BIT/SQOT/ALT residual work to CCR, and run a local PIC-to-CCR benchmark
+bundle without treating candidate plans as execution authority.
+
 v0.5.0 adds the Phase Ecology Lab for windowed multi-packet diagnostics: effective packet graphs, closure, execution-available paths, BIT bottleneck inversion, SQOT queue obstruction, ALT-to-ECPT lift, TRC typed trace adapters, and threshold/certificate candidates. These surfaces are diagnostic, non-executing, protocol-relative, and residual-preserving.
 
-For the v0.5.0 contract audit, OS-independent pip notes, and residual obligation boundary, see [docs/v050-audit.md](docs/v050-audit.md).
+For the v0.6.0 contract audit, OS-independent pip notes, and residual obligation boundary, see [docs/v060-audit.md](docs/v060-audit.md).
 
 v0.5.0 preserves the v0.4.4 ALT abstraction-liquidity foundry support so external knowledge and agent traces can become reusable abstraction-token candidates, then certified abstraction capital only after lower-bound surplus, calibrated proxy or causal value evidence, transport, root-of-trust, telemetry, lifecycle, and hazard checks pass. ALT also adds negative-liquidity, deprecation/resurrection, baseline refresh, reproduction diagnostics, and ALT-CARA acceleration certificates so stale or unsafe abstraction claims remain repairable residual work rather than silent capital. Use `development`, `research`, `controlled`, `federated`, `production`, or `adversarial` profiles to choose how communication policy, cryptographic identities, homogeneous fleets, signed packet issuers, and Sybil-resistance ledgers affect packet promotion and collective certificates.
 

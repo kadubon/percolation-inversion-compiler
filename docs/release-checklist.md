@@ -4,10 +4,10 @@
 - Run local quality gates, publish safety scan, Bandit, pip-audit, and Zizmor.
 - Run `uv build` and check only the target-version artifacts before any PyPI
   publication, for example
-  `uv run python -m twine check dist\percolation_inversion_compiler-0.5.0-py3-none-any.whl dist\percolation_inversion_compiler-0.5.0.tar.gz`.
+  `uv run python -m twine check dist\percolation_inversion_compiler-0.6.0-py3-none-any.whl dist\percolation_inversion_compiler-0.6.0.tar.gz`.
   Local `dist/` directories may contain old release artifacts; do not publish
   local `dist/*`. Prefer the clean GitHub Trusted Publishing workflow.
-- Run `uv run python scripts\check_distribution_artifacts.py --dist-dir dist --version 0.5.0` and confirm the
+- Run `uv run python scripts\check_distribution_artifacts.py --dist-dir dist --version 0.6.0` and confirm the
   wheel contains `py.typed`, bundled theory snapshots, and only the curated
   `percolation_inversion_compiler.data.demo` assets, including Phase Lab
   runtime-report and threshold fixtures.
@@ -39,9 +39,10 @@
   run without provenance is expected to fail closed.
 - Verify `pic sqot schedule`, `pic ecology build-edges`, `pic ecology psi`,
   `pic ecology plan`, and `pic ecology loop` smoke tests.
-- Verify v0.5.0 diagnostics:
+- Verify v0.6.0 diagnostics:
   `pic ecology effective-graph`, `pic bit diagnose`, `pic sqot diagnose-queue`,
-  `pic alt ecpt-lift`, and `pic trc trace-adapter`.
+  `pic alt ecpt-lift`, `pic trc trace-adapter`, `pic trc trace-normalize`,
+  `pic trc trace-check`, and CCR JSONL interop emissions.
 - Confirm no canonical TeX/PDF files, local paths, secrets, private keys, or build artifacts are staged.
 - Confirm the wheel does not include root `examples/`, local virtualenvs,
   vendored archives, model weights, serialized datasets, credential folders, or

@@ -65,7 +65,7 @@
     }
   ],
   "license": "Apache-2.0 for repository demo JSON and text files",
-  "provenance": "Derived from repository examples for v0.5.0 practical installed-package workflows; no canonical TeX or PDF is vendored.",
+  "provenance": "Derived from repository examples for v0.6.0 practical installed-package workflows; no canonical TeX or PDF is vendored.",
   "recommended_phase_commands": [
     "pic phase plan --compact --text \"Candidate packet: preserve residuals.\" --profile development",
     "pic agent accelerate --compact --text \"Candidate packet: preserve residuals.\" --profile development",
@@ -91,5 +91,5 @@
     "live connectors are bounded and candidate-only by default when an explicit source is supplied",
     "settled=false is expected when residual obligations remain"
   ],
-  "version": "0.5.0"
+  "version": "0.6.0"
 }

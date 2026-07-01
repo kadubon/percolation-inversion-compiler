@@ -42,7 +42,7 @@ def test_installed_demo_package_resources_exist() -> None:
     ]:
         assert (root / name).is_file()
     manifest = json.loads((root / "manifest.json").read_text(encoding="utf-8"))
-    assert manifest["version"] == "0.5.0"
+    assert manifest["version"] == "0.6.0"
     assert manifest["candidate_only"] is True
     recommended = "\n".join(manifest["recommended_phase_commands"])
     assert "packet*.json" not in recommended
@@ -63,7 +63,7 @@ def test_pic_demo_installed_smoke_returns_unsettled_report() -> None:
     result = runner.invoke(app, ["demo", "installed-smoke", "--profile", "development"])
     assert result.exit_code == 0
     data = json.loads(result.output)
-    assert data["version"] == "0.5.0"
+    assert data["version"] == "0.6.0"
     assert data["accepted"] is True
     assert data["workflow_usable"] is True
     assert data["settled"] is False
@@ -149,7 +149,7 @@ def test_distribution_artifact_checker_accepts_required_wheel_members(tmp_path: 
 def test_distribution_artifact_checker_accepts_required_sdist_members(tmp_path: Path) -> None:
     module = _distribution_script_module()
     sdist = tmp_path / "demo.tar.gz"
-    root = "percolation_inversion_compiler-0.5.0"
+    root = "percolation_inversion_compiler-0.6.0"
     with tarfile.open(sdist, "w:gz") as archive:
         for suffix in module.REQUIRED_SDIST_SUFFIXES:
             path = tmp_path / suffix
@@ -162,7 +162,7 @@ def test_distribution_artifact_checker_accepts_required_sdist_members(tmp_path: 
 def test_distribution_artifact_checker_rejects_forbidden_sdist_tex(tmp_path: Path) -> None:
     module = _distribution_script_module()
     sdist = tmp_path / "demo.tar.gz"
-    root = "percolation_inversion_compiler-0.5.0"
+    root = "percolation_inversion_compiler-0.6.0"
     with tarfile.open(sdist, "w:gz") as archive:
         for suffix in module.REQUIRED_SDIST_SUFFIXES:
             path = tmp_path / suffix

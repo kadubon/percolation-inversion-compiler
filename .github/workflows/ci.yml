@@ -123,6 +123,10 @@ jobs:
           uv run pic runtime export-openapi --output "$RUNNER_TEMP/runtime-openapi.json"
           uv run pic alt admit --packet examples/alt/admission_packet.json
           uv run pic alt foundry-dashboard --state examples/alt/foundry_state.json
+          uv run pic trc trace-normalize --input examples/asi_proxy_benchmark_bundle/trc_agent_trace.json --output "$RUNNER_TEMP/trc-trace-report.json"
+          uv run pic trc trace-check --trace "$RUNNER_TEMP/trc-trace-report.json" --output "$RUNNER_TEMP/trc-trace-check.json"
+          uv run pic trc trace-to-packet --trace "$RUNNER_TEMP/trc-trace-report.json" --output "$RUNNER_TEMP/trc-trace-packet.json"
+          uv run pic phase plan --request examples/asi_proxy_benchmark_bundle/pic_phase_request.json --emit ccr-tasks --output "$RUNNER_TEMP/pic-ccr-tasks.jsonl"
           uv run pic demo datacenter
           uv run pic sbom create --format pic --output "$RUNNER_TEMP/pic.sbom.json"
           uv run pic sbom create --format cyclonedx --output "$RUNNER_TEMP/cyclonedx.sbom.json"

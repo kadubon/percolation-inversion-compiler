@@ -5,6 +5,7 @@ from __future__ import annotations
 import glob
 import json
 import os
+import sys
 from importlib.resources import files
 from pathlib import Path
 from typing import Annotated, Any
@@ -166,6 +167,18 @@ from percolation_inversion_compiler.identity import (
     verify_agent_attestation,
     verify_agent_identity,
 )
+from percolation_inversion_compiler.interop import (
+    alt_ecpt_bridge_report,
+    bit_registry_report,
+    bit_tasks_from_registry,
+    ccr_residuals_from_phase_plan,
+    ccr_tasks_from_phase_plan,
+    diagnose_sqot_queue_state,
+    jsonl_text,
+    trace_check_report,
+    trace_normal_form_report,
+    trace_packet_candidate,
+)
 from percolation_inversion_compiler.io import (
     audit_canonical_suite,
     audit_theory_source,
@@ -291,6 +304,7 @@ phase_lab_app = typer.Typer(help="Run local Phase Ecology Lab diagnostics.")
 phase_closure_app = typer.Typer(help="Find and certify effective graph closure candidates.")
 packet_app = typer.Typer(help="Inspect and merge data-only packet-exchange sidecars.")
 alt_app = typer.Typer(help="Run ALT abstraction-liquidity foundry tools.")
+alt_bridge_app = typer.Typer(help="Bridge ALT diagnostics into adjacent protocol reports.")
 bit_app = typer.Typer(help="Run practical BIT bottleneck inversion diagnostics.")
 ecpt_app = typer.Typer(help="Run ECPT active phase-control planning tools.")
 sqot_app = typer.Typer(help="Run SQOT salience-queue scheduling tools.")
@@ -318,6 +332,7 @@ phase_app.add_typer(phase_lab_app, name="lab")
 phase_app.add_typer(phase_closure_app, name="closure")
 app.add_typer(packet_app, name="packet")
 app.add_typer(alt_app, name="alt")
+alt_app.add_typer(alt_bridge_app, name="bridge")
 app.add_typer(bit_app, name="bit")
 app.add_typer(ecpt_app, name="ecpt")
 app.add_typer(sqot_app, name="sqot")
@@ -348,6 +363,19 @@ def _dump_text(text: str, output: Path | None = None) -> None:
         output.write_text(text, encoding="utf-8")
     else:
         console.print(text, end="", markup=False)
+
+
+def _dump_jsonl(items: list[dict[str, Any]], output: Path | None = None) -> None:
+    text = jsonl_text(items)
+    if output is not None:
+        output.parent.mkdir(parents=True, exist_ok=True)
+        output.write_text(text, encoding="utf-8")
+    else:
+        try:
+            sys.stdout.write(text)
+            sys.stdout.flush()
+        except (BrokenPipeError, OSError):
+            raise typer.Exit(0) from None
 
 
 def _output_format(value: str) -> str:
@@ -664,7 +692,39 @@ def _load_runtime_step_report(path: Path) -> RuntimeStepReport:
     raw = data.get("runtime_step_report", data.get("report", data))
     if not isinstance(raw, dict):
         raise typer.BadParameter("runtime report file must contain an object")
+    if raw.get("schema_version") == "ccr.pic_runtime_export.v1":
+        return _runtime_step_report_from_ccr_export(raw)
     return RuntimeStepReport.model_validate(raw)
+
+
+def _runtime_step_report_from_ccr_export(raw: dict[str, Any]) -> RuntimeStepReport:
+    """Convert a CCR PIC export into PIC's runtime-step report shape."""
+
+    report_id = str(raw.get("report_id") or "ccr-runtime-export")
+    reasons = [
+        *[str(item) for item in raw.get("candidate_only_reasons", [])],
+        *[str(item) for item in raw.get("settled_blockers", [])],
+    ]
+    residual_refs = [
+        str(item.get("residual_id", item))
+        for item in raw.get("residuals", [])
+        if isinstance(item, dict)
+    ]
+    text = (
+        f"CCR runtime export {report_id}: candidate-only report with "
+        f"{len(residual_refs)} residuals."
+    )
+    report = build_runtime_step(minimal_runtime_state(), minimal_runtime_step_input(text))
+    return report.model_copy(
+        update={
+            "accepted": bool(raw.get("accepted", False)),
+            "missing_obligations": sorted(set([*residual_refs, *reasons])),
+            "operationally_usable": True,
+            "reasons": sorted(set([*report.reasons, *reasons])),
+            "report_id": report_id,
+            "settled": False,
+        }
+    )
 
 
 def _load_packet_exchange_envelope(path: Path) -> PacketExchangeEnvelope:
@@ -1941,6 +2001,20 @@ def alt_bridge_runtime(
     _dump(foundry.model_dump(mode="json"), output)
 
 
+@alt_bridge_app.command("ecpt")
+def alt_bridge_ecpt_command(
+    packet: Annotated[Path, typer.Option("--packet", help="ALT packet/report JSON/YAML.")],
+    profile: Annotated[str, typer.Option("--profile", help="Bridge profile.")] = "development",
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Build a conservative ALT-to-ECPT bridge report."""
+
+    report = alt_ecpt_bridge_report(load_data(packet), profile=profile)
+    _dump(report, output)
+
+
 @alt_app.command("ecpt-lift")
 def alt_ecpt_lift_command(
     packets: Annotated[
@@ -2101,6 +2175,60 @@ def bit_compare_baseline_command(
     _dump(report.model_dump(mode="json"), output)
 
 
+@bit_app.command("extract-registry")
+def bit_extract_registry_command(
+    source: Annotated[Path, typer.Option("--source", help="TeX-like source file.")],
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write registry JSONL.")
+    ] = None,
+) -> None:
+    """Extract BIT MRRecord registry rows as JSONL."""
+
+    report = bit_registry_report(source.read_text(encoding="utf-8"), source=str(source))
+    _dump_jsonl(report["records"], output)
+
+
+@bit_app.command("verify-witnesses")
+def bit_verify_witnesses_command(
+    registry: Annotated[Path, typer.Option("--registry", help="Registry JSONL file.")],
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Verify MRRecord witness coverage without failing on malformed lines."""
+
+    records = _load_jsonl_events(registry)
+    report = _bit_report_from_registry_records(records, source=str(registry))
+    report["accepted"] = not report["missing_witness_claims"]
+    report["settled"] = False
+    _dump(report, output)
+
+
+@bit_app.command("emit-ccr-tasks")
+def bit_emit_ccr_tasks_command(
+    registry: Annotated[Path, typer.Option("--registry", help="Registry JSONL file.")],
+    output: Annotated[Path | None, typer.Option("--output", "-o", help="Write task JSONL.")] = None,
+) -> None:
+    """Emit CCR tasks for BIT claims without witnesses."""
+
+    records = _load_jsonl_events(registry)
+    report = _bit_report_from_registry_records(records, source=str(registry))
+    _dump_jsonl(bit_tasks_from_registry(report), output)
+
+
+def _bit_report_from_registry_records(
+    records: list[dict[str, Any]],
+    *,
+    source: str,
+) -> dict[str, Any]:
+    report = bit_registry_report(
+        "\n".join(str(record.get("raw_line", "")) for record in records),
+        source=source,
+    )
+    report["records"] = records
+    return report
+
+
 @sqot_app.command("audit")
 def sqot_audit(
     source: Annotated[Path, typer.Option("--source", "-s", help="SQOT TeX source artifact.")],
@@ -2201,22 +2329,51 @@ def sqot_schedule(
 
 @sqot_app.command("diagnose-queue")
 def sqot_diagnose_queue_command(
-    graph: Annotated[Path, typer.Option("--graph", help="EffectivePacketGraph JSON/YAML.")],
+    graph: Annotated[
+        Path | None,
+        typer.Option("--graph", help="EffectivePacketGraph JSON/YAML."),
+    ] = None,
+    state: Annotated[
+        Path | None,
+        typer.Option("--state", help="Runtime or phase report JSON/YAML."),
+    ] = None,
     attention_budget: Annotated[
         float,
         typer.Option("--attention-budget", help="Finite diagnostic attention budget."),
     ] = 1.0,
+    emit: Annotated[
+        str | None,
+        typer.Option("--emit", help="Optional interop emission: ccr-tasks."),
+    ] = None,
     output: Annotated[
         Path | None, typer.Option("--output", "-o", help="Write JSON output.")
     ] = None,
 ) -> None:
     """Diagnose queue occupation pressure from an effective graph."""
 
+    if state is not None:
+        sqot_report = diagnose_sqot_queue_state(load_data(state))
+        if emit == "ccr-tasks":
+            _dump_jsonl(sqot_report["repair_tasks"], output)
+            return
+        if emit is not None:
+            raise typer.BadParameter("--emit must be ccr-tasks")
+        _dump(sqot_report, output)
+        return
+    if graph is None:
+        raise typer.BadParameter("provide --graph or --state")
     report = diagnose_queue_occupation(
         _load_effective_graph(graph),
         attention_budget=attention_budget,
     )
-    _dump(report.model_dump(mode="json"), output)
+    data = report.model_dump(mode="json")
+    data["sqot_queue_report"] = diagnose_sqot_queue_state(data)
+    if emit == "ccr-tasks":
+        _dump_jsonl(data["sqot_queue_report"]["repair_tasks"], output)
+        return
+    if emit is not None:
+        raise typer.BadParameter("--emit must be ccr-tasks")
+    _dump(data, output)
 
 
 @sqot_app.command("salience-obstruction")
@@ -3380,6 +3537,13 @@ def phase_plan_command(
         bool,
         typer.Option("--compact/--full", help="Emit compact CI/agent JSON."),
     ] = False,
+    emit: Annotated[
+        str | None,
+        typer.Option(
+            "--emit",
+            help="Optional interop emission: ccr-tasks or ccr-residuals.",
+        ),
+    ] = None,
     output: Annotated[
         Path | None, typer.Option("--output", "-o", help="Write JSON output.")
     ] = None,
@@ -3399,6 +3563,14 @@ def phase_plan_command(
         compact=compact,
     )
     plan = build_phase_acceleration_plan(parsed_request)
+    if emit is not None:
+        if emit == "ccr-tasks":
+            _dump_jsonl(ccr_tasks_from_phase_plan(plan), output)
+            return
+        if emit == "ccr-residuals":
+            _dump_jsonl(ccr_residuals_from_phase_plan(plan), output)
+            return
+        raise typer.BadParameter("--emit must be ccr-tasks or ccr-residuals")
     payload = phase_acceleration_compact_payload(plan) if compact else plan.model_dump(mode="json")
     _dump(payload, output)
 
@@ -3442,6 +3614,13 @@ def phase_gap_command(
         bool,
         typer.Option("--compact/--full", help="Accepted for command symmetry."),
     ] = False,
+    emit: Annotated[
+        str | None,
+        typer.Option(
+            "--emit",
+            help="Optional interop emission: ccr-residuals or ccr-tasks.",
+        ),
+    ] = None,
     output: Annotated[
         Path | None, typer.Option("--output", "-o", help="Write JSON output.")
     ] = None,
@@ -3461,6 +3640,14 @@ def phase_gap_command(
         compact=compact,
     )
     plan = build_phase_acceleration_plan(parsed_request)
+    if emit is not None:
+        if emit == "ccr-residuals":
+            _dump_jsonl(ccr_residuals_from_phase_plan(plan), output)
+            return
+        if emit == "ccr-tasks":
+            _dump_jsonl(ccr_tasks_from_phase_plan(plan), output)
+            return
+        raise typer.BadParameter("--emit must be ccr-residuals or ccr-tasks")
     _dump(plan.phase_gap_vector.model_dump(mode="json"), output)
 
 
@@ -5110,6 +5297,51 @@ def trc_trace_adapter_command(
 
     report = adapt_trc_trace(load_data(input_path))
     _dump(report.model_dump(mode="json"), output)
+
+
+@trc_app.command("trace-normalize")
+def trc_trace_normalize_command(
+    input_path: Annotated[
+        Path,
+        typer.Option("--input", help="Agent trace JSON/YAML to normalize."),
+    ],
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Normalize an agent trace into a practical finite TraceNF."""
+
+    _dump(trace_normal_form_report(load_data(input_path)), output)
+
+
+@trc_app.command("trace-check")
+def trc_trace_check_command(
+    trace: Annotated[
+        Path,
+        typer.Option("--trace", help="TraceNF JSON/YAML to check."),
+    ],
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Check a practical TraceNF without promoting execution claims."""
+
+    _dump(trace_check_report(load_data(trace)), output)
+
+
+@trc_app.command("trace-to-packet")
+def trc_trace_to_packet_command(
+    trace: Annotated[
+        Path,
+        typer.Option("--trace", help="TraceNF JSON/YAML to convert."),
+    ],
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Convert TraceNF into a candidate packet."""
+
+    _dump(trace_packet_candidate(load_data(trace)), output)
 
 
 @trc_app.command("tool-trace")
