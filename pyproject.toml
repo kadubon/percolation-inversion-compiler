@@ -1,6 +1,6 @@
 [project]
 name = "percolation-inversion-compiler"
-version = "0.5.0"
+version = "0.6.0"
 description = "ECPT collective phase certificate runtime and finite verifier-routing SDK with ALT abstraction-liquidity foundry, ASI-proxy packet percolation, semantic edge checks, residual ledgers, provenance, and agent integration."
 readme = "README.md"
 requires-python = ">=3.11"

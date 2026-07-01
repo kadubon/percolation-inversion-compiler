@@ -1,5 +1,17 @@
 # Changelog
 
+## v0.6.0 - 2026-07-01
+
+- Adds CCR interoperability surfaces for phase plans, BIT registry extracts,
+  SQOT queue diagnostics, ALT-to-ECPT bridges, and residual/task JSONL exchange.
+- Adds practical TRC trace normalization, trace checking, packet conversion,
+  operation-readiness blockers, and ASI-proxy benchmark trace examples.
+- Adds PIC/CCR roundtrip documentation and an ASI-proxy acceleration guide for
+  first-time agents that need to preserve residuals while routing finite work.
+- Preserves the safety boundary: operation-ready means scoped authority,
+  resource, rollback, witness, schedule, and tolerance preconditions are present;
+  it is not automatic execution, real ASI proof, or physical outcome proof.
+
 ## v0.5.0 - 2026-06-22
 
 - Adds the Phase Ecology Lab: local store initialization, inert JSON/YAML
