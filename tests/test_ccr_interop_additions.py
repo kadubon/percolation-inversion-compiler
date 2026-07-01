@@ -18,6 +18,7 @@ from percolation_inversion_compiler.interop.ccr import (
     ccr_residuals_from_phase_plan,
     ccr_tasks_from_phase_plan,
     diagnose_sqot_queue_state,
+    operation_gate_report,
     trace_check_report,
     trace_normal_form_report,
     trace_packet_candidate,
@@ -93,8 +94,10 @@ def test_alt_ecpt_bridge_keeps_proxy_negative_and_missing_baseline_as_residuals(
     )
 
     kinds = {item["kind"] for item in report["residuals"]}
-    assert report["accepted"] is False
+    assert report["accepted"] is True
+    assert report["capital_admitted"] is False
     assert report["settled"] is False
+    assert "negative liquidity signal preserved" in report["capital_admission_blockers"]
     assert "missing_baseline" in kinds
     assert "negative_liquidity_preserved" in kinds
     assert "proxy_only_value_evidence" in kinds
@@ -150,12 +153,14 @@ def test_trc_trace_normal_form_requires_authority_without_executing() -> None:
 def test_trc_trace_check_requires_resource_rollback_and_tolerance_for_operation() -> None:
     normalized = trace_normal_form_report(
         {
+            "operation_evaluation_clock": "2026-07-01T00:00:00Z",
             "trace_id": "trace:operation",
             "steps": [
                 {
                     "authority_envelope": {
                         "issuer": "operator:test",
-                        "scope": "local_fixture",
+                        "scopes": ["local-test", "environment:local-test"],
+                        "expires_at": "2099-01-01T00:00:00Z",
                         "status": "approved",
                     },
                     "evidence_refs": ["evidence:fixture"],
@@ -178,6 +183,125 @@ def test_trc_trace_check_requires_resource_rollback_and_tolerance_for_operation(
     assert checked["execution_blockers"] == []
     assert checked["real_world_operation_gate"]["operation_ready"] is True
     assert checked["real_world_operation_gate"]["executed"] is False
+
+
+def test_trc_operation_gate_blocks_expired_authority_and_fixture_dry_run() -> None:
+    expired = trace_normal_form_report(
+        {
+            "operation_evaluation_clock": "2026-07-01T00:00:00Z",
+            "trace_id": "trace:expired-authority",
+            "steps": [
+                {
+                    "authority_envelope": {
+                        "expires_at": "1970-01-01T00:00:00Z",
+                        "issuer": "operator:test",
+                        "scopes": ["local-test", "environment:local-test"],
+                        "status": "approved",
+                    },
+                    "causal_schedule_block": {"block_id": "schedule:test"},
+                    "certificate_version_refs": ["cert:test:v1"],
+                    "evidence_refs": ["evidence:fixture"],
+                    "hazard_envelope": {"hazard_refs": ["hazard:test"]},
+                    "resource_ledger": {"budget": 1, "units": "fixture"},
+                    "rollback_escrow_obligation": {"rollback": "delete fixture output"},
+                    "step_id": "s1",
+                    "tolerance_ledger": {"observation_error": 0.0},
+                    "tool": "fixture-provider",
+                    "validity_domain": {"environment": "local-test"},
+                }
+            ],
+        }
+    )
+    checked = trace_check_report(expired)
+    gate = operation_gate_report(expired)
+
+    assert checked["execution_available"] is False
+    assert "expired_authority_envelope" in checked["execution_blockers"]
+    assert gate["operation_ready"] is False
+    assert gate["provider_dispatch_ready"] is False
+
+    fixture = trace_normal_form_report(
+        {
+            "fixture_mode": True,
+            "side_effect_policy": "dry_run_only",
+            "trace_id": "trace:fixture-dry-run",
+            "steps": [
+                {
+                    "authority_envelope": {
+                        "expires_at": "1970-01-01T00:00:00Z",
+                        "issuer": "operator:test",
+                        "scope": "*",
+                        "status": "approved",
+                    },
+                    "causal_schedule_block": {"block_id": "schedule:test"},
+                    "certificate_version_refs": ["cert:test:v1"],
+                    "evidence_refs": ["evidence:fixture"],
+                    "resource_ledger": {"budget": 0, "units": "fixture"},
+                    "rollback_escrow_obligation": {"rollback": "discard fixture output"},
+                    "step_id": "s1",
+                    "tolerance_ledger": {"observation_error": 0.0},
+                    "tool": "fixture-provider",
+                    "validity_domain": {"environment": "local-test"},
+                }
+            ],
+        }
+    )
+    fixture_gate = operation_gate_report(fixture)
+    fixture_kinds = {item["kind"] for item in fixture_gate["residuals"]}
+
+    assert fixture_gate["operation_ready"] is False
+    assert fixture_gate["provider_dispatch_ready"] is False
+    assert "fixture_only_authority_non_executable" in fixture_kinds
+
+
+def test_trc_operation_gate_passes_fresh_authority_only_with_all_gates() -> None:
+    normalized = trace_normal_form_report(
+        {
+            "operation_evaluation_clock": "2026-07-01T00:00:00Z",
+            "provider_target": "fixture-provider",
+            "side_effect_policy": "provider_webhook_allowed",
+            "trace_id": "trace:fresh-authority",
+            "steps": [
+                {
+                    "authority_envelope": {
+                        "expires_at": "2099-01-01T00:00:00Z",
+                        "issuer": "operator:test",
+                        "scopes": [
+                            "local-test",
+                            "environment:local-test",
+                            "fixture-provider",
+                        ],
+                        "status": "approved",
+                    },
+                    "causal_schedule_block": {"block_id": "schedule:test"},
+                    "certificate_version_refs": ["cert:test:v1"],
+                    "evidence_refs": ["evidence:fixture"],
+                    "hazard_envelope": {"hazard_refs": ["hazard:test"]},
+                    "resource_ledger": {"budget": 1, "units": "fixture"},
+                    "rollback_escrow_obligation": {"rollback": "delete fixture output"},
+                    "step_id": "s1",
+                    "tolerance_ledger": {"observation_error": 0.0},
+                    "tool": "fixture-provider",
+                    "validity_domain": {"environment": "local-test"},
+                }
+            ],
+        }
+    )
+    gate = operation_gate_report(
+        normalized,
+        provider_profile={
+            "allow_execute": True,
+            "explicit_execute": True,
+            "provider_target": "fixture-provider",
+            "side_effect_policy": "provider_webhook_allowed",
+            "trusted_issuers": ["operator:test"],
+        },
+    )
+
+    assert gate["operation_ready"] is True
+    assert gate["provider_dispatch_ready"] is True
+    assert gate["physical_dispatch_ready"] is False
+    assert gate["execution_blockers"] == []
 
 
 def test_bit_registry_extracts_dependencies_and_emits_witness_tasks() -> None:
@@ -295,7 +419,7 @@ def test_asi_proxy_bundle_request_emits_ccr_tasks() -> None:
     assert all(task["constraints"]["allowed_commands"] == [] for task in tasks)
 
 
-def test_asi_proxy_bundle_trc_trace_is_operation_ready_candidate(tmp_path: Path) -> None:
+def test_asi_proxy_bundle_trc_trace_is_fixture_diagnostic_only(tmp_path: Path) -> None:
     trace_nf = tmp_path / "trace_nf.json"
     trace_report = tmp_path / "trc_trace_report.json"
     normalized = runner.invoke(
@@ -324,9 +448,10 @@ def test_asi_proxy_bundle_trc_trace_is_operation_ready_candidate(tmp_path: Path)
     assert normalized.exit_code == 0
     assert checked.exit_code == 0
     data = json.loads(trace_report.read_text(encoding="utf-8"))
-    assert data["execution_available"] is True
-    assert data["real_world_operation_gate"]["operation_ready"] is True
+    assert data["execution_available"] is False
+    assert data["real_world_operation_gate"]["operation_ready"] is False
     assert data["real_world_operation_gate"]["executed"] is False
+    assert "fixture_only_authority_non_executable" in data["execution_blockers"]
 
 
 def test_pic_consumes_ccr_runtime_export_fixture() -> None:

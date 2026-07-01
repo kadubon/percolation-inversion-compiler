@@ -23,7 +23,7 @@ def _publish_safety_main() -> int:
 def test_citation_cff_references_all_papers() -> None:
     data = yaml.safe_load((ROOT / "CITATION.cff").read_text(encoding="utf-8"))
     dois = {reference["doi"] for reference in data["references"]}
-    assert data["version"] == "0.6.0"
+    assert data["version"] == "0.7.0"
     assert data["doi"] == "10.5281/zenodo.20569166"
     assert data["repository-code"] == "https://github.com/kadubon/percolation-inversion-compiler"
     assert "OWNER/" not in data["repository-code"]
@@ -42,18 +42,18 @@ def test_release_version_metadata_is_consistent() -> None:
     )
     changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
 
-    assert pyproject["project"]["version"] == "0.6.0"
-    assert citation["version"] == "0.6.0"
+    assert pyproject["project"]["version"] == "0.7.0"
+    assert citation["version"] == "0.7.0"
     assert citation["date-released"] == "2026-07-01"
-    assert re.search(r"^__version__\s*=\s*[\"']0\.6\.0[\"']", init_text, re.MULTILINE)
-    assert re.search(r"^## v0\.6\.0 - 2026-07-01$", changelog, re.MULTILINE)
-    assert changelog.index("## v0.6.0 - 2026-07-01") < changelog.index("## v0.5.0 - 2026-06-22")
+    assert re.search(r"^__version__\s*=\s*[\"']0\.7\.0[\"']", init_text, re.MULTILINE)
+    assert re.search(r"^## v0\.7\.0 - 2026-07-01$", changelog, re.MULTILINE)
+    assert changelog.index("## v0.7.0 - 2026-07-01") < changelog.index("## v0.6.0 - 2026-07-01")
 
 
 def test_pyproject_has_pypi_distribution_metadata() -> None:
     data = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
     project = data["project"]
-    assert project["version"] == "0.6.0"
+    assert project["version"] == "0.7.0"
     urls = project["urls"]
     assert urls["Repository"] == "https://github.com/kadubon/percolation-inversion-compiler"
     assert urls["DOI"] == "https://doi.org/10.5281/zenodo.20569166"
@@ -145,8 +145,8 @@ def test_docs_explain_pip_clone_boundary_and_uv_install() -> None:
 
 def test_release_checklist_warns_against_local_dist_star_publish() -> None:
     text = (ROOT / "docs" / "release-checklist.md").read_text(encoding="utf-8")
-    assert "dist\\percolation_inversion_compiler-0.6.0-py3-none-any.whl" in text
-    assert "dist\\percolation_inversion_compiler-0.6.0.tar.gz" in text
+    assert "dist\\percolation_inversion_compiler-0.7.0-py3-none-any.whl" in text
+    assert "dist\\percolation_inversion_compiler-0.7.0.tar.gz" in text
     assert "do not publish\n  local `dist/*`" in text
     assert "clean GitHub Trusted Publishing workflow" in text
     assert "production doctor\n  run without provenance is expected to fail closed" in text

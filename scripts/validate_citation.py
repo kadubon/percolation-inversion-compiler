@@ -17,7 +17,7 @@ REQUIRED_DOIS = {
     "10.5281/zenodo.20476200",
 }
 EXPECTED_REPOSITORY = "https://github.com/kadubon/percolation-inversion-compiler"
-EXPECTED_VERSION = "0.6.0"
+EXPECTED_VERSION = "0.7.0"
 EXPECTED_DATE_RELEASED = "2026-07-01"
 EXPECTED_CONCEPT_DOI = "10.5281/zenodo.20569166"
 CHANGELOG_HEADING = re.compile(

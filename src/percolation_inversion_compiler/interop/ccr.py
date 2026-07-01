@@ -11,6 +11,7 @@ import hashlib
 import json
 import re
 from collections.abc import Iterable, Mapping, Sequence
+from datetime import UTC, datetime
 from typing import Any
 
 from percolation_inversion_compiler.acceleration.records import (
@@ -248,23 +249,47 @@ def alt_ecpt_bridge_report(
         residuals.append(_bridge_residual(packet_id, "negative_liquidity_preserved", True))
         settled_blockers.append("negative liquidity signal preserved")
 
-    accepted = not residuals and not proxy_only and not negative_signal
-    surplus = _float_value(
+    accepted = bool(packet)
+    surplus_lower = _float_value(
         liquidity.get("signed_surplus_lower_bound"),
         liquidity.get("downstream_search_cost_reduction_lower_bound"),
         packet.get("signed_surplus_lower_bound"),
     )
-    status = "negative_liquidity" if negative_signal else "admitted" if accepted else "candidate"
+    surplus_upper = _float_value(
+        liquidity.get("signed_surplus_upper_bound"),
+        liquidity.get("downstream_search_cost_reduction_upper_bound"),
+        packet.get("signed_surplus_upper_bound"),
+        surplus_lower,
+    )
+    capital_blockers = sorted(
+        set(settled_blockers)
+        | set(candidate_only_reasons)
+        | (
+            {"nonpositive_signed_surplus_lower_bound"}
+            if liquidity and not negative_signal and surplus_lower <= 0.0
+            else set()
+        )
+    )
+    capital_admitted = accepted and not capital_blockers and surplus_lower > 0.0
+    status = (
+        "negative_liquidity"
+        if negative_signal
+        else "capital_admitted"
+        if capital_admitted
+        else "candidate"
+    )
     if not liquidity and not packet:
         status = "diagnostic"
     return {
         "accepted": accepted,
         "alt_status": status,
+        "capital_admission_blockers": capital_blockers,
+        "capital_admitted": capital_admitted,
         "candidate_only_reasons": sorted(set(candidate_only_reasons)),
         "ecpt_contribution": {
             "hazard_envelope": sorted(set(hazard)),
             "liquidity_debt": [item["kind"] for item in residuals],
-            "liquidity_lower_bound": surplus if accepted and surplus > 0.0 else None,
+            "liquidity_lower_bound": surplus_lower if capital_admitted else None,
             "phase_components": {
                 "alt_bridge_candidate": bool(packet_id),
                 "receiver_scope_present": bool(receiver),
@@ -282,6 +307,8 @@ def alt_ecpt_bridge_report(
         "schema_version": "pic.alt_ecpt_bridge.v1",
         "settled": False,
         "settled_blockers": sorted(set(settled_blockers)),
+        "signed_surplus_lower_bound": surplus_lower,
+        "signed_surplus_upper_bound": surplus_upper,
     }
 
 
@@ -489,8 +516,13 @@ def trace_normal_form_report(trace: Mapping[str, Any]) -> dict[str, Any]:
         steps.append(
             {
                 "action_type": action_type,
+                "actuator_class": raw.get("actuator_class"),
                 "authority_envelope": raw.get("authority_envelope")
                 or {"status": str(raw.get("authority_status", "missing"))},
+                "emergency_stop": raw.get("emergency_stop"),
+                "hazard_envelope": raw.get("hazard_envelope")
+                or raw.get("hazard_envelope_certificate"),
+                "human_operator_authority": raw.get("human_operator_authority"),
                 "causal_schedule_block": raw.get("causal_schedule_block"),
                 "certificate_version_refs": _list_field(raw, "certificate_version_refs"),
                 "clock_cell": raw.get("clock_cell"),
@@ -500,12 +532,18 @@ def trace_normal_form_report(trace: Mapping[str, Any]) -> dict[str, Any]:
                 "output_ref": str(
                     raw.get("output_ref") or _digest(raw.get("output", raw.get("result", {})))
                 ),
+                "observation_window": raw.get("observation_window"),
+                "physical_domain_profile": raw.get("physical_domain_profile"),
                 "postcondition": raw.get("postcondition", {}),
                 "precondition": raw.get("precondition", {}),
+                "provider_target": raw.get("provider_target"),
+                "runtime_assurance_certificate": raw.get("runtime_assurance_certificate")
+                or raw.get("shield_certificate"),
                 "residuals": step_residuals,
                 "resource_use": raw.get("resource_use") or raw.get("resource_ledger") or None,
                 "rollback_escrow_obligation": raw.get("rollback_escrow_obligation")
                 or {"status": str(raw.get("rollback_status", "missing"))},
+                "side_effect_policy": raw.get("side_effect_policy"),
                 "step_id": step_id,
                 "tolerance_ledger": raw.get("tolerance_ledger")
                 or raw.get("tolerance_budget")
@@ -523,8 +561,279 @@ def trace_normal_form_report(trace: Mapping[str, Any]) -> dict[str, Any]:
         "schema_version": "pic.trc_trace_nf.v1",
         "settled": False,
         "trace_id": trace_id,
-        "trc_trace_nf": {"steps": steps},
+        "trc_trace_nf": {
+            "evaluation_clock": trace.get("evaluation_clock")
+            or trace.get("operation_evaluation_clock")
+            or trace.get("reference_time"),
+            "fixture_mode": bool(trace.get("fixture_mode", False)),
+            "provider_target": trace.get("provider_target"),
+            "side_effect_policy": trace.get("side_effect_policy"),
+            "steps": steps,
+            "validity_domain": trace.get("validity_domain"),
+        },
     }
+
+
+_ACTIVE_AUTHORITY_STATUSES = {"active", "approved"}
+_CORE_OPERATION_BLOCKERS = {
+    "authority_issuer_untrusted",
+    "authority_scope_mismatch",
+    "authority_status_not_active",
+    "authority_time_unknown",
+    "expired_authority_envelope",
+    "fixture_only_authority_non_executable",
+    "missing_authority_envelope",
+    "missing_resource_ledger",
+    "missing_rollback_escrow_obligation",
+    "missing_steps",
+    "missing_step_witness",
+    "missing_tolerance_ledger",
+}
+_AUTHORITY_RESIDUAL_KINDS = {
+    "authority_issuer_untrusted",
+    "authority_scope_mismatch",
+    "authority_status_not_active",
+    "authority_time_unknown",
+    "expired_authority_envelope",
+    "fixture_only_authority_non_executable",
+    "missing_authority_envelope",
+}
+_OPERATION_GATE_KINDS = {
+    "capability_gate": {"missing_step_witness", "missing_steps"},
+    "resource_gate": {"missing_resource_ledger"},
+    "rollback_gate": {"missing_rollback_escrow_obligation"},
+    "tolerance_gate": {"missing_tolerance_ledger"},
+}
+_PHYSICAL_PROFILE_FIELDS = {
+    "actuator_class": "physical actuator class",
+    "emergency_stop": "emergency stop or abort route",
+    "hazard_envelope": "hazard envelope",
+    "human_operator_authority": "human/operator authority",
+    "observation_window": "observation window",
+    "physical_domain_profile": "physical domain profile",
+    "rollback_escrow": "rollback/escrow",
+    "runtime_assurance_certificate": "runtime assurance or shield certificate",
+}
+
+
+def _context_value(
+    trace_nf: Mapping[str, Any],
+    nf: Mapping[str, Any],
+    provider_profile: Mapping[str, Any],
+    *keys: str,
+) -> Any:
+    for key in keys:
+        value = provider_profile.get(key)
+        if value not in (None, ""):
+            return value
+    for key in keys:
+        value = nf.get(key)
+        if value not in (None, ""):
+            return value
+    for key in keys:
+        value = trace_nf.get(key)
+        if value not in (None, ""):
+            return value
+    return None
+
+
+def _bool_context(
+    trace_nf: Mapping[str, Any],
+    nf: Mapping[str, Any],
+    provider_profile: Mapping[str, Any],
+    *keys: str,
+) -> bool:
+    value = _context_value(trace_nf, nf, provider_profile, *keys)
+    if isinstance(value, bool):
+        return value
+    return str(value).strip().lower() in {"1", "true", "yes", "fixture", "fixture-only"}
+
+
+def _side_effect_policy(
+    trace_nf: Mapping[str, Any],
+    nf: Mapping[str, Any],
+    provider_profile: Mapping[str, Any],
+) -> str:
+    return str(
+        _context_value(
+            trace_nf,
+            nf,
+            provider_profile,
+            "side_effect_policy",
+            "default_side_effect_policy",
+        )
+        or "none_without_execute_flag"
+    )
+
+
+def _parse_time(value: Any) -> datetime | None:
+    if value in (None, ""):
+        return None
+    if isinstance(value, datetime):
+        return value if value.tzinfo else value.replace(tzinfo=UTC)
+    text = str(value).strip()
+    if not text:
+        return None
+    if text.endswith("Z"):
+        text = text[:-1] + "+00:00"
+    try:
+        parsed = datetime.fromisoformat(text)
+    except ValueError:
+        return None
+    return parsed if parsed.tzinfo else parsed.replace(tzinfo=UTC)
+
+
+def _reference_time(
+    trace_nf: Mapping[str, Any],
+    nf: Mapping[str, Any],
+    provider_profile: Mapping[str, Any],
+) -> datetime | None:
+    for value in (
+        _context_value(
+            trace_nf,
+            nf,
+            provider_profile,
+            "operation_evaluation_clock",
+            "evaluation_clock",
+            "reference_time",
+            "checked_at",
+        ),
+        _deep_get(nf, "clock_cell.evaluation_time"),
+        _deep_get(nf, "clock_cell.reference_time"),
+    ):
+        parsed = _parse_time(value)
+        if parsed is not None:
+            return parsed
+    for step in [item for item in nf.get("steps", []) if isinstance(item, Mapping)]:
+        clock_cell = _mapping(step.get("clock_cell"))
+        for key in ("operation_evaluation_clock", "evaluation_time", "reference_time", "wall_time"):
+            parsed = _parse_time(clock_cell.get(key))
+            if parsed is not None:
+                return parsed
+    return None
+
+
+def _scope_tokens(value: Any) -> set[str]:
+    tokens: set[str] = set()
+    if value in (None, ""):
+        return tokens
+    if isinstance(value, Mapping):
+        for key, item in value.items():
+            if item in (None, ""):
+                continue
+            tokens.add(str(item))
+            tokens.add(f"{key}:{item}")
+    elif isinstance(value, list | tuple | set):
+        for item in value:
+            tokens.update(_scope_tokens(item))
+    else:
+        tokens.add(str(value))
+    return {token.strip().lower() for token in tokens if token.strip()}
+
+
+def _authority_scope_tokens(authority: Mapping[str, Any]) -> set[str]:
+    tokens = set()
+    for key in (
+        "scope",
+        "scopes",
+        "validity_domain",
+        "validity_domains",
+        "provider_target",
+        "provider_targets",
+        "provider",
+        "providers",
+    ):
+        tokens.update(_scope_tokens(authority.get(key)))
+    return tokens
+
+
+def _scope_matches(authority: Mapping[str, Any], required: set[str]) -> bool:
+    if not required:
+        return True
+    authority_tokens = _authority_scope_tokens(authority)
+    if "*" in authority_tokens:
+        return True
+    return required.issubset(authority_tokens)
+
+
+def _gate(ok: bool, residuals: Sequence[Mapping[str, Any]], *, note: str = "") -> dict[str, Any]:
+    return {
+        "ok": ok,
+        "note": note,
+        "residual_kinds": sorted({str(item.get("kind")) for item in residuals if item.get("kind")}),
+    }
+
+
+def _authority_residuals(
+    trace_id: str,
+    trace_nf: Mapping[str, Any],
+    nf: Mapping[str, Any],
+    provider_profile: Mapping[str, Any],
+) -> list[dict[str, Any]]:
+    residuals: list[dict[str, Any]] = []
+    steps = [item for item in nf.get("steps", []) if isinstance(item, Mapping)]
+    fixture_dry_run = _bool_context(trace_nf, nf, provider_profile, "fixture_mode") and (
+        _side_effect_policy(trace_nf, nf, provider_profile) == "dry_run_only"
+    )
+    reference = _reference_time(trace_nf, nf, provider_profile)
+    trusted_issuers = set(_list_field(provider_profile, "trusted_issuers"))
+    provider_target_tokens = _scope_tokens(
+        _context_value(trace_nf, nf, provider_profile, "provider_target", "provider")
+    )
+
+    for step in steps:
+        step_id = str(step.get("step_id", "step"))
+        authority = _mapping(step.get("authority_envelope"))
+        if not authority or str(authority.get("status", "")).lower() == "missing":
+            continue
+        status = str(authority.get("status", "")).lower()
+        if status not in _ACTIVE_AUTHORITY_STATUSES:
+            residuals.append(
+                _trace_residual(trace_id, step_id, "authority_status_not_active", True)
+            )
+
+        issuer = str(authority.get("issuer", ""))
+        if trusted_issuers and issuer not in trusted_issuers:
+            residuals.append(_trace_residual(trace_id, step_id, "authority_issuer_untrusted", True))
+
+        expires_at = authority.get("expires_at")
+        if expires_at in (None, ""):
+            if not fixture_dry_run:
+                residuals.append(_trace_residual(trace_id, step_id, "authority_time_unknown", True))
+        else:
+            expiry = _parse_time(expires_at)
+            if expiry is None:
+                residuals.append(_trace_residual(trace_id, step_id, "authority_time_unknown", True))
+            elif reference is None:
+                if not fixture_dry_run:
+                    residuals.append(
+                        _trace_residual(trace_id, step_id, "authority_time_unknown", True)
+                    )
+            elif expiry <= reference:
+                residuals.append(
+                    _trace_residual(trace_id, step_id, "expired_authority_envelope", True)
+                )
+            if str(expires_at) == FIXED_CREATED_AT and fixture_dry_run:
+                residuals.append(
+                    _trace_residual(
+                        trace_id,
+                        step_id,
+                        "fixture_only_authority_non_executable",
+                        True,
+                    )
+                )
+
+        required_scope = _scope_tokens(step.get("validity_domain")) | provider_target_tokens
+        if not _scope_matches(authority, required_scope):
+            residuals.append(_trace_residual(trace_id, step_id, "authority_scope_mismatch", True))
+    return residuals
+
+
+def _gate_residuals(
+    residuals: Sequence[Mapping[str, Any]],
+    kinds: set[str],
+) -> list[dict[str, Any]]:
+    return [dict(item) for item in residuals if str(item.get("kind")) in kinds]
 
 
 def trace_check_report(trace_nf: Mapping[str, Any]) -> dict[str, Any]:
@@ -546,6 +855,8 @@ def trace_check_report(trace_nf: Mapping[str, Any]) -> dict[str, Any]:
                 True,
             )
         )
+    trace_id = str(trace_nf.get("trace_id") or nf.get("trace_id") or "trace")
+    residuals.extend(_authority_residuals(trace_id, trace_nf, nf, {}))
     missing_authority = any(item.get("kind") == "missing_authority_envelope" for item in residuals)
     missing_resource = any(item.get("kind") == "missing_resource_ledger" for item in residuals)
     missing_rollback = any(
@@ -556,18 +867,15 @@ def trace_check_report(trace_nf: Mapping[str, Any]) -> dict[str, Any]:
         {
             str(item.get("kind"))
             for item in residuals
-            if item.get("kind")
-            in {
-                "missing_authority_envelope",
-                "missing_resource_ledger",
-                "missing_rollback_escrow_obligation",
-                "missing_steps",
-                "missing_step_witness",
-                "missing_tolerance_ledger",
-            }
+            if item.get("kind") in _CORE_OPERATION_BLOCKERS
         }
     )
     execution_available = bool(steps) and not execution_blockers
+    side_effect_policy = _side_effect_policy(trace_nf, nf, {})
+    authority_gate_residuals = _gate_residuals(
+        residuals,
+        _AUTHORITY_RESIDUAL_KINDS,
+    )
     return {
         "accepted": bool(steps) and not any(item.get("blocking") for item in residuals),
         "execution_available": execution_available,
@@ -575,17 +883,21 @@ def trace_check_report(trace_nf: Mapping[str, Any]) -> dict[str, Any]:
         "missing_obligations": [item["kind"] for item in residuals],
         "ok": True,
         "real_world_operation_gate": {
+            "authority_gate": _gate(not authority_gate_residuals, authority_gate_residuals),
             "executed": False,
             "operation_ready": execution_available,
+            "physical_dispatch_ready": False,
+            "provider_dispatch_ready": False,
             "requires_explicit_authority": True,
             "requires_provider_config": True,
             "safe_commands_are_authority": False,
+            "side_effect_policy": side_effect_policy,
         },
         "residuals": residuals,
         "schema_version": "pic.trc_trace_report.v1",
         "settled": False,
         "status": "diagnostic" if residuals else "provisional",
-        "trace_id": str(trace_nf.get("trace_id", "trace")),
+        "trace_id": trace_id,
         "trc_trace_nf": nf,
         "warnings": [
             warning
@@ -594,9 +906,191 @@ def trace_check_report(trace_nf: Mapping[str, Any]) -> dict[str, Any]:
                 (missing_rollback, "missing rollback/escrow blocks real-world operation claims"),
                 (missing_tolerance, "missing tolerance ledger blocks TRC operation claims"),
                 (missing_authority, "missing authority envelope blocks operation claims"),
+                (
+                    bool(authority_gate_residuals),
+                    "authority freshness/scope/trust blocks operation claims",
+                ),
             )
             if condition
         ],
+    }
+
+
+def operation_gate_report(
+    trace_nf: Mapping[str, Any],
+    *,
+    provider_profile: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Build a detailed TRC operation gate report without executing anything."""
+
+    profile = _mapping(provider_profile)
+    nf = _mapping(trace_nf.get("trc_trace_nf")) or trace_nf
+    steps = [item for item in nf.get("steps", []) if isinstance(item, Mapping)]
+    trace_id = str(trace_nf.get("trace_id") or nf.get("trace_id") or "trace")
+    checked = trace_check_report(trace_nf)
+    base_residuals = [
+        dict(item)
+        for item in checked.get("residuals", [])
+        if isinstance(item, Mapping) and str(item.get("kind")) not in _AUTHORITY_RESIDUAL_KINDS
+    ]
+    residuals = base_residuals + _authority_residuals(trace_id, trace_nf, nf, profile)
+    side_effect_policy = _side_effect_policy(trace_nf, nf, profile)
+    fixture_dry_run = _bool_context(trace_nf, nf, profile, "fixture_mode") and (
+        side_effect_policy == "dry_run_only"
+    )
+    reference = _reference_time(trace_nf, nf, profile)
+
+    additional_residuals: list[dict[str, Any]] = []
+    if not fixture_dry_run:
+        if any(not _mapping(step).get("causal_schedule_block") for step in steps):
+            additional_residuals.append(
+                _trace_residual(trace_id, "operation", "missing_causal_schedule_block", True)
+            )
+        has_hazard = bool(
+            profile.get("hazard_envelope")
+            or profile.get("hazard_envelope_certificate")
+            or any(
+                _mapping(step).get("hazard_envelope")
+                or _mapping(step).get("hazard_envelope_certificate")
+                for step in steps
+            )
+        )
+        if not has_hazard:
+            additional_residuals.append(
+                _trace_residual(trace_id, "operation", "missing_hazard_envelope", True)
+            )
+        has_lifecycle = bool(
+            profile.get("certificate_version_refs")
+            or any(_list_field(_mapping(step), "certificate_version_refs") for step in steps)
+        )
+        if not has_lifecycle:
+            additional_residuals.append(
+                _trace_residual(trace_id, "operation", "missing_certificate_lifecycle", True)
+            )
+    residuals.extend(additional_residuals)
+
+    operation_blocker_kinds = _CORE_OPERATION_BLOCKERS | {
+        "missing_causal_schedule_block",
+        "missing_certificate_lifecycle",
+        "missing_hazard_envelope",
+    }
+    execution_blockers = sorted(
+        {
+            str(item.get("kind"))
+            for item in residuals
+            if str(item.get("kind")) in operation_blocker_kinds
+        }
+    )
+    operation_ready = bool(steps) and not execution_blockers
+    provider_policy_allows = (
+        operation_ready
+        and not fixture_dry_run
+        and side_effect_policy not in {"dry_run_only", "none", "none_without_execute_flag"}
+        and bool(profile.get("allow_execute"))
+        and bool(profile.get("explicit_execute"))
+    )
+
+    physical_requested = bool(
+        profile.get("physical_dispatch_requested")
+        or profile.get("physical_domain_profile")
+        or profile.get("actuator_class")
+    )
+    physical_missing: list[dict[str, Any]] = []
+    if physical_requested:
+        for key, label in _PHYSICAL_PROFILE_FIELDS.items():
+            if not profile.get(key):
+                physical_missing.append(
+                    {
+                        **_trace_residual(trace_id, "physical-dispatch", f"missing_{key}", True),
+                        "description": f"missing {label}",
+                    }
+                )
+    physical_dispatch_ready = provider_policy_allows and physical_requested and not physical_missing
+
+    authority_residuals = _gate_residuals(residuals, _AUTHORITY_RESIDUAL_KINDS)
+    gates = {
+        "authority_gate": _gate(not authority_residuals, authority_residuals),
+        "capability_gate": _gate(
+            not _gate_residuals(residuals, _OPERATION_GATE_KINDS["capability_gate"]),
+            _gate_residuals(residuals, _OPERATION_GATE_KINDS["capability_gate"]),
+        ),
+        "hazard_gate": _gate(
+            not _gate_residuals(residuals, {"missing_hazard_envelope"}),
+            _gate_residuals(residuals, {"missing_hazard_envelope"}),
+        ),
+        "resource_gate": _gate(
+            not _gate_residuals(residuals, _OPERATION_GATE_KINDS["resource_gate"]),
+            _gate_residuals(residuals, _OPERATION_GATE_KINDS["resource_gate"]),
+        ),
+        "rollback_gate": _gate(
+            not _gate_residuals(residuals, _OPERATION_GATE_KINDS["rollback_gate"]),
+            _gate_residuals(residuals, _OPERATION_GATE_KINDS["rollback_gate"]),
+        ),
+        "tolerance_gate": _gate(
+            not _gate_residuals(residuals, _OPERATION_GATE_KINDS["tolerance_gate"]),
+            _gate_residuals(residuals, _OPERATION_GATE_KINDS["tolerance_gate"]),
+        ),
+        "schedule_gate": _gate(
+            not _gate_residuals(residuals, {"missing_causal_schedule_block"}),
+            _gate_residuals(residuals, {"missing_causal_schedule_block"}),
+        ),
+        "clock_gate": _gate(
+            reference is not None or fixture_dry_run,
+            _gate_residuals(residuals, {"authority_time_unknown"}),
+        ),
+        "observation_gate": _gate(
+            not _gate_residuals(residuals, {"missing_step_witness"}),
+            _gate_residuals(residuals, {"missing_step_witness"}),
+        ),
+        "lifecycle_gate": _gate(
+            not _gate_residuals(residuals, {"missing_certificate_lifecycle"}),
+            _gate_residuals(residuals, {"missing_certificate_lifecycle"}),
+        ),
+        "mcp_tool_gate": {
+            "ok": not profile.get("requires_mcp_tool")
+            or bool(profile.get("mcp_tool_gate_accepted")),
+            "required": bool(profile.get("requires_mcp_tool")),
+        },
+        "a2a_agent_gate": {
+            "ok": not profile.get("requires_a2a_agent")
+            or bool(profile.get("a2a_agent_gate_accepted")),
+            "required": bool(profile.get("requires_a2a_agent")),
+        },
+    }
+    return {
+        "accepted": bool(steps),
+        "a2a_agent_gate": gates["a2a_agent_gate"],
+        "authority_gate": gates["authority_gate"],
+        "capability_gate": gates["capability_gate"],
+        "clock_gate": gates["clock_gate"],
+        "executed": False,
+        "execution_blockers": execution_blockers,
+        "hazard_gate": gates["hazard_gate"],
+        "lifecycle_gate": gates["lifecycle_gate"],
+        "mcp_tool_gate": gates["mcp_tool_gate"],
+        "non_claims": [
+            *list(NON_CLAIMS),
+            "operation_ready_is_not_executed",
+            "physical_dispatch_ready_is_not_physical_outcome_proof",
+        ],
+        "observation_gate": gates["observation_gate"],
+        "ok": True,
+        "operation_ready": operation_ready,
+        "physical_dispatch_blockers": [
+            str(item.get("kind")) for item in physical_missing if item.get("kind")
+        ],
+        "physical_dispatch_ready": physical_dispatch_ready,
+        "provider_dispatch_ready": provider_policy_allows,
+        "residuals": residuals + physical_missing,
+        "resource_gate": gates["resource_gate"],
+        "rollback_gate": gates["rollback_gate"],
+        "schedule_gate": gates["schedule_gate"],
+        "schema_version": "pic.trc_operation_gate_report.v1",
+        "settled": False,
+        "side_effect_policy": side_effect_policy,
+        "tolerance_gate": gates["tolerance_gate"],
+        "trace_id": trace_id,
+        "trc_trace_nf": nf,
     }
 
 

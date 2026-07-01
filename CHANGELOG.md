@@ -1,5 +1,25 @@
 # Changelog
 
+## v0.7.0 - 2026-07-01
+
+- Adds `pic.trc_operation_gate_report.v1` and `pic trc operation-gate` for
+  non-executing TRC operation preflight with authority, capability, hazard,
+  resource, rollback, tolerance, schedule, clock, observation, lifecycle, MCP,
+  and A2A gates.
+- Enforces authority freshness for TRC operation readiness: authority must be
+  approved/active, scoped to the validity domain/provider target, trusted when a
+  trust list is supplied, and unexpired relative to the operation evaluation
+  clock.
+- Treats `expires_at: 1970-01-01T00:00:00Z` fixture authority as
+  diagnostic-only and non-executable; it no longer makes a trace
+  operation-ready.
+- Separates ALT bridge `accepted` from `capital_admitted`, preserving signed
+  surplus bounds and explicit capital admission blockers for proxy-only,
+  missing, negative, or nonpositive-surplus evidence.
+- Extends CCR/PIC/PIC-TS documentation and fixtures so first-time agents can
+  distinguish `operation_ready`, `provider_dispatch_ready`, execution, and
+  physical outcome proof.
+
 ## v0.6.0 - 2026-07-01
 
 - Adds CCR interoperability surfaces for phase plans, BIT registry extracts,

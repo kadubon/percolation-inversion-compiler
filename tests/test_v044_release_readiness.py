@@ -23,10 +23,10 @@ def test_v060_version_metadata_is_consistent() -> None:
     )
     changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
 
-    assert pyproject["project"]["version"] == "0.6.0"
-    assert citation["version"] == "0.6.0"
-    assert re.search(r"^__version__\s*=\s*[\"']0\.6\.0[\"']", init_text, re.MULTILINE)
-    assert re.search(r"^## v0\.6\.0 - 2026-07-01$", changelog, re.MULTILINE)
+    assert pyproject["project"]["version"] == "0.7.0"
+    assert citation["version"] == "0.7.0"
+    assert re.search(r"^__version__\s*=\s*[\"']0\.7\.0[\"']", init_text, re.MULTILINE)
+    assert re.search(r"^## v0\.7\.0 - 2026-07-01$", changelog, re.MULTILINE)
 
 
 def test_readme_keeps_core_commands_before_optional_sidecars() -> None:

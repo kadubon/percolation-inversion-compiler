@@ -175,6 +175,7 @@ from percolation_inversion_compiler.interop import (
     ccr_tasks_from_phase_plan,
     diagnose_sqot_queue_state,
     jsonl_text,
+    operation_gate_report,
     trace_check_report,
     trace_normal_form_report,
     trace_packet_candidate,
@@ -5327,6 +5328,28 @@ def trc_trace_check_command(
     """Check a practical TraceNF without promoting execution claims."""
 
     _dump(trace_check_report(load_data(trace)), output)
+
+
+@trc_app.command("operation-gate")
+def trc_operation_gate_command(
+    trace: Annotated[
+        Path,
+        typer.Option("--trace", help="TraceNF or PIC trace-check report JSON/YAML."),
+    ],
+    provider_profile: Annotated[
+        Path | None,
+        typer.Option("--provider-profile", help="Provider/authority gate profile JSON/YAML."),
+    ] = None,
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Emit a TRC operation gate report without dispatching a provider."""
+
+    profile = load_data(provider_profile) if provider_profile else None
+    if profile is not None and not isinstance(profile, dict):
+        raise typer.BadParameter("provider profile must be a JSON/YAML object")
+    _dump(operation_gate_report(load_data(trace), provider_profile=profile), output)
 
 
 @trc_app.command("trace-to-packet")

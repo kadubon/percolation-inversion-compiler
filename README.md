@@ -10,7 +10,7 @@ New to PIC? Start with the [GitHub Wiki](https://github.com/kadubon/percolation-
 
 Related OSS: [Collective Capability Runtime](https://github.com/kadubon/collective-capability-runtime) is the companion open-source Python runtime for coordinating multi-agent tasks, leases, blackboard events, packet distillation, provider imports, residual tracking, and release audits. Use PIC when you need packet-level checks, verifier routing, schemas, Phase Ecology Lab diagnostics, or protocol-relative certificate candidates. Use CCR when you need an auditable local runtime that coordinates many agents and can import PIC-compatible reports without treating them as automatic settlement or execution authority.
 
-Distribution status: v0.6.0 is a practical runtime snapshot with a beta API
+Distribution status: v0.7.0 is a practical runtime snapshot with a beta API
 surface. Install the core package from PyPI with `pip install
 percolation-inversion-compiler`; use `pip install
 "percolation-inversion-compiler[identity,connectors,server]"` when you need
@@ -57,10 +57,12 @@ safe next-step planner for verified work reuse and bottleneck removal. See
 
 The runtime is fail-closed: planning can recommend finite ASI-proxy actions, but `settled` remains false unless scoped verifier rules discharge the required finite obligations. In production, signed identities and Sybil-resistance ledgers can prevent duplicate-key, clone-fanout, revoked, expired, or unsigned agent populations from producing accepted collective certificates. Residual external obligations remain explicit.
 
-v0.6.0 adds CCR-oriented interop and TRC operation-readiness checks: agents can
+v0.7.0 adds CCR-oriented interop and TRC operation gate checks: agents can
 normalize traces, check finite operation blockers, emit packet candidates, export
 phase/BIT/SQOT/ALT residual work to CCR, and run a local PIC-to-CCR benchmark
-bundle without treating candidate plans as execution authority.
+bundle without treating candidate plans as execution authority. It also blocks
+expired or fixture-only authority envelopes from operation readiness and
+separates ALT `accepted` from `capital_admitted`.
 
 v0.5.0 adds the Phase Ecology Lab for windowed multi-packet diagnostics: effective packet graphs, closure, execution-available paths, BIT bottleneck inversion, SQOT queue obstruction, ALT-to-ECPT lift, TRC typed trace adapters, and threshold/certificate candidates. These surfaces are diagnostic, non-executing, protocol-relative, and residual-preserving.
 
@@ -116,6 +118,7 @@ pic phase lab graph --store pic-phase-lab --output effective_graph.json
 pic bit diagnose --graph effective_graph.json
 pic sqot diagnose-queue --graph effective_graph.json
 pic trc trace-adapter --input examples/trc_adapter/tool_trace_input.example.json
+pic trc operation-gate --trace trace_nf.json --provider-profile provider_profile.json
 ```
 
 Command choice:
@@ -123,6 +126,7 @@ Command choice:
 - Use `pic agent check --compact` when a human, CI job, or first-time agent needs the shortest practical JSON contract.
 - Use `pic agent runbook` when an agent needs deterministic next commands, schemas, and fields to inspect.
 - Use `pic phase plan --compact` or `pic agent accelerate --compact` when an agent needs ranked phase gaps, bottlenecks, safe next commands, and promotion blockers.
+- Use `pic trc operation-gate` when an agent needs a non-executing TRC preflight with authority freshness, side-effect, provider-dispatch, and physical-dispatch gates.
 - Use `pic agent intake` or `pic runtime step` when the caller needs the full nested runtime report.
 - Use `pic audit canonical-readiness` from pip when an agent needs canonical ECPT/BIT/TRC/SQOT/ALT implementation coverage without local TeX files.
 - Use `pic audit fidelity` from a source checkout when canonical TeX theory-fidelity and finite-upgrade candidates matter.
@@ -135,6 +139,15 @@ uv run pic agent intake --text "Signed packet candidate." --profile production -
 ```
 
 Residuals are expected and must be preserved. `settled=false` is not command failure; it means unresolved obligations remain explicit.
+
+TRC operation reports are diagnostic by default. `operation_ready=true` is not
+execution, `provider_dispatch_ready=true` is not dispatch, and
+`physical_dispatch_ready=true` is not physical outcome proof. Expired or
+fixture-only authority envelopes, including
+`expires_at: 1970-01-01T00:00:00Z`, block operation readiness unless explicitly
+represented as a dry-run fixture, and dry-run fixtures remain non-executable. ALT bridge
+reports also distinguish `accepted` from `capital_admitted`; proxy-only or
+negative evidence can be accepted as a report while contributing no safe capital.
 
 ## Integration Examples
 

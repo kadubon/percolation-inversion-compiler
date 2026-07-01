@@ -53,6 +53,6 @@
     "respect_robots": true,
     "robots_uncertainty_is_diagnostic": true,
     "timeout_seconds": 20.0,
-    "user_agent": "percolation-inversion-compiler-agent-intake/0.6.0"
+    "user_agent": "percolation-inversion-compiler-agent-intake/0.7.0"
   }
 }
