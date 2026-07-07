@@ -32,13 +32,22 @@ def test_installed_demo_bundle_contains_sidecar_assets() -> None:
         "runtime_step_report.json",
         "phase_dashboard.json",
         "packet_envelope.json",
+        "afst/minimal_accepted.json",
+        "afst/blocked_refusal.json",
     ]:
         assert (root / name).is_file()
 
     manifest = json.loads((root / "manifest.json").read_text(encoding="utf-8"))
     paths = {item["path"] for item in manifest["files"]}
-    assert {"runtime_step_report.json", "phase_dashboard.json", "packet_envelope.json"} <= paths
+    assert {
+        "runtime_step_report.json",
+        "phase_dashboard.json",
+        "packet_envelope.json",
+        "afst/minimal_accepted.json",
+        "afst/blocked_refusal.json",
+    } <= paths
     assert any("packet merge" in item for item in manifest["recommended_phase_commands"])
+    assert any("afst check" in item for item in manifest["recommended_phase_commands"])
     assert any("canonical-readiness" in item for item in manifest["recommended_phase_commands"])
 
 
@@ -58,10 +67,16 @@ def test_demo_bootstrap_exports_sidecars_and_argv_invocations(tmp_path: Path) ->
         item["invocation_id"] == "canonical-readiness"
         for item in data["recommended_next_invocations"]
     )
+    assert any(
+        item["invocation_id"] == "afst-check-bootstrapped"
+        for item in data["recommended_next_invocations"]
+    )
     for name in [
         "runtime_step_report.json",
         "phase_dashboard.json",
         "packet_envelope.json",
+        "afst/minimal_accepted.json",
+        "afst/blocked_refusal.json",
     ]:
         assert (target / name).is_file()
 
@@ -75,9 +90,13 @@ def test_installed_smoke_recommends_sidecar_path() -> None:
     joined = "\n".join(data["recommended_next_commands"])
     assert "pic phase benchmark-suite" in joined
     assert "pic packet merge --packets pic-demo/packet_envelope.json" in joined
+    assert "pic afst check --case pic-demo/afst/minimal_accepted.json --compact" in joined
     assert "packet*.json" not in joined
     assert "pic audit canonical-readiness --profile development --format json" in joined
     assert any(
         item["invocation_id"] == "canonical-readiness"
         for item in data["recommended_next_invocations"]
+    )
+    assert any(
+        item["invocation_id"] == "afst-report" for item in data["recommended_next_invocations"]
     )

@@ -1,5 +1,21 @@
 # Changelog
 
+## v1.0.0 - 2026-07-07
+
+- Adds AFST satisfaction-flux diagnostics with non-market/price-nonprimitive
+  liquidity checks, source-floor preservation, stabilization-buffer checks,
+  bounded-friction handover checks, authority/consent/refusal gates,
+  resource-balance witnesses, residual-preserving blockers, CLI commands,
+  examples, public schemas, and CCR repair-task emission.
+- Adds `pic afst check`, `pic afst buffer`, `pic afst handover`,
+  `pic afst balance`, and `pic afst emit-ccr-tasks` for first-time agents that
+  need to inspect certified abundance, declared satisfaction deficits, unit
+  compatibility, refusal channels, shock envelopes, and balance witnesses.
+- Preserves all safety boundaries: AFST accepted reports are not settlement,
+  execution authority, provider dispatch, physical dispatch, market/ownership
+  override, consent bypass, refusal suppression, resource creation, ALT capital
+  admission, or ECPT phase promotion.
+
 ## v0.9.0 - 2026-07-02
 
 - Adds the agent-operable ASI-proxy loop layer for token extraction,

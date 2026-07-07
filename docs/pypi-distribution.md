@@ -1,11 +1,10 @@
 # PyPI Distribution
 
-v0.5.0 is the Phase Ecology Lab practical runtime snapshot for
-`percolation-inversion-compiler` on PyPI. It keeps v0.4.4 compact agent and
-phase-planner behavior stable while adding local windowed graph diagnostics,
-BIT bottleneck inversion, SQOT queue diagnostics, ALT-to-ECPT lift checks, TRC
-trace adapters, bundled Phase Lab demo data, snapshots, schema export, and
-residual-preserving runtime commands.
+v1.0.0 is the practical runtime snapshot for
+`percolation-inversion-compiler` on PyPI. It keeps the compact agent,
+phase-planner, Phase Ecology Lab, BIT, SQOT, ALT, TRC, CCR interop, schema
+export, and installed-demo behavior stable while adding AFST satisfaction-flux
+diagnostics and bootstrapped AFST example data for clone-free smoke checks.
 
 ## Install Modes
 
@@ -36,6 +35,12 @@ pic packet inspect --packet pic-demo/packet_envelope.json
 pic packet merge --packets pic-demo/packet_envelope.json --output pic-demo/merged-packets.json
 pic packet lineage --packet pic-demo/merged-packets.json
 pic phase observe --reports pic-demo/phase_dashboard.json --output pic-demo/observation.json
+pic afst check --case pic-demo/afst/minimal_accepted.json --compact
+pic afst check --case pic-demo/afst/blocked_refusal.json --output pic-demo/afst-report.json
+pic afst emit-ccr-tasks --report pic-demo/afst-report.json
+pic afst buffer --buffer pic-demo/afst/blocked_missing_shock.json
+pic afst handover --handover pic-demo/afst/handover_minimal.json
+pic afst balance --witness pic-demo/afst/balance_witness.json
 pic audit canonical-readiness --profile development --format json
 pic agent message receive --inbox pic-demo/agent_inbox.json
 pic agent inbox verify --inbox pic-demo/agent_inbox.json

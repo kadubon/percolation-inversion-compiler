@@ -1,16 +1,16 @@
 # Percolation Inversion Compiler
 
-`percolation-inversion-compiler` is an AI agent runtime for external knowledge intake, finite certificates, proof obligations, residual ledgers, and reusable abstraction capital. It helps agents turn web, repository, evidence, and agent-output inputs into checked capability packet candidates, verifier routes, SQOT salience queues, ALT abstraction-liquidity certificates, and ECPT collective capability phase reports. The goal is protocol-relative **ASI-proxy collective phase** acceleration through verified packet percolation, not self-rewrite, fine-tuning, or model-weight change.
+`percolation-inversion-compiler` is an AI agent runtime for external knowledge intake, finite certificates, proof obligations, residual ledgers, and reusable abstraction capital. It helps agents turn web, repository, evidence, and agent-output inputs into checked capability packet candidates, verifier routes, SQOT salience queues, ALT abstraction-liquidity certificates, AFST satisfaction-flux diagnostics, and ECPT collective capability phase reports. The goal is protocol-relative **ASI-proxy collective phase** acceleration through verified packet percolation, not self-rewrite, fine-tuning, or model-weight change.
 
-The abbreviations refer to the five source theories used by the repository: **ECPT** is Executable Capability Percolation Theory, the collective capability-packet phase model; **BIT** is Bottleneck Inversion Theory, the witness calculus for unlockable potential and frontier extraction; **TRC** is Typed Reality Compilation, the typed trace and tolerance-ledger compiler for cyber-physical frontiers; **SQOT** is Salience-Queue Occupation Theory, the salience scheduling and attention-occupation layer; and **ALT** is Abstraction Liquidity Theory, the reusable abstraction capital and foundry valuation layer.
+The abbreviations refer to the five source theories used by the repository plus one implementation-layer diagnostic: **ECPT** is Executable Capability Percolation Theory, the collective capability-packet phase model; **BIT** is Bottleneck Inversion Theory, the witness calculus for unlockable potential and frontier extraction; **TRC** is Typed Reality Compilation, the typed trace and tolerance-ledger compiler for cyber-physical frontiers; **SQOT** is Salience-Queue Occupation Theory, the salience scheduling and attention-occupation layer; **ALT** is Abstraction Liquidity Theory, the reusable abstraction capital and foundry valuation layer; and **AFST** is Abundance-Flux Stabilization, a non-executing satisfaction-flux diagnostic that checks certified typed surplus against declared deficits without granting dispatch or settlement.
 
-Search terms: ECPT, BIT, TRC, SQOT, ALT, abstraction liquidity, reusable abstraction capital, ASI-proxy collective phase, protocol-relative ASI-proxy phase-control, phase acceleration planner, bottleneck ranking, certificate compiler, proof obligations, residual ledgers, salience queue, packet ecology, semantic edge verification, typed trace normal forms, frontier extraction, AI agent integration, verifier SDK, Collective Capability Runtime, CCR, multi-agent runtime, task leasing, blackboard events, provider import.
+Search terms: ECPT, BIT, TRC, SQOT, ALT, AFST, abstraction liquidity, reusable abstraction capital, abundance flux stabilization, satisfaction flux, certified abundance, satisfaction deficit, stabilization buffer, resource balance witness, bounded-friction handover, ASI-proxy collective phase, protocol-relative ASI-proxy phase-control, phase acceleration planner, bottleneck ranking, certificate compiler, proof obligations, residual ledgers, salience queue, packet ecology, semantic edge verification, typed trace normal forms, frontier extraction, AI agent integration, verifier SDK, Collective Capability Runtime, CCR, multi-agent runtime, task leasing, blackboard events, provider import.
 
 New to PIC? Start with the [GitHub Wiki](https://github.com/kadubon/percolation-inversion-compiler/wiki) for a plain-language guide to what PIC does, why AI agent output is treated as candidate work, getting started, use cases, core concepts, and agent-safe interpretation of `accepted=true` and `settled=false`.
 
 Related OSS: [Collective Capability Runtime](https://github.com/kadubon/collective-capability-runtime) is the companion open-source Python runtime for coordinating multi-agent tasks, leases, blackboard events, packet distillation, provider imports, residual tracking, and release audits. Use PIC when you need packet-level checks, verifier routing, schemas, Phase Ecology Lab diagnostics, or protocol-relative certificate candidates. Use CCR when you need an auditable local runtime that coordinates many agents and can import PIC-compatible reports without treating them as automatic settlement or execution authority.
 
-Distribution status: v0.9.0 is a practical runtime snapshot with a beta API
+Distribution status: v1.0.0 is a practical runtime snapshot with a stable AFST diagnostic surface and a beta API
 surface. Install the core package from PyPI with `pip install
 percolation-inversion-compiler`; use `pip install
 "percolation-inversion-compiler[identity,connectors,server]"` when you need
@@ -29,10 +29,30 @@ trace and real-world frontier compiler; phase acceleration planner = ranked
 safe next-step planner for verified work reuse and bottleneck removal. See
 [Glossary](docs/glossary.md).
 
+## Fast Path After Install
+
+Use this route when PIC is installed from PyPI and the caller does not have a
+source checkout:
+
+```powershell
+pip install percolation-inversion-compiler
+pic demo bootstrap --output-dir pic-demo --overwrite
+pic agent check --compact --text "Candidate packet: preserve residuals." --profile development
+pic afst check --case pic-demo/afst/minimal_accepted.json --compact
+pic afst check --case pic-demo/afst/blocked_refusal.json --output pic-demo/afst-report.json
+pic afst emit-ccr-tasks --report pic-demo/afst-report.json
+```
+
+Installed demo files live under `pic-demo/...` after `pic demo bootstrap`.
+Repository examples live under `examples/...` only in a source checkout. For
+AFST, `accepted=true` means the finite checker accepted the local JSON record;
+`settled=false` means unresolved obligations are still intentionally visible.
+
 ## What It Does Not Do
 
 - It does not prove real ASI, physical, simulator, oracle, or policy outcomes.
 - It does not execute unsafe actions or grant authority to mutate repositories, shells, networks, or models.
+- It does not treat AFST `accepted=true` as settlement, provider dispatch, physical dispatch, market or ownership override, consent bypass, refusal suppression, resource creation, ALT capital admission, or ECPT phase promotion.
 - It does not require or model self-rewrite, fine-tuning, or model-weight updates.
 - It does not treat a declared `agent_id` as proof of identity or global uniqueness.
 - It does not treat registry metadata, declared status, queue priority, or agent text as evidence.
@@ -47,13 +67,14 @@ safe next-step planner for verified work reuse and bottleneck removal. See
 | 3 | **Evidence + semantic edge checks** | Hash/provenance checks and typed relations such as theorem-to-code, code-to-test, rollback-support, and execution-path. |
 | 4 | **Verified packet capital** | Reusable packets promoted only after route, receiver, rollback, authority, edge, and residual policies pass. |
 | 5 | **ALT abstraction liquidity** | Trace and external-intake candidates become reusable abstraction capital only after certified lower-bound surplus, transport, root-of-trust, telemetry, lifecycle, and hazard checks pass. |
-| 6 | **SQOT salience queue** | A priority schedule that preserves diagnostic reserve and quarantines stale, unsafe, uncertified, or hash-invalid packets. |
-| 7 | **Psi dashboard** | Protocol-relative collective phase components for availability, closure, execution paths, queues, hazards, liquidity, and basin reachability. |
-| 8 | **Bottleneck / phase tasks** | Ranked finite tasks for verifier routing, packet repair, edge construction, abstraction certification, and phase-control planning. |
-| 9 | **Action results** | Execution reports, ALT admission decisions, and route resolutions that are applied back into the runtime state. |
-| 10 | **Runtime store** | Persistent event logs, verified packets, route batches, abstraction capital lineage, and residual ledgers. |
-| 11 | **Collective phase certificate** | A fail-closed certificate over fixed population, no self-rewrite, no hidden injection, closure, execution availability, Psi thresholds, certified liquidity, and resource-matched baseline. |
-| 12 | **Phase acceleration plan** | Recommendation-only JSON that ranks phase gaps, bottlenecks, safe commands, schemas, candidate-only reasons, and settlement blockers. |
+| 6 | **AFST satisfaction flux** | Certified typed surplus is checked against declared satisfaction deficits with authority, consent, refusal, balance, buffer, handover, lifecycle, and residual blockers preserved. |
+| 7 | **SQOT salience queue** | A priority schedule that preserves diagnostic reserve and quarantines stale, unsafe, uncertified, or hash-invalid packets. |
+| 8 | **Psi dashboard** | Protocol-relative collective phase components for availability, closure, execution paths, queues, hazards, liquidity, and basin reachability. |
+| 9 | **Bottleneck / phase tasks** | Ranked finite tasks for verifier routing, packet repair, edge construction, abstraction certification, and phase-control planning. |
+| 10 | **Action results** | Execution reports, ALT admission decisions, and route resolutions that are applied back into the runtime state. |
+| 11 | **Runtime store** | Persistent event logs, verified packets, route batches, abstraction capital lineage, and residual ledgers. |
+| 12 | **Collective phase certificate** | A fail-closed certificate over fixed population, no self-rewrite, no hidden injection, closure, execution availability, Psi thresholds, certified liquidity, and resource-matched baseline. |
+| 13 | **Phase acceleration plan** | Recommendation-only JSON that ranks phase gaps, bottlenecks, safe commands, schemas, candidate-only reasons, and settlement blockers. |
 
 The runtime is fail-closed: planning can recommend finite ASI-proxy actions, but `settled` remains false unless scoped verifier rules discharge the required finite obligations. In production, signed identities and Sybil-resistance ledgers can prevent duplicate-key, clone-fanout, revoked, expired, or unsigned agent populations from producing accepted collective certificates. Residual external obligations remain explicit.
 
@@ -75,6 +96,16 @@ exchange diagnostics, BIT MEC frontier reports, and stricter TRC physical gate
 checks. `provider_dispatch_ready` is not dispatch, `physical_dispatch_ready` is
 not physical outcome proof, and `certified_acceleration_candidate` is not real
 ASI proof.
+
+v1.0.0 adds AFST satisfaction-flux diagnostics: `pic afst check`,
+`pic afst buffer`, `pic afst handover`, `pic afst balance`, and
+`pic afst emit-ccr-tasks`. AFST checks whether certified typed surplus can
+reduce declared satisfaction deficits while preserving authority, consent,
+refusal, physical-balance witnesses, stabilization buffers, bounded-friction
+handover, lifecycle freshness, and residual blockers. AFST reports remain
+non-executing: `settled=false`, `operation_ready=false`,
+`provider_dispatch_ready=false`, and `physical_dispatch_ready=false` even when
+`accepted=true`.
 
 v0.9.0 adds the smoother ASI-proxy agent loop: `pic token extract-pipeline`,
 `pic token admissibility`, duplicate/quotient reports, TRC observation-window
@@ -121,6 +152,9 @@ uv run pic phase lab graph --store pic-phase-lab
 uv run pic phase lab closure --store pic-phase-lab
 uv run pic phase lab executable-paths --store pic-phase-lab
 uv run pic phase lab certify --store pic-phase-lab --threshold examples/thresholds/asi_proxy_development.json
+uv run pic afst check --case examples/afst/minimal_accepted.json --compact
+uv run pic afst check --case examples/afst/blocked_refusal.json --output afst-report.json
+uv run pic afst emit-ccr-tasks --report afst-report.json
 ```
 
 ## Optional Sidecars
@@ -150,6 +184,7 @@ Command choice:
 - Use `pic agent runbook` when an agent needs deterministic next commands, schemas, and fields to inspect.
 - Use `pic phase plan --compact` or `pic agent accelerate --compact` when an agent needs ranked phase gaps, bottlenecks, safe next commands, and promotion blockers.
 - Use `pic trc operation-gate` when an agent needs a non-executing TRC preflight with authority freshness, side-effect, provider-dispatch, and physical-dispatch gates.
+- Use `pic afst check --compact` when an agent needs a non-executing satisfaction-flux diagnostic over certified abundance, target deficit, authority, refusal, buffer, handover, and resource-balance blockers.
 - Use `pic agent intake` or `pic runtime step` when the caller needs the full nested runtime report.
 - Use `pic audit canonical-readiness` from pip when an agent needs canonical ECPT/BIT/TRC/SQOT/ALT implementation coverage without local TeX files.
 - Use `pic audit fidelity` from a source checkout when canonical TeX theory-fidelity and finite-upgrade candidates matter.
@@ -277,6 +312,9 @@ pic packet inspect --packet pic-demo/packet_envelope.json
 pic packet merge --packets pic-demo/packet_envelope.json --output pic-demo/merged-packets.json
 pic packet lineage --packet pic-demo/merged-packets.json
 pic phase observe --reports pic-demo/phase_dashboard.json --output pic-demo/observation.json
+pic afst check --case pic-demo/afst/minimal_accepted.json --compact
+pic afst check --case pic-demo/afst/blocked_refusal.json --output pic-demo/afst-report.json
+pic afst emit-ccr-tasks --report pic-demo/afst-report.json
 pic audit canonical-readiness --profile development --format json
 ```
 

@@ -1,7 +1,7 @@
 {
   "bundle_id": "percolation-inversion-compiler-installed-demo",
   "candidate_only": true,
-  "description": "Practical install-time demo assets for PyPI users. These files support residual-preserving agent checking, phase acceleration planning, runtime steps, schema validation, local agent relay, ALT admission, and optional sidecar diagnostics without cloning the repository.",
+  "description": "Practical install-time demo assets for PyPI users. These files support residual-preserving agent checking, phase acceleration planning, runtime steps, schema validation, local agent relay, ALT admission, AFST satisfaction-flux diagnostics, and optional sidecar diagnostics without cloning the repository.",
   "files": [
     {
       "media_type": "application/json",
@@ -62,10 +62,55 @@
       "media_type": "application/json",
       "path": "phase_lab_threshold.json",
       "purpose": "Phase Lab threshold fixture for certificate/abstention smoke."
+    },
+    {
+      "media_type": "application/json",
+      "path": "afst/minimal_accepted.json",
+      "purpose": "AFST accepted-case fixture for installed-package satisfaction-flux smoke."
+    },
+    {
+      "media_type": "application/json",
+      "path": "afst/blocked_refusal.json",
+      "purpose": "AFST refusal-preservation fixture for installed-package blocker smoke."
+    },
+    {
+      "media_type": "application/json",
+      "path": "afst/blocked_authority.json",
+      "purpose": "AFST authority-envelope blocker fixture for installed-package repair routing."
+    },
+    {
+      "media_type": "application/json",
+      "path": "afst/blocked_unit_mismatch.json",
+      "purpose": "AFST unit-frame mismatch fixture for installed-package repair routing."
+    },
+    {
+      "media_type": "application/json",
+      "path": "afst/blocked_buffer.json",
+      "purpose": "AFST stabilization-buffer blocker fixture for installed-package repair routing."
+    },
+    {
+      "media_type": "application/json",
+      "path": "afst/blocked_missing_shock.json",
+      "purpose": "AFST missing-shock-envelope fixture showing missing data is never zero."
+    },
+    {
+      "media_type": "application/json",
+      "path": "afst/blocked_balance.json",
+      "purpose": "AFST resource-balance violation fixture for installed-package repair routing."
+    },
+    {
+      "media_type": "application/json",
+      "path": "afst/handover_minimal.json",
+      "purpose": "AFST bounded-friction handover fixture for isolated handover checks."
+    },
+    {
+      "media_type": "application/json",
+      "path": "afst/balance_witness.json",
+      "purpose": "AFST resource-balance witness fixture for isolated balance checks."
     }
   ],
   "license": "Apache-2.0 for repository demo JSON and text files",
-  "provenance": "Derived from repository examples for v0.9.0 practical installed-package workflows; no canonical TeX or PDF is vendored.",
+  "provenance": "Derived from repository examples for v1.0.0 practical installed-package workflows; no canonical TeX or PDF is vendored.",
   "recommended_phase_commands": [
     "pic phase plan --compact --text \"Candidate packet: preserve residuals.\" --profile development",
     "pic agent accelerate --compact --text \"Candidate packet: preserve residuals.\" --profile development",
@@ -82,6 +127,12 @@
     "pic phase lab closure --store pic-demo/phase-lab",
     "pic phase lab executable-paths --store pic-demo/phase-lab",
     "pic phase lab certify --store pic-demo/phase-lab --threshold pic-demo/phase_lab_threshold.json",
+    "pic afst check --case pic-demo/afst/minimal_accepted.json --compact",
+    "pic afst check --case pic-demo/afst/blocked_refusal.json --output pic-demo/afst-report.json",
+    "pic afst emit-ccr-tasks --report pic-demo/afst-report.json",
+    "pic afst buffer --buffer pic-demo/afst/blocked_missing_shock.json",
+    "pic afst handover --handover pic-demo/afst/handover_minimal.json",
+    "pic afst balance --witness pic-demo/afst/balance_witness.json",
     "pic audit canonical-readiness --profile development --format json",
     "pic schema --type PhaseAccelerationPlan"
   ],
@@ -89,7 +140,8 @@
     "demo output does not prove real ASI, physical outcomes, oracle truth, legal identity, or global Sybil uniqueness",
     "external content and ALT tokens remain candidate-only until finite verifier and residual-policy checks pass",
     "live connectors are bounded and candidate-only by default when an explicit source is supplied",
+    "AFST accepted=true is finite checker acceptance only and never dispatches providers, grants physical operation authority, or marks settlement",
     "settled=false is expected when residual obligations remain"
   ],
-  "version": "0.9.0"
+  "version": "1.0.0"
 }

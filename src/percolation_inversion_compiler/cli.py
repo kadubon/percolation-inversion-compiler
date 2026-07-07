@@ -7,7 +7,7 @@ import json
 import os
 import sys
 from importlib.resources import files
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from typing import Annotated, Any
 
 import typer
@@ -33,6 +33,15 @@ from percolation_inversion_compiler.adoption import (
     build_agent_to_operator_request,
     build_operator_adoption_packet,
     operator_request_markdown,
+)
+from percolation_inversion_compiler.afst import (
+    BoundedFrictionHandover,
+    ResourceBalanceWitness,
+    StabilizationBuffer,
+    build_afst_flux_stabilization_report,
+    check_bounded_friction_handover,
+    check_resource_balance,
+    check_stabilization_buffer,
 )
 from percolation_inversion_compiler.agent import (
     AgentIntakeReport,
@@ -172,6 +181,7 @@ from percolation_inversion_compiler.interop import (
     a2a_task_handoff_report,
     activation_cache_report,
     activation_construction_report,
+    afst_ccr_tasks_from_report,
     alt_ecpt_bridge_report,
     anchor_transfer_report,
     atlas_check_report,
@@ -377,6 +387,7 @@ trace_app = typer.Typer(help="Run trace instrumentation and sufficiency reports.
 bit_app = typer.Typer(help="Run practical BIT bottleneck inversion diagnostics.")
 ecpt_app = typer.Typer(help="Run ECPT active phase-control planning tools.")
 sqot_app = typer.Typer(help="Run SQOT salience-queue scheduling tools.")
+afst_app = typer.Typer(help="Run AFST satisfaction-flux stabilization diagnostics.")
 mcp_app = typer.Typer(help="Check MCP tool descriptors and invocation preflights.")
 a2a_app = typer.Typer(help="Check A2A agent cards and task handoffs.")
 ecology_app = typer.Typer(help="Run ECPT capability packet ecology tools.")
@@ -411,6 +422,7 @@ app.add_typer(trace_app, name="trace")
 app.add_typer(bit_app, name="bit")
 app.add_typer(ecpt_app, name="ecpt")
 app.add_typer(sqot_app, name="sqot")
+app.add_typer(afst_app, name="afst")
 app.add_typer(mcp_app, name="mcp")
 app.add_typer(a2a_app, name="a2a")
 app.add_typer(ecology_app, name="ecology")
@@ -551,10 +563,16 @@ def _demo_file_names() -> list[str]:
         path = item.get("path")
         if not isinstance(path, str):
             continue
-        parsed = Path(path)
-        if parsed.name != path or parsed.is_absolute():
+        parsed = PurePosixPath(path)
+        if (
+            path != path.strip()
+            or "\\" in path
+            or parsed.is_absolute()
+            or not parsed.parts
+            or any(part in {"", ".", ".."} for part in parsed.parts)
+        ):
             raise RuntimeError(f"unsafe installed demo path {path!r}")
-        names.append(path)
+        names.append(parsed.as_posix())
     return sorted(set(names))
 
 
@@ -565,6 +583,7 @@ def _copy_installed_demo(output_dir: Path, overwrite: bool) -> list[str]:
     written: list[str] = []
     for name in _demo_file_names():
         target = output_dir / name
+        target.parent.mkdir(parents=True, exist_ok=True)
         if target.exists() and not overwrite:
             raise typer.BadParameter(
                 f"{target} already exists; pass --overwrite to replace installed demo files"
@@ -1297,6 +1316,87 @@ def schema(
     except ValueError as exc:
         raise typer.BadParameter(str(exc)) from exc
     _dump(schema_data, output)
+
+
+def _first_case_record(data: dict[str, Any], key: str, label: str) -> dict[str, Any]:
+    value = data.get(key)
+    if isinstance(value, list):
+        for item in value:
+            if isinstance(item, dict):
+                return item
+        raise typer.BadParameter(f"{label} case contains no object in {key}")
+    return data
+
+
+@afst_app.command("check")
+def afst_check_command(
+    case: Annotated[Path, typer.Option("--case", help="AFST case JSON/YAML.")],
+    profile: Annotated[str, typer.Option("--profile", help="AFST profile.")] = "development",
+    compact: Annotated[
+        bool, typer.Option("--compact/--full", help="Emit compact agent JSON.")
+    ] = False,
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Run a non-executing AFST satisfaction-flux diagnostic check."""
+
+    report = build_afst_flux_stabilization_report(load_data(case), profile=profile)
+    _dump(_compact_report(report) if compact else report.model_dump(mode="json"), output)
+
+
+@afst_app.command("buffer")
+def afst_buffer_command(
+    buffer: Annotated[Path, typer.Option("--buffer", help="AFST buffer or case JSON/YAML.")],
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Check one AFST stabilization buffer."""
+
+    payload = _first_case_record(load_data(buffer), "stabilization_buffers", "buffer")
+    result = check_stabilization_buffer(StabilizationBuffer.model_validate(payload))
+    _dump(result.model_dump(mode="json"), output)
+
+
+@afst_app.command("handover")
+def afst_handover_command(
+    handover: Annotated[Path, typer.Option("--handover", help="AFST handover or case JSON/YAML.")],
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Check one AFST bounded-friction handover witness."""
+
+    payload = _first_case_record(load_data(handover), "handover_protocols", "handover")
+    result = check_bounded_friction_handover(BoundedFrictionHandover.model_validate(payload))
+    _dump(result.model_dump(mode="json"), output)
+
+
+@afst_app.command("balance")
+def afst_balance_command(
+    witness: Annotated[
+        Path, typer.Option("--witness", help="AFST balance witness or case JSON/YAML.")
+    ],
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Check one AFST physical resource-balance witness."""
+
+    payload = _first_case_record(load_data(witness), "balance_witnesses", "balance")
+    result = check_resource_balance(ResourceBalanceWitness.model_validate(payload))
+    _dump(result.model_dump(mode="json"), output)
+
+
+@afst_app.command("emit-ccr-tasks")
+def afst_emit_ccr_tasks_command(
+    report: Annotated[Path, typer.Option("--report", help="AFST report JSON/YAML.")],
+    output: Annotated[Path | None, typer.Option("--output", "-o", help="Write task JSONL.")] = None,
+) -> None:
+    """Emit dry-run CCR repair tasks from AFST residuals."""
+
+    _dump_jsonl(afst_ccr_tasks_from_report(load_data(report)), output)
 
 
 @app.command()
@@ -6598,6 +6698,12 @@ def demo_bootstrap(
     phase_lab_report_path = output_dir / "phase_lab_runtime_report.json"
     phase_lab_threshold_path = output_dir / "phase_lab_threshold.json"
     phase_lab_store_path = output_dir / "phase-lab"
+    afst_minimal_path = output_dir / "afst" / "minimal_accepted.json"
+    afst_blocked_refusal_path = output_dir / "afst" / "blocked_refusal.json"
+    afst_missing_shock_path = output_dir / "afst" / "blocked_missing_shock.json"
+    afst_handover_path = output_dir / "afst" / "handover_minimal.json"
+    afst_balance_path = output_dir / "afst" / "balance_witness.json"
+    afst_report_path = output_dir / "afst-report.json"
     merged_packets_path = output_dir / "merged-packets.json"
     observation_path = output_dir / "observation.json"
     recommended_next_commands = [
@@ -6623,6 +6729,12 @@ def demo_bootstrap(
             f"pic phase lab certify --store {phase_lab_store_path} "
             f"--threshold {phase_lab_threshold_path}"
         ),
+        f"pic afst check --case {afst_minimal_path} --compact",
+        f"pic afst check --case {afst_blocked_refusal_path} --output {afst_report_path}",
+        f"pic afst emit-ccr-tasks --report {afst_report_path}",
+        f"pic afst buffer --buffer {afst_missing_shock_path}",
+        f"pic afst handover --handover {afst_handover_path}",
+        f"pic afst balance --witness {afst_balance_path}",
         "pic audit canonical-readiness --profile development --format json",
     ]
     recommended_next_invocations = [
@@ -6749,6 +6861,39 @@ def demo_bootstrap(
             ],
         },
         {
+            "invocation_id": "afst-check-bootstrapped",
+            "argv": [
+                "pic",
+                "afst",
+                "check",
+                "--case",
+                str(afst_minimal_path),
+                "--compact",
+            ],
+        },
+        {
+            "invocation_id": "afst-report-bootstrapped",
+            "argv": [
+                "pic",
+                "afst",
+                "check",
+                "--case",
+                str(afst_blocked_refusal_path),
+                "--output",
+                str(afst_report_path),
+            ],
+        },
+        {
+            "invocation_id": "afst-ccr-tasks-bootstrapped",
+            "argv": [
+                "pic",
+                "afst",
+                "emit-ccr-tasks",
+                "--report",
+                str(afst_report_path),
+            ],
+        },
+        {
             "invocation_id": "canonical-readiness",
             "argv": [
                 "pic",
@@ -6829,6 +6974,15 @@ def demo_installed_smoke(
                 "pic phase lab executable-paths --store pic-demo/phase-lab",
                 "pic phase lab certify --store pic-demo/phase-lab "
                 "--threshold pic-demo/phase_lab_threshold.json",
+                "pic afst check --case pic-demo/afst/minimal_accepted.json --compact",
+                (
+                    "pic afst check --case pic-demo/afst/blocked_refusal.json "
+                    "--output pic-demo/afst-report.json"
+                ),
+                "pic afst emit-ccr-tasks --report pic-demo/afst-report.json",
+                "pic afst buffer --buffer pic-demo/afst/blocked_missing_shock.json",
+                "pic afst handover --handover pic-demo/afst/handover_minimal.json",
+                "pic afst balance --witness pic-demo/afst/balance_witness.json",
                 f"pic audit canonical-readiness --profile {profile} --format json",
             ],
             "recommended_next_invocations": [
@@ -6871,6 +7025,39 @@ def demo_installed_smoke(
                         profile,
                         "--format",
                         "json",
+                    ],
+                },
+                {
+                    "invocation_id": "afst-check",
+                    "argv": [
+                        "pic",
+                        "afst",
+                        "check",
+                        "--case",
+                        "pic-demo/afst/minimal_accepted.json",
+                        "--compact",
+                    ],
+                },
+                {
+                    "invocation_id": "afst-report",
+                    "argv": [
+                        "pic",
+                        "afst",
+                        "check",
+                        "--case",
+                        "pic-demo/afst/blocked_refusal.json",
+                        "--output",
+                        "pic-demo/afst-report.json",
+                    ],
+                },
+                {
+                    "invocation_id": "afst-ccr-tasks",
+                    "argv": [
+                        "pic",
+                        "afst",
+                        "emit-ccr-tasks",
+                        "--report",
+                        "pic-demo/afst-report.json",
                     ],
                 },
             ],

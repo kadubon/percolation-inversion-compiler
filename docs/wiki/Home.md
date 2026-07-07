@@ -3,7 +3,7 @@
 Percolation Inversion Compiler, or PIC, is a local checker/compiler for AI
 agent output, evidence, unfinished work, safe reuse decisions, and
 protocol-relative ASI-proxy phase diagnostics. The current local implementation
-target is v0.8.0.
+target is v1.0.0.
 
 PIC helps a person or agent answer:
 
@@ -12,6 +12,8 @@ PIC helps a person or agent answer:
 - What residual work remains?
 - Which verifier, CCR task, or next check should handle the missing work?
 - Can a result be reused under a limited scope?
+- Can a proposed satisfaction-flux transfer preserve authority, consent,
+  refusal, balance, buffers, and bounded handover constraints?
 - Why is a result useful but still not settled?
 
 PIC treats agent output as candidate work. It does not treat confident text,
@@ -25,15 +27,25 @@ python -m pip install percolation-inversion-compiler
 pic agent check --compact --text "Candidate packet: route evidence and preserve residuals." --profile development
 pic phase plan --compact --text "Candidate packet: route evidence and preserve residuals." --profile development
 pic demo installed-smoke --profile development
+pic demo bootstrap --output-dir pic-demo --overwrite
+pic afst check --case pic-demo/afst/minimal_accepted.json --compact
 ```
 
 `accepted=true` can be useful while `settled=false` remains normal. It means PIC
 kept unresolved work visible.
 
-## What v0.8.0 Adds
+## What v1.0.0 Adds
 
-v0.8.0 adds a target-valid ASI-proxy/CARA acceleration layer:
+v1.0.0 adds AFST satisfaction-flux diagnostics on top of the target-valid
+ASI-proxy/CARA acceleration layer:
 
+- satisfaction deficit and certified abundance records;
+- non-market liquidity checks;
+- authority, consent, and refusal-channel preservation;
+- physical resource-balance witnesses;
+- stabilization buffers and shock envelopes;
+- bounded-friction handover checks;
+- AFST residuals emitted as candidate-only CCR repair tasks;
 - declared target sets;
 - baseline upper envelopes;
 - runtime capital witnesses;
@@ -54,6 +66,11 @@ baseline is stale or missing, admitted capital witnesses are absent, or an MCP
 descriptor changed after approval, PIC returns explicit blockers instead of
 promoting the claim.
 
+AFST reports fail closed too. Missing shock envelopes, missing consent in
+controlled or production profiles, active refusal, legal holds, balance
+violations, and unit mismatches are preserved as blockers. Missing values are
+not treated as zero.
+
 ## Safety Boundary
 
 PIC does not prove real ASI, physical truth, simulator truth, oracle truth,
@@ -64,12 +81,15 @@ providers, use credentials, change model weights, or self-rewrite.
 
 `provider_dispatch_ready` is not dispatch. `physical_dispatch_ready` is not
 physical outcome proof. Observation evidence is not physical outcome proof
-without scoped verifier acceptance.
+without scoped verifier acceptance. AFST `accepted=true` is only finite checker
+acceptance; it is not settlement, dispatch, physical proof, consent bypass,
+refusal suppression, capital admission, or phase promotion.
 
 ## Search Terms
 
 AI agent output checker, LLM output validation, evidence routing, proof
 obligations, residual ledger, capability packet, ECPT, BIT, TRC, SQOT, ALT,
-ASI-proxy acceleration, CARA, runtime capital witness, baseline upper envelope,
-MCP descriptor report, A2A handoff report, CCR interop, phase acceleration
-report, `settled=false`.
+AFST, satisfaction flux, certified abundance, stabilization buffer, bounded
+handover, refusal preservation, ASI-proxy acceleration, CARA, runtime capital
+witness, baseline upper envelope, MCP descriptor report, A2A handoff report,
+CCR interop, phase acceleration report, `settled=false`.

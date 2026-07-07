@@ -1,6 +1,6 @@
 # Overview
 
-Percolation Inversion Compiler is a finite certificate and verifier-routing runtime for ECPT, BIT, TRC, SQOT, and ALT. It helps an engineer or AI agent decide which protocol-relative capability packets are usable, which semantic edges are accepted, which abstraction tokens become certified reusable capital, which obligations remain unresolved, and which bottleneck should be handled next.
+Percolation Inversion Compiler is a finite certificate and verifier-routing runtime for ECPT, BIT, TRC, SQOT, ALT, and AFST diagnostics. It helps an engineer or AI agent decide which protocol-relative capability packets are usable, which semantic edges are accepted, which abstraction tokens become certified reusable capital, which satisfaction-flux candidates preserve required boundaries, which obligations remain unresolved, and which bottleneck should be handled next.
 
 The central ECPT interpretation used by this repository is collective phase progress. A fixed population of agents can generate many finite capability packets under declared constraints. Those packets become more useful when they are evidence-bound, receiver-compatible, queue-admissible, execution-available but not executed, and composable into accepted paths or closure witnesses. This does not require self-rewriting, fine-tuning, or model-weight changes.
 
@@ -13,6 +13,9 @@ The central ECPT interpretation used by this repository is collective phase prog
 - Verifier evidence envelopes and content-addressed evidence refs.
 - Runtime state, action results, route execution batches, and SQOT queue records.
 - Basin contracts, resource baselines, thresholds, and protocol frame digests.
+- AFST cases with satisfaction coordinates, certified abundance coordinates,
+  candidate fluxes, authority envelopes, consent/refusal channels, balance
+  witnesses, stabilization buffers, and bounded-friction handover protocols.
 
 ## Outputs
 
@@ -31,6 +34,9 @@ The central ECPT interpretation used by this repository is collective phase prog
   `BottleneckWitnessReport`.
 - Runtime event logs, persistent store snapshots, and collective phase certificates.
 - ALT liquidity certificates, admission decisions, and foundry bottleneck dashboards.
+- AFST satisfaction-flux reports and CCR repair tasks for residuals such as
+  missing authority, active refusal, missing shock envelopes, unit mismatch, or
+  resource-balance violations.
 - Identity check reports and Sybil-resistance ledgers for adversarial populations.
 
 ## Safety Boundary
@@ -52,6 +58,10 @@ contract, `pic agent runbook` for command/schema/field guidance,
 - **Residual ledger**: an explicit unresolved-work ledger that must not be hidden by a successful command.
 - **SQOT salience queue**: a finite attention/task scheduler that accounts for diagnostic reserve, audit recursion, latency/deadline loss, stale packets, hazards, cost, and residual reduction.
 - **ALT abstraction liquidity**: a reusable abstraction value checker that turns traces and packet candidates into reusable abstraction capital only after certified lower-bound surplus, calibrated proxy or causal value evidence, transport, root-of-trust, telemetry, lifecycle, and hazard checks pass; negative-liquidity, deprecation, resurrection, baseline-refresh, reproduction, and ALT-CARA records keep stale or risky claims scoped and repairable.
+- **AFST satisfaction flux**: a non-executing diagnostic that checks whether
+  certified typed surplus can reduce a declared satisfaction deficit while
+  preserving authority, consent, refusal, resource balance, buffer, handover,
+  lifecycle, and residual ledgers.
 - **Psi dashboard**: a vector of finite proxy components including graph availability, dependency/execution availability, autocatalytic closure, verification throughput, queue state, hazard load, and basin reachability.
 - **Collective phase certificate**: a protocol-relative certificate that checks fixed population, no self-rewrite, no hidden injection, closure, execution availability, Psi thresholds, SQOT reserve, hazard/authority checks, and resource-matched baseline.
 - **Phase acceleration planner**: a recommendation-only planner that turns
@@ -67,7 +77,8 @@ contract, `pic agent runbook` for command/schema/field guidance,
 4. [Identity and Sybil resistance](identity-and-sybil-resistance.md)
 5. [CLI reference](cli-reference.md)
 6. [ALT abstraction liquidity](alt.md)
-7. [Phase acceleration planner](phase-acceleration.md)
-8. [PyPI distribution](pypi-distribution.md)
-9. [Agent integration](agent-integration.md)
-10. [Glossary](glossary.md)
+7. [AFST satisfaction-flux diagnostics](afst.md)
+8. [Phase acceleration planner](phase-acceleration.md)
+9. [PyPI distribution](pypi-distribution.md)
+10. [Agent integration](agent-integration.md)
+11. [Glossary](glossary.md)

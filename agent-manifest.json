@@ -34,7 +34,8 @@
     "token-extraction",
     "trc-observation-residuals",
     "cache-index-performance",
-    "agent-loop-protocol"
+    "agent-loop-protocol",
+    "afst-satisfaction-flux-diagnostics"
   ],
   "full_feature_stages": [
     "orient",
@@ -155,7 +156,12 @@
     "AltEcptLiftReport",
     "TypedAgentTrace",
     "TraceNormalForm",
-    "TraceCheckReport"
+    "TraceCheckReport",
+    "AFSTFluxStabilizationReport",
+    "AFSTNonMarketLiquidityCertificate",
+    "AFSTStabilizationBuffer",
+    "AFSTBoundedFrictionHandover",
+    "AFSTResourceBalanceWitness"
   ],
   "install_modes": [
     {
@@ -207,6 +213,10 @@
     "approval_gate_present": false,
     "approval_persistence_created": false,
     "arbitrary_shell_execution": false,
+    "afst_reports_are_non_executing": true,
+    "afst_accepted_is_not_settlement": true,
+    "afst_flux_admissible_is_not_physical_dispatch": true,
+    "afst_does_not_override_market_ownership_consent_or_refusal": true,
     "benchmark_dashboard_and_packet_exchange_are_diagnostic_only": true,
     "candidate_only_closure_execution_and_basin_paths_do_not_improve_phase_status": true,
     "canonical_readiness_available_from_pip": true,
@@ -355,7 +365,8 @@
     "Python SDK agent runtime embedding",
     "read-only GitHub Actions audit artifact generation",
     "bounded default-live explicit-source intake",
-    "deterministic phase acceleration planning"
+    "deterministic phase acceleration planning",
+    "AFST satisfaction-flux diagnostics"
   ],
   "purpose": "AI agent runtime verification and ECPT ASI-proxy collective phase acceleration",
   "recommended_docs": [
@@ -378,6 +389,7 @@
     "docs/ccr-pic-roundtrip.md",
     "docs/asi-proxy-acceleration.md",
     "docs/operation-gate.md",
+    "docs/afst.md",
     "docs/real-world-impact.md",
     "docs/mcp-a2a-safety.md",
     "docs/cross-repo-conformance.md",
@@ -425,6 +437,8 @@
     "pic token admissibility --token examples/asi_proxy_loop_bundle/pic_token_admissibility.example.json --compact",
     "pic performance report --json",
     "pic cache status --json",
+    "pic afst check --case pic-demo/afst/minimal_accepted.json --compact",
+    "pic afst emit-ccr-tasks --report pic-demo/afst-report.json",
     "pic mcp descriptor-check --descriptor examples/asi_proxy_acceleration_bundle/mcp_descriptor.good.json --profile development",
     "pic a2a handoff-check --handoff examples/asi_proxy_acceleration_bundle/a2a_handoff.good.json --profile development",
     "pic sqot protocol-integrity --state examples/asi_proxy_acceleration_bundle/sqot_protocol_integrity.missing_root.json",
@@ -467,5 +481,5 @@
     "pypi_fallback": "python -m pip install uv",
     "windows_powershell": "powershell -ExecutionPolicy ByPass -c \"irm https://astral.sh/uv/install.ps1 | iex\""
   },
-  "version": "0.9.0"
+  "version": "1.0.0"
 }

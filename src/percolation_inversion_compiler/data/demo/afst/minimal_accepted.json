@@ -1,0 +1,194 @@
+{
+  "report_id": "afst-demo:minimal",
+  "reference_time": "2026-07-07T00:00:00Z",
+  "satisfaction_coordinates": [
+    {
+      "coordinate_id": "psi:research-compute",
+      "cell_id": "research-agents",
+      "resource_type": "compute",
+      "value": 4.0,
+      "floor_critical": 2.0,
+      "floor_min": 8.0,
+      "floor_safe": 10.0,
+      "unit": "gpu-hour",
+      "measurement_mode": "observed",
+      "observation_window_ref": "trc:obs:compute-window",
+      "evidence_refs": ["evidence:psi:research-compute"]
+    }
+  ],
+  "abundance_coordinates": [
+    {
+      "abundance_id": "abundance:dc-compute",
+      "cell_id": "datacenter-a",
+      "resource_type": "compute",
+      "available_amount": 30.0,
+      "safe_floor": 10.0,
+      "reserve_amount": 5.0,
+      "legal_hold_amount": 0.0,
+      "spoilage_upper_bound": 0.0,
+      "transfer_loss_upper_bound": 1.0,
+      "observation_residual": 1.0,
+      "lifecycle_residual": 1.0,
+      "unit": "gpu-hour",
+      "observation_window_ref": "trc:obs:compute-window",
+      "authority_refs": ["auth:dc-compute-transfer"],
+      "evidence_refs": ["trc:resource-flow:dc-a"]
+    }
+  ],
+  "candidate_fluxes": [
+    {
+      "flux_id": "flux:dc-to-research",
+      "source_cell_id": "datacenter-a",
+      "target_cell_id": "research-agents",
+      "resource_type": "compute",
+      "amount": 5.0,
+      "unit": "gpu-hour",
+      "latency": 1.0,
+      "loss_upper_bound": 0.5,
+      "transfer_residual": 0.0,
+      "conversion_factor": 1.0,
+      "liquidity_mode": "non_market",
+      "authority_envelope_refs": ["auth:dc-compute-transfer"],
+      "consent_refs": ["consent:research-agents"],
+      "refusal_refs": ["refusal:research-agents"],
+      "trace_refs": ["trace:dc-compute-allocation"],
+      "evidence_refs": ["trc:operation-gate:dc-a"]
+    }
+  ],
+  "authority_envelopes": [
+    {
+      "authority_id": "auth:dc-compute-transfer",
+      "issuer": "operator",
+      "subject": "datacenter-a",
+      "scope": ["datacenter-a", "research-agents", "compute", "allocate"],
+      "action": "allocate",
+      "resource_type": "compute",
+      "status": "active",
+      "expires_at": "2099-01-01T00:00:00Z",
+      "fixture_only": false,
+      "evidence_refs": ["policy:dc-compute-transfer"]
+    }
+  ],
+  "consent_channels": [
+    {
+      "consent_id": "consent:research-agents",
+      "subject_cell_id": "research-agents",
+      "mode": "policy",
+      "consent_granted": true,
+      "scope": ["research-agents", "compute", "receive"],
+      "resource_type": "compute",
+      "action": "receive",
+      "explanation_available": true,
+      "appeal_available": true,
+      "evidence_refs": ["policy:research-agents"]
+    }
+  ],
+  "refusal_channels": [
+    {
+      "channel_id": "refusal:research-agents",
+      "subject_cell_id": "research-agents",
+      "active_refusal": false,
+      "legal_hold": false,
+      "explanation_requested": false,
+      "appeal_available": true,
+      "stop_threshold": 1.0,
+      "observed_signal": 0.0,
+      "evidence_refs": ["policy:research-agents"]
+    }
+  ],
+  "balance_witnesses": [
+    {
+      "witness_id": "balance:dc-to-research",
+      "flux_id": "flux:dc-to-research",
+      "source_debit": 5.0,
+      "target_credit": 4.5,
+      "loss_upper_bound": 0.5,
+      "conversion_factor": 1.0,
+      "conservation_residual": 0.0,
+      "unit": "gpu-hour",
+      "trc_resource_flow_ref": "trc:resource-flow:dc-a",
+      "evidence_refs": ["trc:resource-flow:dc-a"]
+    }
+  ],
+  "effect_witnesses": [
+    {
+      "witness_id": "effect:dc-to-research",
+      "flux_id": "flux:dc-to-research",
+      "target_cell_id": "research-agents",
+      "resource_type": "compute",
+      "predicted_delta": 4.5,
+      "effect_evidence_level": "predicted",
+      "model_ref": "model:linear-compute-satisfaction",
+      "evidence_refs": ["trc:resource-flow:dc-a"]
+    }
+  ],
+  "stabilization_buffers": [
+    {
+      "buffer_id": "buffer:research-compute",
+      "cell_id": "research-agents",
+      "resource_type": "compute",
+      "unit": "gpu-hour",
+      "components": [
+        {
+          "component_id": "buffer-stock",
+          "kind": "stock",
+          "amount": 2.0,
+          "resource_type": "compute",
+          "unit": "gpu-hour"
+        },
+        {
+          "component_id": "buffer-flex",
+          "kind": "flex_capacity",
+          "amount": 3.0,
+          "resource_type": "compute",
+          "unit": "gpu-hour"
+        },
+        {
+          "component_id": "buffer-substitute",
+          "kind": "substitute_capacity",
+          "amount": 1.0,
+          "resource_type": "compute",
+          "unit": "gpu-hour"
+        },
+        {
+          "component_id": "buffer-queue",
+          "kind": "queue_slack",
+          "amount": 1.0,
+          "resource_type": "compute",
+          "unit": "gpu-hour"
+        }
+      ],
+      "shock_envelope": {
+        "envelope_id": "shock:research-compute",
+        "resource_type": "compute",
+        "unit": "gpu-hour",
+        "shock_upper_bound": 2.0,
+        "panic_load": 1.0,
+        "queue_load": 1.0,
+        "legal_hold_load": 0.0,
+        "spoilage_upper_bound": 0.0,
+        "residual_charge": 1.0
+      }
+    }
+  ],
+  "handover_protocols": [
+    {
+      "handover_id": "handover:compute-scheduler",
+      "from_controller": "human-operator",
+      "to_controller": "ccr-ts-node",
+      "mode": "shadow-automation",
+      "dual_run": true,
+      "shadow_mode": true,
+      "rollback_available": true,
+      "override_live": true,
+      "authority_valid": true,
+      "telemetry_fresh": true,
+      "explanation_channel_available": true,
+      "covert_transition": false,
+      "irreversible_transition": false,
+      "skill_debt_upper_bound": 0.2,
+      "skill_debt_budget": 1.0,
+      "evidence_refs": ["trc:operation-gate:compute-scheduler"]
+    }
+  ]
+}

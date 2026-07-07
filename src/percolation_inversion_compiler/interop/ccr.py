@@ -27,6 +27,13 @@ NON_CLAIMS = [
     "not_execution_authority",
 ]
 CCR_TASK_KINDS = {
+    "afst_authority_repair",
+    "afst_balance_witness_repair",
+    "afst_buffer_repair",
+    "afst_consent_channel_repair",
+    "afst_handover_repair",
+    "afst_liquidity_repair",
+    "afst_refusal_channel_repair",
     "packet_repair",
     "verifier_route",
     "alt_capital_check",
@@ -190,6 +197,59 @@ def ccr_residuals_from_phase_plan(plan: PhaseAccelerationPlan) -> list[dict[str,
             )
         )
     return sorted(residuals, key=lambda item: item["residual_id"])
+
+
+def afst_ccr_tasks_from_report(report: Mapping[str, Any]) -> list[dict[str, Any]]:
+    """Emit deterministic non-executing CCR repair tasks from an AFST report."""
+
+    profile = str(report.get("profile") or "development")
+    report_id = str(report.get("report_id") or "afst-report")
+    residual_rows = [
+        dict(item) for item in report.get("residuals", []) if isinstance(item, Mapping)
+    ]
+    tasks: list[dict[str, Any]] = []
+    for index, residual in enumerate(
+        sorted(
+            residual_rows,
+            key=lambda item: (
+                str(item.get("kind") or ""),
+                str(item.get("object_id") or ""),
+                str(item.get("residual_id") or ""),
+            ),
+        )
+    ):
+        kind = str(residual.get("kind") or "afst_residual")
+        task_kind = _afst_task_kind_for_residual(kind)
+        source_id = f"{report_id}:residual:{index}:{kind}"
+        tasks.append(
+            _ccr_task(
+                kind=task_kind,
+                title=f"Repair AFST {kind.replace('_', ' ')}",
+                objective=(
+                    "Repair AFST diagnostic residuals without treating accepted=true as "
+                    "settlement, execution authority, provider dispatch, or physical proof: "
+                    f"{kind}"
+                ),
+                source_id=source_id,
+                profile=profile,
+                priority=85 if residual.get("blocking") is True else 55,
+                role=_role_for_task_kind(task_kind),
+                inputs=[
+                    _input_ref(
+                        ref=str(residual.get("residual_id") or source_id),
+                        kind="residual",
+                        notes="AFST residual preserved by PIC.",
+                    )
+                ],
+                residual_inputs=[kind],
+                safe_command_hints=[
+                    "pic afst check --case <case.json> --compact",
+                    "pic afst emit-ccr-tasks --report <afst-report.json>",
+                ],
+                candidate_only=True,
+            )
+        )
+    return sorted(tasks, key=lambda item: item["task_id"])
 
 
 def alt_ecpt_bridge_report(
@@ -1810,6 +1870,13 @@ def _task_kind_for_bottleneck(bottleneck: BottleneckCandidate) -> str:
 
 def _role_for_task_kind(kind: str) -> str:
     return {
+        "afst_authority_repair": "security_reviewer",
+        "afst_balance_witness_repair": "formalizer",
+        "afst_buffer_repair": "scheduler",
+        "afst_consent_channel_repair": "skeptic",
+        "afst_handover_repair": "integrator",
+        "afst_liquidity_repair": "verifier",
+        "afst_refusal_channel_repair": "skeptic",
         "alt_capital_check": "verifier",
         "baseline_refresh": "benchmark_runner",
         "bit_witness_completion": "formalizer",
@@ -1822,6 +1889,46 @@ def _role_for_task_kind(kind: str) -> str:
         "trc_trace_normalization": "formalizer",
         "verifier_route": "verifier",
     }.get(kind, "integrator")
+
+
+def _afst_task_kind_for_residual(kind: str) -> str:
+    if kind in {
+        "missing_certified_abundance",
+        "target_deficit_not_reduced",
+        "price_only_signal",
+        "source_floor_violation",
+        "lifecycle_stale",
+        "unit_mismatch",
+    }:
+        return "afst_liquidity_repair"
+    if kind in {
+        "buffer_insufficient",
+        "missing_buffer_component",
+        "missing_shock_envelope",
+        "buffer_unit_mismatch",
+        "buffer_negative_component",
+    }:
+        return "afst_buffer_repair"
+    if kind.startswith("handover_"):
+        return "afst_handover_repair"
+    if kind == "missing_authority_envelope" or kind.startswith("authority_"):
+        return "afst_authority_repair"
+    if (
+        kind.startswith("refusal_")
+        or kind == "legal_hold_present"
+        or kind == "missing_refusal_channels"
+    ):
+        return "afst_refusal_channel_repair"
+    if kind == "missing_consent_channel" or kind.startswith("consent_"):
+        return "afst_consent_channel_repair"
+    if kind in {
+        "physical_balance_unknown",
+        "resource_balance_violation",
+        "resource_balance_conversion_nonpositive",
+        "negative_numeric_field",
+    }:
+        return "afst_balance_witness_repair"
+    return "residual_ledger_repair"
 
 
 def _priority(score: float) -> int:

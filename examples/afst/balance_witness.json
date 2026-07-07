@@ -1,0 +1,12 @@
+{
+  "witness_id": "balance:dc-to-research",
+  "flux_id": "flux:dc-to-research",
+  "source_debit": 5.0,
+  "target_credit": 4.5,
+  "loss_upper_bound": 0.5,
+  "conversion_factor": 1.0,
+  "conservation_residual": 0.0,
+  "unit": "gpu-hour",
+  "trc_resource_flow_ref": "trc:resource-flow:dc-a",
+  "evidence_refs": ["trc:resource-flow:dc-a"]
+}

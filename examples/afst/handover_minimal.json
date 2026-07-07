@@ -1,0 +1,18 @@
+{
+  "handover_id": "handover:compute-scheduler",
+  "from_controller": "human-operator",
+  "to_controller": "ccr-ts-node",
+  "mode": "shadow-automation",
+  "dual_run": true,
+  "shadow_mode": true,
+  "rollback_available": true,
+  "override_live": true,
+  "authority_valid": true,
+  "telemetry_fresh": true,
+  "explanation_channel_available": true,
+  "covert_transition": false,
+  "irreversible_transition": false,
+  "skill_debt_upper_bound": 0.2,
+  "skill_debt_budget": 1.0,
+  "evidence_refs": ["trc:operation-gate:compute-scheduler"]
+}

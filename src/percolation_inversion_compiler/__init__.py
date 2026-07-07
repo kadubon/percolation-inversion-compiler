@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-__version__ = "0.9.0"
+__version__ = "1.0.0"
 
 from percolation_inversion_compiler.acceleration import (
     build_phase_benchmark_suite,
@@ -12,6 +12,7 @@ from percolation_inversion_compiler.adoption import (
     build_agent_to_operator_request,
     build_operator_adoption_packet,
 )
+from percolation_inversion_compiler.afst import build_afst_flux_stabilization_report
 from percolation_inversion_compiler.agent import build_agent_autonomy_audit
 from percolation_inversion_compiler.alt import verify_alt_ecpt_lift
 from percolation_inversion_compiler.bit_engine import (
@@ -37,6 +38,7 @@ from percolation_inversion_compiler.trc import adapt_trc_trace
 __all__ = [
     "__version__",
     "adapt_trc_trace",
+    "build_afst_flux_stabilization_report",
     "build_agent_autonomy_audit",
     "build_agent_to_operator_request",
     "build_canonical_implementation_readiness_report",

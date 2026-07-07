@@ -18,6 +18,7 @@
     "docs/asi-proxy-acceleration.md",
     "docs/asi-proxy-loop.md",
     "docs/agent-loop-protocol.md",
+    "docs/afst.md",
     "docs/token-extraction.md",
     "docs/operation-observation.md",
     "docs/performance.md",
@@ -51,6 +52,7 @@
     "phase ecology lab diagnostics",
     "collective certify",
     "ALT abstraction-liquidity foundry admission",
+    "AFST satisfaction-flux diagnostics",
     "preserve residuals/provenance"
   ],
   "important_schema_names": [
@@ -149,8 +151,7 @@
     "BottleneckInversionReport",
     "QueueOccupationReport",
     "AltEcptLiftReport",
-    "TypedAgentTrace"
-    ,
+    "TypedAgentTrace",
     "TokenExtractionPipelineReport",
     "TokenAdmissibilityReport",
     "TokenDedupReport",
@@ -159,7 +160,12 @@
     "ResourceTensorReport",
     "UnseenFrontierReport",
     "PerformanceReport",
-    "CacheInvalidationReport"
+    "CacheInvalidationReport",
+    "AFSTFluxStabilizationReport",
+    "AFSTNonMarketLiquidityCertificate",
+    "AFSTStabilizationBuffer",
+    "AFSTBoundedFrictionHandover",
+    "AFSTResourceBalanceWitness"
   ],
   "network_safe_cli": [
     "python -m pip install percolation-inversion-compiler",
@@ -169,6 +175,8 @@
     "pic phase plan --compact --text \"Candidate packet: preserve residuals.\" --profile development",
     "pic token extract-pipeline --trace trace.json --compact",
     "pic token admissibility --token token.json --compact",
+    "pic afst check --case examples/afst/minimal_accepted.json --compact",
+    "pic afst emit-ccr-tasks --report afst-report.json",
     "pic performance report --json",
     "pic cache status --json",
     "pic agent accelerate --compact --text \"Candidate packet: preserve residuals.\" --profile development",
@@ -319,7 +327,8 @@
     "token-extraction",
     "trc-observation-residuals",
     "cache-index-performance",
-    "agent-loop-protocol"
+    "agent-loop-protocol",
+    "afst-satisfaction-flux-diagnostics"
   ],
   "clone_url": "https://github.com/kadubon/percolation-inversion-compiler.git",
   "clone_recommended_for_full_use": false,

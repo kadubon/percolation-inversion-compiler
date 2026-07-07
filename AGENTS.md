@@ -6,7 +6,7 @@ This repository is an AI agent runtime verification and ECPT collective phase ac
 
 It is not an ASI detector, a real ASI proof system, or a self-modifying AI system. It does not require self-rewrite, fine-tuning, or model-weight changes.
 
-v0.8.0 is the PyPI practical runtime snapshot with a beta API surface. The PyPI
+v1.0.0 is the PyPI practical runtime snapshot with a stable AFST diagnostic surface and a beta API surface. The PyPI
 package is enough for `pic agent explain`, `pic agent check --text "..."`,
 `pic phase plan --compact --text "..."`, `pic agent accelerate --compact`,
 `pic demo installed-smoke`, `pic demo bootstrap`, `pic agent intake --text "..."`,
@@ -59,6 +59,7 @@ python -m pip install uv
 - `docs/for-agents.md`
 - `docs/agent-external-communication.md`
 - `docs/alt.md`
+- `docs/afst.md`
 - `docs/identity-and-sybil-resistance.md`
 - `docs/04-collective-phase-certificate.md`
 - `docs/pypi-distribution.md`
@@ -66,6 +67,7 @@ python -m pip install uv
 - `src/percolation_inversion_compiler/runtime/algorithms.py`
 - `src/percolation_inversion_compiler/ecology/records.py`
 - `src/percolation_inversion_compiler/alt/records.py`
+- `src/percolation_inversion_compiler/afst/records.py`
 - `src/percolation_inversion_compiler/identity/records.py`
 
 ## Safe First Commands
@@ -99,6 +101,8 @@ uv run pic runtime health --state examples/runtime_state.json --profile developm
 uv run pic runtime step --state examples/runtime_state.json --input examples/runtime_step_input.json --profile development
 uv run pic identity derive-context --population examples/agent_population_signed.json --profile production --output identity-context.json
 uv run pic runtime step --state examples/runtime_state.json --input examples/runtime_step_input.json --profile production --identity-context identity-context.json
+uv run pic afst check --case examples/afst/minimal_accepted.json --compact
+uv run pic afst emit-ccr-tasks --report afst-report.json
 ```
 
 Installed package smoke commands:
@@ -196,6 +200,7 @@ uv run pic runtime step --state examples/runtime_state.json --input examples/run
 - `percolation_inversion_compiler.alt.admit_alt_packet`
 - `percolation_inversion_compiler.alt.check_liquidity_certificate`
 - `percolation_inversion_compiler.alt.compute_foundry_dashboard`
+- `percolation_inversion_compiler.afst.build_afst_flux_stabilization_report`
 
 ## Safety Invariants
 
@@ -218,6 +223,10 @@ uv run pic runtime step --state examples/runtime_state.json --input examples/run
 - Treat negative ALT liquidity, deprecation, resurrection, baseline refresh, and reproduction
   reports as scoped lineage-preserving controls. They do not erase residual obligations or
   create real-world ASI evidence.
+- Treat AFST reports as diagnostic satisfaction-flux checks only. Preserve authority,
+  consent, refusal, buffer, handover, lifecycle, and physical-balance residuals. Do
+  not treat AFST accepted reports as settlement, physical dispatch, market/ownership
+  override, consent bypass, refusal suppression, resource creation, or execution authority.
 - Inspect `provenance`, `web_fetch_reports`, `residual_ledger`, `identity_verified`, and
   `nonce_ledger` before using external communication output downstream.
 - Use `pic ecology bridge-runtime --report <report.json>` to classify external candidates into

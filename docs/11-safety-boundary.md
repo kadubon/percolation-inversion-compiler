@@ -10,6 +10,10 @@ This repository is intentionally useful for agents, but it is fail-closed. It he
 - No claim that a declared `agent_id` proves legal identity, real-world personhood, or world-global uniqueness.
 - No promotion from declared status, registry metadata, snapshot metadata, queue priority, or agent text.
 - No implicit settlement of external obligations.
+- No AFST report is execution authority, provider dispatch, physical dispatch
+  proof, market override, ownership override, contract override, consent
+  bypass, refusal suppression, resource creation, ALT capital admission, or
+  ECPT phase promotion.
 
 ## Execution Boundary
 
@@ -46,6 +50,15 @@ control, not authority to execute tools or promote packets.
 Use `operationally_usable` for stricter profile-aware routing decisions. Use
 `settled` only for scoped finite obligations actually discharged by verifier
 rules. A useful recommendation may still have `settled=false`.
+
+AFST satisfaction-flux reports are diagnostic by default. `accepted=true` means
+only that a finite AFST checker accepted a candidate satisfaction flux. AFST v1
+top-level reports keep `settled=false`, `operation_ready=false`,
+`provider_dispatch_ready=false`, and `physical_dispatch_ready=false`. Missing
+shock envelopes, missing refusal channels, missing authority, missing consent
+under production/adversarial profiles, unit mismatches, resource-balance
+violations, active refusal, legal holds, and covert handover remain visible
+blockers rather than being treated as zero or false.
 
 ## Identity Boundary
 

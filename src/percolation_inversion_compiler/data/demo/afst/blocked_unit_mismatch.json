@@ -1,0 +1,112 @@
+{
+  "report_id": "afst-demo:blocked-unit-mismatch",
+  "reference_time": "2026-07-07T00:00:00Z",
+  "satisfaction_coordinates": [
+    {
+      "coordinate_id": "psi:research-compute",
+      "cell_id": "research-agents",
+      "resource_type": "compute",
+      "value": 4.0,
+      "floor_min": 8.0,
+      "floor_safe": 10.0,
+      "unit": "gpu-hour",
+      "evidence_refs": ["evidence:psi"]
+    }
+  ],
+  "abundance_coordinates": [
+    {
+      "abundance_id": "abundance:dc-compute",
+      "cell_id": "datacenter-a",
+      "resource_type": "compute",
+      "available_amount": 20.0,
+      "safe_floor": 10.0,
+      "reserve_amount": 2.0,
+      "unit": "cpu-hour",
+      "observation_window_ref": "trc:obs",
+      "authority_refs": ["auth:transfer"],
+      "evidence_refs": ["trc:flow"]
+    }
+  ],
+  "candidate_fluxes": [
+    {
+      "flux_id": "flux:dc-to-research",
+      "source_cell_id": "datacenter-a",
+      "target_cell_id": "research-agents",
+      "resource_type": "compute",
+      "amount": 3.0,
+      "unit": "gpu-hour",
+      "loss_upper_bound": 0.5,
+      "liquidity_mode": "non_market",
+      "authority_envelope_refs": ["auth:transfer"],
+      "refusal_refs": ["refusal:research-agents"]
+    }
+  ],
+  "authority_envelopes": [
+    {
+      "authority_id": "auth:transfer",
+      "scope": ["datacenter-a", "research-agents", "compute", "allocate"],
+      "action": "allocate",
+      "resource_type": "compute",
+      "status": "active",
+      "expires_at": "2099-01-01T00:00:00Z"
+    }
+  ],
+  "refusal_channels": [
+    {
+      "channel_id": "refusal:research-agents",
+      "subject_cell_id": "research-agents",
+      "active_refusal": false,
+      "legal_hold": false,
+      "stop_threshold": 1.0,
+      "observed_signal": 0.0
+    }
+  ],
+  "balance_witnesses": [
+    {
+      "witness_id": "balance:dc-to-research",
+      "flux_id": "flux:dc-to-research",
+      "source_debit": 3.0,
+      "target_credit": 2.5,
+      "loss_upper_bound": 0.5,
+      "conversion_factor": 1.0,
+      "unit": "gpu-hour"
+    }
+  ],
+  "stabilization_buffers": [
+    {
+      "buffer_id": "buffer:research-compute",
+      "cell_id": "research-agents",
+      "resource_type": "compute",
+      "unit": "gpu-hour",
+      "components": [
+        {"component_id": "buffer-stock", "kind": "stock", "amount": 6.0, "resource_type": "compute", "unit": "gpu-hour"}
+      ],
+      "shock_envelope": {
+        "envelope_id": "shock:research-compute",
+        "resource_type": "compute",
+        "unit": "gpu-hour",
+        "shock_upper_bound": 2.0,
+        "panic_load": 1.0,
+        "queue_load": 1.0,
+        "residual_charge": 1.0
+      }
+    }
+  ],
+  "handover_protocols": [
+    {
+      "handover_id": "handover:compute-scheduler",
+      "from_controller": "human-operator",
+      "to_controller": "ccr-ts-node",
+      "mode": "shadow-automation",
+      "dual_run": true,
+      "shadow_mode": true,
+      "rollback_available": true,
+      "override_live": true,
+      "authority_valid": true,
+      "telemetry_fresh": true,
+      "explanation_channel_available": true,
+      "skill_debt_upper_bound": 0.2,
+      "skill_debt_budget": 1.0
+    }
+  ]
+}

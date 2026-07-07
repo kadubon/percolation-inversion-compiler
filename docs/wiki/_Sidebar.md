@@ -1,6 +1,7 @@
 * [Home](Home)
 * [Quickstart](Quickstart)
 * [Core Concepts](Core-Concepts)
+* [AFST Satisfaction Flux](AFST-Satisfaction-Flux)
 * [ASI-Proxy Acceleration](ASI-Proxy-Acceleration)
 * [Operation Gate](Operation-Gate)
 * [MCP And A2A Safety](MCP-And-A2A-Safety)
