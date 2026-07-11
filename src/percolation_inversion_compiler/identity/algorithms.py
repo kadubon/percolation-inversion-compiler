@@ -10,6 +10,7 @@ from collections import Counter, defaultdict
 from typing import Any, Protocol
 
 from percolation_inversion_compiler.core.ledger import CoordinateKind, Ledger
+from percolation_inversion_compiler.core.time import is_expired_or_invalid
 from percolation_inversion_compiler.identity.records import (
     AgentIdentityAttestation,
     AgentIdentityCheckReport,
@@ -848,7 +849,7 @@ def _append_failure(
 
 
 def _is_expired(expires_at: str | None) -> bool:
-    return bool(expires_at and expires_at.strip().lower() == "expired")
+    return is_expired_or_invalid(expires_at)
 
 
 def _duplicates(values: list[str]) -> list[str]:

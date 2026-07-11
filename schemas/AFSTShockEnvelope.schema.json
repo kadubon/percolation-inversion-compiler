@@ -1,0 +1,71 @@
+{
+  "description": "Finite shock envelope for buffer sizing.",
+  "properties": {
+    "envelope_id": {
+      "default": "",
+      "title": "Envelope Id",
+      "type": "string"
+    },
+    "evidence_refs": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Evidence Refs",
+      "type": "array"
+    },
+    "legal_hold_load": {
+      "default": 0.0,
+      "title": "Legal Hold Load",
+      "type": "number"
+    },
+    "panic_load": {
+      "default": 0.0,
+      "title": "Panic Load",
+      "type": "number"
+    },
+    "queue_load": {
+      "default": 0.0,
+      "title": "Queue Load",
+      "type": "number"
+    },
+    "residual_charge": {
+      "default": 0.0,
+      "title": "Residual Charge",
+      "type": "number"
+    },
+    "resource_type": {
+      "default": "",
+      "title": "Resource Type",
+      "type": "string"
+    },
+    "shock_upper_bound": {
+      "default": 0.0,
+      "title": "Shock Upper Bound",
+      "type": "number"
+    },
+    "spoilage_upper_bound": {
+      "default": 0.0,
+      "title": "Spoilage Upper Bound",
+      "type": "number"
+    },
+    "unit": {
+      "default": "dimensionless",
+      "title": "Unit",
+      "type": "string"
+    },
+    "unit_family": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Unit Family"
+    }
+  },
+  "title": "ShockEnvelope",
+  "type": "object"
+}

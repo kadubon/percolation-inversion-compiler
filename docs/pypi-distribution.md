@@ -1,6 +1,6 @@
 # PyPI Distribution
 
-v1.0.0 is the practical runtime snapshot for
+v1.1.0 is the practical runtime release for
 `percolation-inversion-compiler` on PyPI. It keeps the compact agent,
 phase-planner, Phase Ecology Lab, BIT, SQOT, ALT, TRC, CCR interop, schema
 export, and installed-demo behavior stable while adding AFST satisfaction-flux
@@ -166,7 +166,7 @@ uv build
 uv run python -m twine check dist\percolation_inversion_compiler-0.5.0-py3-none-any.whl dist\percolation_inversion_compiler-0.5.0.tar.gz
 uv run python scripts\check_distribution_artifacts.py --dist-dir dist --version 0.5.0
 uv run bandit -q -r src scripts
-uv run pip-audit
+uv run pip-audit --skip-editable
 uv run python scripts\validate_citation.py
 uv run python scripts\check_publish_safety.py
 ```

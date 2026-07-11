@@ -1,0 +1,10 @@
+{
+  "run_id": "runtime-run:candidate-missing-evidence",
+  "initial_state_id": "runtime-state:measurement-example",
+  "score_trajectory": [{"score_id": "score:candidate", "total_score": 0.8}],
+  "threshold_crossing_step": 1,
+  "resource_units": 1.0,
+  "baseline_config": {"observation_protocol_id": "observation-protocol:v1.1", "constraint_frame_id": "constraint-frame:v1.1", "receiver_family": ["agent"], "metric_tolerances": {}},
+  "acceleration_metrics": {"time_to_verified": 1.0, "verification_yield": 0.5, "residual_half_life": 2.0, "receiver_reuse": 1.0, "certified_capital_gain": 0.2, "resource_cost": 1.0, "error_correlation": 0.0, "fixed_horizon": true, "stopping_rule_ref": "stopping-rule:v1.1", "evidence_refs": []}
+}
+

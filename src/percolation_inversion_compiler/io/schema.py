@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import math
 from enum import StrEnum
 from pathlib import Path
 from typing import Any
@@ -10,6 +11,7 @@ from typing import Any
 import yaml
 from jsonschema import Draft202012Validator
 from pydantic import BaseModel
+from yaml.events import AliasEvent
 
 from percolation_inversion_compiler.acceleration.records import (
     BottleneckCandidate,
@@ -127,6 +129,7 @@ from percolation_inversion_compiler.bit_engine.records import (
     BottleneckInversionCandidate,
     BottleneckInversionReport,
     CapabilityExpressionPath,
+    InterventionWitness,
     InversionCertificate,
     MinimalEnablingCondition,
     PostInversionAuditPlan,
@@ -297,6 +300,17 @@ from percolation_inversion_compiler.io.snapshots import (
 )
 from percolation_inversion_compiler.io.tex import StrictTexParseReport, TexGrammarDiagnostic
 from percolation_inversion_compiler.io.zenodo import CanonicalManifest, CanonicalManifestRecord
+from percolation_inversion_compiler.operation.records import (
+    OperationAdapterManifest,
+    OperationApproval,
+    OperationDispatchReceipt,
+    OperationPlan,
+    OperationPreflightReport,
+    OperationReplayLedger,
+    OperationTrustPolicy,
+    OperationVerificationReport,
+    OperationVerifierReport,
+)
 from percolation_inversion_compiler.packet_exchange.records import (
     PacketExchangeEnvelope,
     PacketImportInspectionReport,
@@ -337,6 +351,7 @@ from percolation_inversion_compiler.phase_lab.records import (
     PhaseLabIngestReport,
     PhaseLabStoreManifest,
     PhaseLabWindowIndex,
+    PhaseMetricObservation,
     PhaseThresholdStatus,
     PhaseWindow,
     PhaseWindowComparison,
@@ -354,6 +369,8 @@ from percolation_inversion_compiler.phase_lab.records import (
 from percolation_inversion_compiler.runtime.records import (
     AccelerationCertificate,
     AccelerationExperimentSuite,
+    AccelerationMeasurementMetrics,
+    AccelerationMetricComparison,
     ActionCommit,
     AgentPolicyIdentity,
     AgentPopulationState,
@@ -403,6 +420,7 @@ from percolation_inversion_compiler.sqot_controller.records import (
     AttentionBudgetLedger,
     DiagnosticReserveReport,
     PacketQuarantineDecision,
+    QueueItemCost,
     QueueOccupationReport,
     QueueRebalancePlan,
     ReversibleSalienceSovereigntyCertificate,
@@ -445,13 +463,197 @@ class PortabilitySchemaBundle(BaseModel):
     schemas: dict[str, dict[str, Any]]
 
 
-def load_data(path: str | Path) -> dict[str, Any]:
+MAX_PUBLIC_INPUT_BYTES = 4_000_000
+MAX_PUBLIC_INPUT_DEPTH = 64
+MAX_PUBLIC_INPUT_ITEMS = 50_000
+MAX_PUBLIC_JSONL_LINES = 50_000
+
+
+def read_bounded_bytes(
+    path: str | Path,
+    *,
+    max_bytes: int = MAX_PUBLIC_INPUT_BYTES,
+) -> bytes:
     source = Path(path)
-    text = source.read_text(encoding="utf-8")
-    data = yaml.safe_load(text) if source.suffix.lower() in {".yaml", ".yml"} else json.loads(text)
+    size = source.stat().st_size
+    if size > max_bytes:
+        raise ValueError(f"input exceeds byte limit ({size} > {max_bytes})")
+    data = source.read_bytes()
+    if len(data) > max_bytes:
+        raise ValueError(f"input exceeds byte limit ({len(data)} > {max_bytes})")
+    return data
+
+
+def read_bounded_text(
+    path: str | Path,
+    *,
+    max_bytes: int = MAX_PUBLIC_INPUT_BYTES,
+) -> str:
+    return read_bounded_bytes(path, max_bytes=max_bytes).decode("utf-8")
+
+
+class _NoAliasSafeLoader(yaml.SafeLoader):
+    """Safe YAML loader that rejects aliases before expansion."""
+
+    max_depth = MAX_PUBLIC_INPUT_DEPTH
+    max_items = MAX_PUBLIC_INPUT_ITEMS
+
+    def __init__(self, stream: Any) -> None:
+        super().__init__(stream)
+        self._compose_depth = 0
+        self._compose_items = 0
+
+    def compose_node(self, parent: Any, index: Any) -> Any:
+        if self.check_event(AliasEvent):  # type: ignore[no-untyped-call]
+            raise ValueError("YAML aliases are not allowed in public inputs")
+        self._compose_depth += 1
+        self._compose_items += 1
+        if self._compose_depth > self.max_depth + 1:
+            raise ValueError(f"input exceeds nesting depth limit ({self.max_depth})")
+        if self._compose_items > self.max_items:
+            raise ValueError(f"input exceeds item limit ({self.max_items})")
+        try:
+            return super().compose_node(parent, index)
+        finally:
+            self._compose_depth -= 1
+
+
+def _construct_bounded_yaml_int(loader: _NoAliasSafeLoader, node: Any) -> int:
+    value = yaml.SafeLoader.construct_yaml_int(loader, node)
+    if value == 0 and str(node.value).strip().startswith("-"):
+        raise ValueError("negative zero is not allowed in public inputs")
+    return value
+
+
+def _construct_bounded_yaml_float(loader: _NoAliasSafeLoader, node: Any) -> float:
+    value = yaml.SafeLoader.construct_yaml_float(loader, node)
+    if value == 0.0 and str(node.value).strip().startswith("-"):
+        raise ValueError("negative zero is not allowed in public inputs")
+    return value
+
+
+_NoAliasSafeLoader.add_constructor(
+    "tag:yaml.org,2002:int",
+    _construct_bounded_yaml_int,
+)
+_NoAliasSafeLoader.add_constructor(
+    "tag:yaml.org,2002:float",
+    _construct_bounded_yaml_float,
+)
+
+
+def load_data(
+    path: str | Path,
+    *,
+    max_bytes: int = MAX_PUBLIC_INPUT_BYTES,
+    max_depth: int = MAX_PUBLIC_INPUT_DEPTH,
+    max_items: int = MAX_PUBLIC_INPUT_ITEMS,
+) -> dict[str, Any]:
+    """Load one bounded I-JSON-compatible object from JSON or YAML."""
+
+    source = Path(path)
+    text = read_bounded_text(source, max_bytes=max_bytes)
+    # This loader subclasses SafeLoader and additionally rejects aliases.
+    if source.suffix.lower() in {".yaml", ".yml"}:
+        loader = _NoAliasSafeLoader(text)
+        loader.max_depth = max_depth
+        loader.max_items = max_items
+        try:
+            data = loader.get_single_data()
+        finally:
+            loader.dispose()  # type: ignore[no-untyped-call]
+    else:
+        _precheck_json_structure(text, max_depth=max_depth)
+        data = json.loads(text, parse_constant=_reject_json_constant)
     if not isinstance(data, dict):
         raise ValueError("top-level registry data must be an object")
+    _validate_public_value(data, max_depth=max_depth, max_items=max_items)
     return data
+
+
+def load_jsonl_records(
+    path: str | Path,
+    *,
+    max_bytes: int = MAX_PUBLIC_INPUT_BYTES,
+    max_lines: int = MAX_PUBLIC_JSONL_LINES,
+    max_depth: int = MAX_PUBLIC_INPUT_DEPTH,
+    max_items: int = MAX_PUBLIC_INPUT_ITEMS,
+) -> list[dict[str, Any]]:
+    """Load bounded JSONL object records without scalar coercion."""
+
+    source = Path(path)
+    size = source.stat().st_size
+    if size > max_bytes:
+        raise ValueError(f"input exceeds byte limit ({size} > {max_bytes})")
+    records: list[dict[str, Any]] = []
+    with source.open("r", encoding="utf-8") as stream:
+        for line_number, line in enumerate(stream, start=1):
+            if line_number > max_lines:
+                raise ValueError(f"JSONL exceeds line limit ({max_lines})")
+            stripped = line.strip()
+            if not stripped:
+                continue
+            _precheck_json_structure(stripped, max_depth=max_depth)
+            item = json.loads(stripped, parse_constant=_reject_json_constant)
+            if not isinstance(item, dict):
+                raise ValueError(f"JSONL line {line_number} must be an object")
+            _validate_public_value(item, max_depth=max_depth, max_items=max_items)
+            records.append(item)
+    return records
+
+
+def _reject_json_constant(value: str) -> None:
+    raise ValueError(f"non-finite JSON number is not allowed: {value}")
+
+
+def _precheck_json_structure(text: str, *, max_depth: int) -> None:
+    """Reject excessive JSON nesting before the recursive parser allocates it."""
+
+    depth = 0
+    in_string = False
+    escaped = False
+    for character in text:
+        if in_string:
+            if escaped:
+                escaped = False
+            elif character == "\\":
+                escaped = True
+            elif character == '"':
+                in_string = False
+            continue
+        if character == '"':
+            in_string = True
+        elif character in "[{":
+            depth += 1
+            if depth > max_depth + 1:
+                raise ValueError(f"input exceeds nesting depth limit ({max_depth})")
+        elif character in "]}":
+            depth -= 1
+
+
+def _validate_public_value(value: Any, *, max_depth: int, max_items: int) -> None:
+    count = 0
+    stack: list[tuple[Any, int]] = [(value, 0)]
+    while stack:
+        current, depth = stack.pop()
+        if depth > max_depth:
+            raise ValueError(f"input exceeds nesting depth limit ({max_depth})")
+        count += 1
+        if count > max_items:
+            raise ValueError(f"input exceeds item limit ({max_items})")
+        if isinstance(current, dict):
+            if any(not isinstance(key, str) for key in current):
+                raise ValueError("public input object keys must be strings")
+            stack.extend((item, depth + 1) for item in current.values())
+        elif isinstance(current, list):
+            stack.extend((item, depth + 1) for item in current)
+        elif isinstance(current, float):
+            if not math.isfinite(current):
+                raise ValueError("non-finite JSON numbers are not allowed")
+            if current == 0.0 and math.copysign(1.0, current) < 0.0:
+                raise ValueError("negative zero is not allowed in public inputs")
+        elif current is not None and not isinstance(current, str | int | bool):
+            raise ValueError(f"unsupported public input type: {type(current).__name__}")
 
 
 def registry_json_schema() -> dict[str, Any]:
@@ -466,6 +668,8 @@ def schema_model_map() -> dict[str, type[Any]]:
         "ActionBoundaryRequirement": ActionBoundaryRequirement,
         "ActionCommit": ActionCommit,
         "AccelerationCertificate": AccelerationCertificate,
+        "AccelerationMetricComparison": AccelerationMetricComparison,
+        "AccelerationMeasurementMetrics": AccelerationMeasurementMetrics,
         "AccelerationExperimentSuite": AccelerationExperimentSuite,
         "AFSTFluxStabilizationReport": AFSTFluxStabilizationReport,
         "AFSTProfilePolicy": AFSTProfilePolicy,
@@ -650,6 +854,7 @@ def schema_model_map() -> dict[str, type[Any]]:
         "InterventionCandidate": InterventionCandidate,
         "IntakeProvenanceRecord": IntakeProvenanceRecord,
         "InversionCertificate": InversionCertificate,
+        "InterventionWitness": InterventionWitness,
         "Judgment": Judgment,
         "LatticeWitness": LatticeWitness,
         "LedgerCoordinate": LedgerCoordinate,
@@ -674,6 +879,15 @@ def schema_model_map() -> dict[str, type[Any]]:
         "OpportunityMeasureContract": OpportunityMeasureContract,
         "OperationalCheck": OperationalCheck,
         "OperationalReadinessReport": OperationalReadinessReport,
+        "OperationAdapterManifest": OperationAdapterManifest,
+        "OperationApproval": OperationApproval,
+        "OperationDispatchReceipt": OperationDispatchReceipt,
+        "OperationPlan": OperationPlan,
+        "OperationPreflightReport": OperationPreflightReport,
+        "OperationReplayLedger": OperationReplayLedger,
+        "OperationTrustPolicy": OperationTrustPolicy,
+        "OperationVerificationReport": OperationVerificationReport,
+        "OperationVerifierReport": OperationVerifierReport,
         "OperatorAdoptionPacket": OperatorAdoptionPacket,
         "OrderedPotentialCone": OrderedPotentialCone,
         "PacketQuarantineDecision": PacketQuarantineDecision,
@@ -708,6 +922,7 @@ def schema_model_map() -> dict[str, type[Any]]:
         "PhaseWindow": PhaseWindow,
         "PhaseWindowComparison": PhaseWindowComparison,
         "PhaseWindowObservation": PhaseWindowObservation,
+        "PhaseMetricObservation": PhaseMetricObservation,
         "ProtocolRelativeBenchmarkMetric": ProtocolRelativeBenchmarkMetric,
         "PacketExchangeEnvelope": PacketExchangeEnvelope,
         "PacketIngestionReport": PacketIngestionReport,
@@ -739,6 +954,7 @@ def schema_model_map() -> dict[str, type[Any]]:
         "PullbackGluingWitness": PullbackGluingWitness,
         "QuarantineLedger": QuarantineLedger,
         "QueueOccupationReport": QueueOccupationReport,
+        "QueueItemCost": QueueItemCost,
         "QueueRebalancePlan": QueueRebalancePlan,
         "ReachableMassRecursionCertificate": ReachableMassRecursionCertificate,
         "ReconstructionResidual": ReconstructionResidual,

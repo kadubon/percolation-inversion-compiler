@@ -502,3 +502,29 @@ def test_cli_afst_isolated_debug_commands() -> None:
     )
     assert balance.exit_code == 0
     assert json.loads(balance.output)["accepted"] is True
+
+
+def test_afst_public_boundary_rejects_coercion_and_invalid_time() -> None:
+    numeric_string = copy.deepcopy(_example("minimal_accepted.json"))
+    numeric_string["candidate_fluxes"][0]["amount"] = "1.0"  # type: ignore[index]
+    numeric_report = build_afst_flux_stabilization_report(numeric_string)
+    assert "invalid_candidate_flux_amount" in numeric_report.blockers
+
+    string_boolean = copy.deepcopy(_example("minimal_accepted.json"))
+    string_boolean["refusal_channels"][0]["active_refusal"] = "false"  # type: ignore[index]
+    boolean_report = build_afst_flux_stabilization_report(string_boolean)
+    assert "invalid_refusal_channel_active_refusal" in boolean_report.blockers
+
+    invalid_time = copy.deepcopy(_example("minimal_accepted.json"))
+    invalid_time["reference_time"] = "not-a-time"
+    invalid_time_report = build_afst_flux_stabilization_report(invalid_time)
+    assert "invalid_reference_time" in invalid_time_report.blockers
+
+
+def test_afst_report_checks_authority_expiry_against_reference_time() -> None:
+    data = copy.deepcopy(_example("minimal_accepted.json"))
+    data["reference_time"] = "2026-07-10T00:00:00Z"
+    data["authority_envelopes"][0]["expires_at"] = "2026-07-09T23:59:59Z"  # type: ignore[index]
+    report = build_afst_flux_stabilization_report(data)
+    assert not report.accepted
+    assert "authority_expired" in report.blockers

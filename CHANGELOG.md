@@ -1,5 +1,28 @@
 # Changelog
 
+## Unreleased
+
+## v1.1.0 - 2026-07-11
+
+- Makes public input fail closed for numeric strings, string booleans,
+  non-finite numbers, negative zero, invalid UTC timestamps, oversized files,
+  excessive nesting, and YAML aliases.
+- Aligns AFST expiry and missing-field behavior across Python and TypeScript,
+  and adds explicit known/unknown Phase coordinates.
+- Separates BIT priority heuristics from witness-certified activation gain,
+  requires measured SQOT item costs for reserve, and rechecks ALT lift instead
+  of trusting self-reported acceptance.
+- Replaces pseudo runtime execution with `executed=false` and
+  `execution_status=not_dispatched` until an explicit operation is dispatched.
+- Adds `operation adapter-check|plan|approve|preflight|dispatch|verify|reconcile`
+  with digest-bound plans, Ed25519 approvals, one-use nonces, SSRF controls,
+  digest-pinned process adapters, and independent outcome verification.
+- Adds v1.1 cross-language contracts, operation and theory schemas, named
+  TypeScript report types, migration guidance, and a task-oriented docs index.
+- Requires direction-aware baseline/candidate measurements, fixed horizons,
+  matching stopping rules, evidence references, and no metric regression before
+  an ASI-proxy acceleration measurement is certified.
+
 ## v1.0.0 - 2026-07-07
 
 - Adds AFST satisfaction-flux diagnostics with non-market/price-nonprimitive

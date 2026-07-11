@@ -35,7 +35,8 @@
     "trc-observation-residuals",
     "cache-index-performance",
     "agent-loop-protocol",
-    "afst-satisfaction-flux-diagnostics"
+    "afst-satisfaction-flux-diagnostics",
+    "explicit-operation-planning-and-dispatch"
   ],
   "full_feature_stages": [
     "orient",
@@ -161,7 +162,19 @@
     "AFSTNonMarketLiquidityCertificate",
     "AFSTStabilizationBuffer",
     "AFSTBoundedFrictionHandover",
-    "AFSTResourceBalanceWitness"
+    "AFSTResourceBalanceWitness",
+    "PhaseMetricObservation",
+    "InterventionWitness",
+    "QueueItemCost",
+    "AccelerationMeasurementMetrics",
+    "AccelerationMetricComparison",
+    "AccelerationCertificate",
+    "OperationAdapterManifest",
+    "OperationPlan",
+    "OperationApproval",
+    "OperationPreflightReport",
+    "OperationDispatchReceipt",
+    "OperationVerificationReport"
   ],
   "install_modes": [
     {
@@ -390,6 +403,13 @@
     "docs/asi-proxy-acceleration.md",
     "docs/operation-gate.md",
     "docs/afst.md",
+    "docs/index.md",
+    "docs/unknown-semantics.md",
+    "docs/bit-witness.md",
+    "docs/resource-matched-measurement.md",
+    "docs/cross-language-contract.md",
+    "docs/migration-v1.1.md",
+    "docs/operation-security.md",
     "docs/real-world-impact.md",
     "docs/mcp-a2a-safety.md",
     "docs/cross-repo-conformance.md",
@@ -413,6 +433,8 @@
     "pic demo installed-smoke --profile development",
     "pic demo bootstrap --output-dir pic-demo",
     "pic runtime step --state pic-demo/runtime_state.json --input pic-demo/runtime_step_input.json --profile development",
+    "pic runtime compare --baseline examples/runtime_acceleration/baseline.json --candidate examples/runtime_acceleration/candidate.json",
+    "pic runtime certify-acceleration --baseline examples/runtime_acceleration/baseline.json --candidate examples/runtime_acceleration/candidate.json",
     "pic agent intake --text \"Candidate packet: preserve residuals.\" --profile development",
     "uv run pic agent intake --text-file examples/cli_agent_output_check/agent_output.txt --profile development --output cli-agent-output-report.json",
     "uv run python examples/python_sdk_agent_output_check/check_agent_output.py",
@@ -439,6 +461,8 @@
     "pic cache status --json",
     "pic afst check --case pic-demo/afst/minimal_accepted.json --compact",
     "pic afst emit-ccr-tasks --report pic-demo/afst-report.json",
+    "pic operation adapter-check --manifest examples/operation/https_readonly.adapter.json",
+    "pic operation plan --manifest examples/operation/https_readonly.adapter.json --request examples/operation/https_readonly.request.json --output operation-plan.json",
     "pic mcp descriptor-check --descriptor examples/asi_proxy_acceleration_bundle/mcp_descriptor.good.json --profile development",
     "pic a2a handoff-check --handoff examples/asi_proxy_acceleration_bundle/a2a_handoff.good.json --profile development",
     "pic sqot protocol-integrity --state examples/asi_proxy_acceleration_bundle/sqot_protocol_integrity.missing_root.json",
@@ -481,5 +505,5 @@
     "pypi_fallback": "python -m pip install uv",
     "windows_powershell": "powershell -ExecutionPolicy ByPass -c \"irm https://astral.sh/uv/install.ps1 | iex\""
   },
-  "version": "1.0.0"
+  "version": "1.1.0"
 }

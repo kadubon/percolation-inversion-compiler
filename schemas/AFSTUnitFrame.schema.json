@@ -1,0 +1,34 @@
+{
+  "description": "Finite unit frame with no implicit conversion in AFST v1.",
+  "properties": {
+    "resource_type": {
+      "default": "",
+      "title": "Resource Type",
+      "type": "string"
+    },
+    "unit": {
+      "default": "dimensionless",
+      "title": "Unit",
+      "type": "string"
+    },
+    "unit_family": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Unit Family"
+    },
+    "validity_domain": {
+      "default": "protocol-relative-finite",
+      "title": "Validity Domain",
+      "type": "string"
+    }
+  },
+  "title": "UnitFrame",
+  "type": "object"
+}

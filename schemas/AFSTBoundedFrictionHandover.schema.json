@@ -1,0 +1,202 @@
+{
+  "$defs": {
+    "CoordinateKind": {
+      "enum": [
+        "benefit",
+        "burden",
+        "residual",
+        "tolerance",
+        "resource",
+        "metadata"
+      ],
+      "title": "CoordinateKind",
+      "type": "string"
+    },
+    "EvidenceStatus": {
+      "enum": [
+        "verified",
+        "declared",
+        "unknown"
+      ],
+      "title": "EvidenceStatus",
+      "type": "string"
+    },
+    "Ledger": {
+      "description": "A finite typed ledger with explicit coordinate kinds.",
+      "properties": {
+        "coordinates": {
+          "additionalProperties": {
+            "$ref": "#/$defs/LedgerCoordinate"
+          },
+          "title": "Coordinates",
+          "type": "object"
+        }
+      },
+      "title": "Ledger",
+      "type": "object"
+    },
+    "LedgerCoordinate": {
+      "description": "One typed coordinate in a finite certificate ledger.",
+      "properties": {
+        "description": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Description"
+        },
+        "evidence_refs": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Evidence Refs",
+          "type": "array"
+        },
+        "evidence_status": {
+          "$ref": "#/$defs/EvidenceStatus",
+          "default": "declared"
+        },
+        "kind": {
+          "$ref": "#/$defs/CoordinateKind",
+          "default": "burden"
+        },
+        "known": {
+          "default": true,
+          "title": "Known",
+          "type": "boolean"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "unit": {
+          "default": "dimensionless",
+          "title": "Unit",
+          "type": "string"
+        },
+        "value": {
+          "title": "Value",
+          "type": "number"
+        }
+      },
+      "required": [
+        "name",
+        "value"
+      ],
+      "title": "LedgerCoordinate",
+      "type": "object"
+    }
+  },
+  "description": "Bounded-friction handover witness; never frictionless execution authority.",
+  "properties": {
+    "accepted": {
+      "default": false,
+      "title": "Accepted",
+      "type": "boolean"
+    },
+    "authority_valid": {
+      "default": false,
+      "title": "Authority Valid",
+      "type": "boolean"
+    },
+    "covert_transition": {
+      "default": false,
+      "title": "Covert Transition",
+      "type": "boolean"
+    },
+    "dual_run": {
+      "default": false,
+      "title": "Dual Run",
+      "type": "boolean"
+    },
+    "evidence_refs": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Evidence Refs",
+      "type": "array"
+    },
+    "explanation_channel_available": {
+      "default": false,
+      "title": "Explanation Channel Available",
+      "type": "boolean"
+    },
+    "from_controller": {
+      "default": "",
+      "title": "From Controller",
+      "type": "string"
+    },
+    "handover_id": {
+      "default": "",
+      "title": "Handover Id",
+      "type": "string"
+    },
+    "irreversible_transition": {
+      "default": false,
+      "title": "Irreversible Transition",
+      "type": "boolean"
+    },
+    "mode": {
+      "default": "diagnostic-only",
+      "title": "Mode",
+      "type": "string"
+    },
+    "override_live": {
+      "default": false,
+      "title": "Override Live",
+      "type": "boolean"
+    },
+    "reasons": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Reasons",
+      "type": "array"
+    },
+    "residual_ledger": {
+      "$ref": "#/$defs/Ledger"
+    },
+    "rollback_available": {
+      "default": false,
+      "title": "Rollback Available",
+      "type": "boolean"
+    },
+    "settled": {
+      "default": false,
+      "title": "Settled",
+      "type": "boolean"
+    },
+    "shadow_mode": {
+      "default": false,
+      "title": "Shadow Mode",
+      "type": "boolean"
+    },
+    "skill_debt_budget": {
+      "default": 0.0,
+      "title": "Skill Debt Budget",
+      "type": "number"
+    },
+    "skill_debt_upper_bound": {
+      "default": 0.0,
+      "title": "Skill Debt Upper Bound",
+      "type": "number"
+    },
+    "telemetry_fresh": {
+      "default": false,
+      "title": "Telemetry Fresh",
+      "type": "boolean"
+    },
+    "to_controller": {
+      "default": "",
+      "title": "To Controller",
+      "type": "string"
+    }
+  },
+  "title": "BoundedFrictionHandover",
+  "type": "object"
+}

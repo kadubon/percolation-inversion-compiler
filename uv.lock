@@ -1204,7 +1204,7 @@ wheels = [
 
 [[package]]
 name = "percolation-inversion-compiler"
-version = "1.0.0"
+version = "1.1.0"
 source = { editable = "." }
 dependencies = [
     { name = "defusedxml" },
@@ -1258,6 +1258,9 @@ identity = [
 lp = [
     { name = "highspy" },
 ]
+operation = [
+    { name = "cryptography" },
+]
 ot = [
     { name = "pot" },
 ]
@@ -1277,6 +1280,7 @@ requires-dist = [
     { name = "bandit", extras = ["toml"], marker = "extra == 'dev'", specifier = ">=1.7" },
     { name = "build", marker = "extra == 'dev'", specifier = ">=1.2" },
     { name = "cryptography", marker = "extra == 'identity'", specifier = ">=42" },
+    { name = "cryptography", marker = "extra == 'operation'", specifier = ">=42" },
     { name = "defusedxml", specifier = ">=0.7" },
     { name = "fastapi", marker = "extra == 'server'", specifier = ">=0.115" },
     { name = "highspy", marker = "extra == 'lp'", specifier = ">=1.8" },
@@ -1288,7 +1292,7 @@ requires-dist = [
     { name = "networkx", marker = "extra == 'science'", specifier = ">=3.3" },
     { name = "numpy", marker = "extra == 'science'", specifier = ">=2.0" },
     { name = "percolation-inversion-compiler", extras = ["connectors", "server", "identity"], marker = "extra == 'agent-full'" },
-    { name = "percolation-inversion-compiler", extras = ["science", "ot", "lp", "connectors", "server", "identity"], marker = "extra == 'all'" },
+    { name = "percolation-inversion-compiler", extras = ["science", "ot", "lp", "connectors", "server", "identity", "operation"], marker = "extra == 'all'" },
     { name = "pint", marker = "extra == 'science'", specifier = ">=0.24" },
     { name = "pip-audit", marker = "extra == 'dev'", specifier = ">=2.7" },
     { name = "pot", marker = "extra == 'ot'", specifier = ">=0.9.4" },
@@ -1306,7 +1310,7 @@ requires-dist = [
     { name = "types-pyyaml", marker = "extra == 'dev'", specifier = ">=6.0" },
     { name = "uvicorn", marker = "extra == 'server'", specifier = ">=0.32" },
 ]
-provides-extras = ["science", "ot", "lp", "all", "agent-full", "connectors", "server", "identity", "dev"]
+provides-extras = ["science", "ot", "lp", "all", "agent-full", "connectors", "server", "identity", "operation", "dev"]
 
 [[package]]
 name = "pint"

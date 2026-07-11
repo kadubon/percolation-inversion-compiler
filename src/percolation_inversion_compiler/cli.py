@@ -284,7 +284,28 @@ from percolation_inversion_compiler.io import (
     verify_provenance_manifest,
 )
 from percolation_inversion_compiler.io.provenance import ProvenanceManifest
-from percolation_inversion_compiler.io.schema import load_data
+from percolation_inversion_compiler.io.schema import (
+    load_data,
+    load_jsonl_records,
+    read_bounded_bytes,
+    read_bounded_text,
+)
+from percolation_inversion_compiler.operation import (
+    OperationAdapterManifest,
+    OperationApproval,
+    OperationDispatchReceipt,
+    OperationPlan,
+    OperationPreflightReport,
+    OperationTrustPolicy,
+    OperationVerifierReport,
+    build_operation_plan,
+    check_operation_adapter,
+    dispatch_operation,
+    preflight_operation,
+    reconcile_operation_replay,
+    sign_operation_approval,
+    verify_operation_outcome,
+)
 from percolation_inversion_compiler.packet_exchange import (
     PacketExchangeEnvelope,
     PacketMergeReport,
@@ -401,6 +422,7 @@ agent_message_app = typer.Typer(help="Create, verify, and ingest agent message e
 trc_app = typer.Typer(help="Run TRC typed trace adapter diagnostics.")
 performance_app = typer.Typer(help="Emit local deterministic performance reports.")
 cache_app = typer.Typer(help="Emit cache status, rebuild, and invalidation reports.")
+operation_app = typer.Typer(help="Plan and explicitly dispatch approval-bound operations.")
 app.add_typer(demo_app, name="demo")
 app.add_typer(audit_app, name="audit")
 app.add_typer(snapshot_app, name="snapshot")
@@ -436,6 +458,7 @@ agent_app.add_typer(agent_message_app, name="message")
 app.add_typer(trc_app, name="trc")
 app.add_typer(performance_app, name="performance")
 app.add_typer(cache_app, name="cache")
+app.add_typer(operation_app, name="operation")
 console = Console()
 
 
@@ -731,7 +754,7 @@ def _load_general_intake_report(path: Path) -> GeneralIntakeReport:
 def _read_text_or_literal(source: str) -> str:
     path = Path(source)
     if path.exists() and path.is_file():
-        return path.read_text(encoding="utf-8")
+        return read_bounded_text(path)
     return source
 
 
@@ -931,16 +954,10 @@ def _load_inversion_candidate(path: Path) -> BottleneckInversionCandidate:
 
 
 def _load_jsonl_events(path: Path) -> list[dict[str, Any]]:
-    events: list[dict[str, Any]] = []
-    for line_number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
-        stripped = line.strip()
-        if not stripped:
-            continue
-        item = json.loads(stripped)
-        if not isinstance(item, dict):
-            raise typer.BadParameter(f"JSONL event on line {line_number} must be an object")
-        events.append(item)
-    return events
+    try:
+        return load_jsonl_records(path)
+    except ValueError as exc:
+        raise typer.BadParameter(str(exc)) from exc
 
 
 def _phase_lab_graph(store_path: Path, window: str = "latest") -> EffectivePacketGraph:
@@ -1044,7 +1061,7 @@ def _load_phase_acceleration_request(
     runtime_report = (
         None if runtime_report_path is None else _load_runtime_step_report(runtime_report_path)
     )
-    agent_output = text_file.read_text(encoding="utf-8") if text_file is not None else text
+    agent_output = read_bounded_text(text_file) if text_file is not None else text
     state = None if runtime_report is not None else _load_agent_default_state(state_path)
     step_input = None
     if runtime_report is None:
@@ -1114,7 +1131,7 @@ def _load_runtime_run_report(path: Path) -> RuntimeRunReport:
     raw = data.get("runtime_run_report", data.get("run", data))
     if not isinstance(raw, dict):
         raise typer.BadParameter("runtime run file must contain an object")
-    return RuntimeRunReport.model_validate(raw)
+    return RuntimeRunReport.model_validate(raw, strict=True)
 
 
 def _load_agent_population_state(path: Path) -> AgentPopulationState:
@@ -1153,17 +1170,13 @@ def _load_identity_attestation(path: Path) -> AgentIdentityAttestation:
 
 def _load_runtime_inputs(path: Path) -> list[RuntimeStepInput]:
     if path.suffix.lower() == ".jsonl":
-        inputs: list[RuntimeStepInput] = []
-        for line_number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
-            stripped = line.strip()
-            if not stripped:
-                continue
-            try:
-                data = json.loads(stripped)
-            except json.JSONDecodeError as exc:
-                raise typer.BadParameter(f"invalid JSONL line {line_number}: {exc}") from exc
-            inputs.append(RuntimeStepInput.model_validate(data))
-        return inputs
+        try:
+            return [
+                RuntimeStepInput.model_validate_json(json.dumps(item), strict=True)
+                for item in load_jsonl_records(path)
+            ]
+        except ValueError as exc:
+            raise typer.BadParameter(str(exc)) from exc
     data = load_data(path)
     raw_inputs = data.get("inputs", data.get("runtime_inputs"))
     if not isinstance(raw_inputs, list):
@@ -1355,7 +1368,9 @@ def afst_buffer_command(
     """Check one AFST stabilization buffer."""
 
     payload = _first_case_record(load_data(buffer), "stabilization_buffers", "buffer")
-    result = check_stabilization_buffer(StabilizationBuffer.model_validate(payload))
+    result = check_stabilization_buffer(
+        StabilizationBuffer.model_validate_json(json.dumps(payload), strict=True)
+    )
     _dump(result.model_dump(mode="json"), output)
 
 
@@ -1369,7 +1384,9 @@ def afst_handover_command(
     """Check one AFST bounded-friction handover witness."""
 
     payload = _first_case_record(load_data(handover), "handover_protocols", "handover")
-    result = check_bounded_friction_handover(BoundedFrictionHandover.model_validate(payload))
+    result = check_bounded_friction_handover(
+        BoundedFrictionHandover.model_validate_json(json.dumps(payload), strict=True)
+    )
     _dump(result.model_dump(mode="json"), output)
 
 
@@ -1385,7 +1402,9 @@ def afst_balance_command(
     """Check one AFST physical resource-balance witness."""
 
     payload = _first_case_record(load_data(witness), "balance_witnesses", "balance")
-    result = check_resource_balance(ResourceBalanceWitness.model_validate(payload))
+    result = check_resource_balance(
+        ResourceBalanceWitness.model_validate_json(json.dumps(payload), strict=True)
+    )
     _dump(result.model_dump(mode="json"), output)
 
 
@@ -1397,6 +1416,195 @@ def afst_emit_ccr_tasks_command(
     """Emit dry-run CCR repair tasks from AFST residuals."""
 
     _dump_jsonl(afst_ccr_tasks_from_report(load_data(report)), output)
+
+
+def _strict_public_model(model: type[Any], path: Path) -> Any:
+    return model.model_validate_json(json.dumps(load_data(path)), strict=True)
+
+
+@operation_app.command("adapter-check")
+def operation_adapter_check_command(
+    manifest: Annotated[Path, typer.Option("--manifest", help="Operation adapter JSON/YAML.")],
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Validate an operation adapter without dispatching it."""
+
+    adapter = _strict_public_model(OperationAdapterManifest, manifest)
+    _dump(check_operation_adapter(adapter), output)
+
+
+@operation_app.command("plan")
+def operation_plan_command(
+    manifest: Annotated[Path, typer.Option("--manifest", help="Operation adapter JSON/YAML.")],
+    request: Annotated[Path, typer.Option("--request", help="Bound operation request JSON/YAML.")],
+    body: Annotated[Path | None, typer.Option("--body", help="Optional request body.")] = None,
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Build a digest-bound operation plan without dispatching it."""
+
+    adapter = _strict_public_model(OperationAdapterManifest, manifest)
+    payload = load_data(request)
+    arguments = payload.get("arguments", [])
+    path_parameters = payload.get("path_parameters", {})
+    resource_limits = payload.get("resource_limits", {})
+    scope = payload.get("scope", [])
+    if not isinstance(arguments, list) or any(not isinstance(item, str) for item in arguments):
+        raise typer.BadParameter("operation arguments must be an array of strings")
+    if not isinstance(path_parameters, dict) or any(
+        not isinstance(key, str) or not isinstance(value, str)
+        for key, value in path_parameters.items()
+    ):
+        raise typer.BadParameter("operation path_parameters must map strings to strings")
+    if not isinstance(resource_limits, dict) or any(
+        not isinstance(key, str)
+        or not isinstance(value, int)
+        or isinstance(value, bool)
+        or value < 0
+        for key, value in resource_limits.items()
+    ):
+        raise typer.BadParameter(
+            "operation resource_limits must map strings to nonnegative integers"
+        )
+    if not isinstance(scope, list) or any(not isinstance(item, str) for item in scope):
+        raise typer.BadParameter("operation scope must be an array of strings")
+    for field in ("plan_id", "expires_at", "nonce", "idempotency_key"):
+        if not isinstance(payload.get(field), str) or not payload[field]:
+            raise typer.BadParameter(f"operation {field} must be a nonempty string")
+    body_bytes = read_bounded_bytes(body, max_bytes=adapter.max_request_bytes) if body else None
+    plan = build_operation_plan(
+        adapter,
+        plan_id=payload["plan_id"],
+        arguments=arguments,
+        path_parameters=path_parameters,
+        body=body_bytes,
+        resource_limits=resource_limits,
+        scope=scope,
+        expires_at=payload["expires_at"],
+        nonce=payload["nonce"],
+        idempotency_key=payload["idempotency_key"],
+    )
+    _dump(plan.model_dump(mode="json"), output)
+
+
+@operation_app.command("approve")
+def operation_approve_command(
+    plan: Annotated[Path, typer.Option("--plan", help="Operation plan JSON/YAML.")],
+    key_id: Annotated[str, typer.Option("--key-id")],
+    signer_id: Annotated[str, typer.Option("--signer-id")],
+    private_key_env: Annotated[str, typer.Option("--private-key-env")],
+    issued_at: Annotated[str, typer.Option("--issued-at")],
+    expires_at: Annotated[str, typer.Option("--expires-at")],
+    scope: Annotated[str, typer.Option("--scope", help="Comma-separated signed scope.")],
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Sign one plan using an environment-resolved Ed25519 seed."""
+
+    operation_plan = _strict_public_model(OperationPlan, plan)
+    approval = sign_operation_approval(
+        operation_plan,
+        key_id=key_id,
+        signer_id=signer_id,
+        private_key_env=private_key_env,
+        issued_at=issued_at,
+        expires_at=expires_at,
+        scope=[item for item in scope.split(",") if item],
+    )
+    _dump(approval.model_dump(mode="json"), output)
+
+
+@operation_app.command("preflight")
+def operation_preflight_command(
+    plan: Annotated[Path, typer.Option("--plan", help="Operation plan JSON/YAML.")],
+    approvals: Annotated[Path, typer.Option("--approvals", help="Object with an approvals array.")],
+    trust: Annotated[Path, typer.Option("--trust", help="Operation trust policy JSON/YAML.")],
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Revalidate plan, secrets, and signatures at the current time."""
+
+    operation_plan = _strict_public_model(OperationPlan, plan)
+    policy = _strict_public_model(OperationTrustPolicy, trust)
+    approval_data = load_data(approvals).get("approvals", [])
+    checked_approvals = [
+        OperationApproval.model_validate_json(json.dumps(item), strict=True)
+        for item in approval_data
+    ]
+    report = preflight_operation(operation_plan, checked_approvals, policy)
+    _dump(report.model_dump(mode="json"), output)
+
+
+@operation_app.command("dispatch")
+def operation_dispatch_command(
+    plan: Annotated[Path, typer.Option("--plan", help="Operation plan JSON/YAML.")],
+    preflight: Annotated[Path, typer.Option("--preflight", help="Accepted preflight report.")],
+    replay_root: Annotated[Path, typer.Option("--replay-root", help="Nonce replay ledger.")],
+    body: Annotated[Path | None, typer.Option("--body", help="Digest-bound request body.")] = None,
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Explicitly dispatch a preflighted operation once."""
+
+    operation_plan = _strict_public_model(OperationPlan, plan)
+    report = _strict_public_model(OperationPreflightReport, preflight)
+    receipt, ledger = dispatch_operation(
+        operation_plan,
+        report,
+        replay_root=replay_root,
+        body=(
+            read_bounded_bytes(body, max_bytes=operation_plan.adapter_manifest.max_request_bytes)
+            if body
+            else None
+        ),
+    )
+    _dump(
+        {
+            "receipt": receipt.model_dump(mode="json"),
+            "replay_ledger": ledger.model_dump(mode="json"),
+        },
+        output,
+    )
+
+
+@operation_app.command("verify")
+def operation_verify_command(
+    receipt: Annotated[Path, typer.Option("--receipt")],
+    verifier: Annotated[Path, typer.Option("--verifier")],
+    trust: Annotated[Path, typer.Option("--trust")],
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Verify an independent signed outcome observation."""
+
+    result = verify_operation_outcome(
+        _strict_public_model(OperationDispatchReceipt, receipt),
+        _strict_public_model(OperationVerifierReport, verifier),
+        _strict_public_model(OperationTrustPolicy, trust),
+    )
+    _dump(result.model_dump(mode="json"), output)
+
+
+@operation_app.command("reconcile")
+def operation_reconcile_command(
+    replay_root: Annotated[Path, typer.Option("--replay-root")],
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write JSON output.")
+    ] = None,
+) -> None:
+    """Report completed and dispatch-uncertain consumed nonces."""
+
+    _dump(
+        [item.model_dump(mode="json") for item in reconcile_operation_replay(replay_root)],
+        output,
+    )
 
 
 @app.command()
@@ -2637,7 +2845,7 @@ def bit_extract_registry_command(
 ) -> None:
     """Extract BIT MRRecord registry rows as JSONL."""
 
-    report = bit_registry_report(source.read_text(encoding="utf-8"), source=str(source))
+    report = bit_registry_report(read_bounded_text(source), source=str(source))
     _dump_jsonl(report["records"], output)
 
 
@@ -4889,7 +5097,7 @@ def agent_intake_command(
         raise typer.BadParameter("Use either --text or --text-file, not both")
     agent_output = text
     if text_file is not None:
-        agent_output = text_file.read_text(encoding="utf-8")
+        agent_output = read_bounded_text(text_file)
     report = run_agent_intake(
         AgentIntakeRequest(
             agent_output=agent_output,
@@ -4962,7 +5170,7 @@ def agent_check_command(
         raise typer.BadParameter("Use either --text or --text-file, not both")
     agent_output = text
     if text_file is not None:
-        agent_output = text_file.read_text(encoding="utf-8")
+        agent_output = read_bounded_text(text_file)
     report = run_agent_check(
         AgentIntakeRequest(
             agent_output=agent_output,
@@ -5022,7 +5230,7 @@ def agent_accelerate_command(
         raise typer.BadParameter("Use either --text or --text-file, not both")
     agent_output = text
     if text_file is not None:
-        agent_output = text_file.read_text(encoding="utf-8")
+        agent_output = read_bounded_text(text_file)
     plan = accelerate_agent_phase(
         AgentIntakeRequest(
             agent_output=agent_output,
@@ -5074,7 +5282,7 @@ def agent_manifest_command(
 
     manifest_path = Path("agent-manifest.json")
     if output is None and manifest_path.exists():
-        _dump(json.loads(manifest_path.read_text(encoding="utf-8")), output)
+        _dump(load_data(manifest_path), output)
         return
     _dump(agent_manifest_payload(), output)
 
@@ -5202,7 +5410,7 @@ def agent_message_create_command(
 
     if text is not None and text_file is not None:
         raise typer.BadParameter("Use either --text or --text-file, not both")
-    content = text_file.read_text(encoding="utf-8") if text_file is not None else text
+    content = read_bounded_text(text_file) if text_file is not None else text
     if content is None:
         raise typer.BadParameter("message content requires --text or --text-file")
     message = create_agent_message(
@@ -5263,7 +5471,7 @@ def agent_message_send_command(
 
     if text is not None and text_file is not None:
         raise typer.BadParameter("Use either --text or --text-file, not both")
-    content = text_file.read_text(encoding="utf-8") if text_file is not None else text
+    content = read_bounded_text(text_file) if text_file is not None else text
     if content is None:
         raise typer.BadParameter("message content requires --text or --text-file")
     message = create_agent_message(

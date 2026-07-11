@@ -1,0 +1,268 @@
+{
+  "$defs": {
+    "ClaimStatus": {
+      "description": "Protocol-relative status labels used by ECPT, BIT, TRC, SQOT, and ALT.",
+      "enum": [
+        "rejected",
+        "expired",
+        "diagnostic",
+        "relaxed",
+        "risk-provisional",
+        "speculative",
+        "provisional",
+        "partial",
+        "settled"
+      ],
+      "title": "ClaimStatus",
+      "type": "string"
+    },
+    "CoordinateKind": {
+      "enum": [
+        "benefit",
+        "burden",
+        "residual",
+        "tolerance",
+        "resource",
+        "metadata"
+      ],
+      "title": "CoordinateKind",
+      "type": "string"
+    },
+    "EvidenceStatus": {
+      "enum": [
+        "verified",
+        "declared",
+        "unknown"
+      ],
+      "title": "EvidenceStatus",
+      "type": "string"
+    },
+    "Ledger": {
+      "description": "A finite typed ledger with explicit coordinate kinds.",
+      "properties": {
+        "coordinates": {
+          "additionalProperties": {
+            "$ref": "#/$defs/LedgerCoordinate"
+          },
+          "title": "Coordinates",
+          "type": "object"
+        }
+      },
+      "title": "Ledger",
+      "type": "object"
+    },
+    "LedgerCoordinate": {
+      "description": "One typed coordinate in a finite certificate ledger.",
+      "properties": {
+        "description": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Description"
+        },
+        "evidence_refs": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Evidence Refs",
+          "type": "array"
+        },
+        "evidence_status": {
+          "$ref": "#/$defs/EvidenceStatus",
+          "default": "declared"
+        },
+        "kind": {
+          "$ref": "#/$defs/CoordinateKind",
+          "default": "burden"
+        },
+        "known": {
+          "default": true,
+          "title": "Known",
+          "type": "boolean"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "unit": {
+          "default": "dimensionless",
+          "title": "Unit",
+          "type": "string"
+        },
+        "value": {
+          "title": "Value",
+          "type": "number"
+        }
+      },
+      "required": [
+        "name",
+        "value"
+      ],
+      "title": "LedgerCoordinate",
+      "type": "object"
+    }
+  },
+  "description": "Candidate non-market flux from a source cell to a target cell.",
+  "properties": {
+    "accepted": {
+      "default": false,
+      "title": "Accepted",
+      "type": "boolean"
+    },
+    "amount": {
+      "default": 0.0,
+      "title": "Amount",
+      "type": "number"
+    },
+    "authority_envelope_refs": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Authority Envelope Refs",
+      "type": "array"
+    },
+    "consent_refs": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Consent Refs",
+      "type": "array"
+    },
+    "conversion_factor": {
+      "default": 1.0,
+      "title": "Conversion Factor",
+      "type": "number"
+    },
+    "evidence_refs": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Evidence Refs",
+      "type": "array"
+    },
+    "flux_id": {
+      "default": "",
+      "title": "Flux Id",
+      "type": "string"
+    },
+    "latency": {
+      "default": 0.0,
+      "title": "Latency",
+      "type": "number"
+    },
+    "liquidity_mode": {
+      "default": "non_market",
+      "title": "Liquidity Mode",
+      "type": "string"
+    },
+    "loss_upper_bound": {
+      "default": 0.0,
+      "title": "Loss Upper Bound",
+      "type": "number"
+    },
+    "price_signal": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Price Signal"
+    },
+    "reasons": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Reasons",
+      "type": "array"
+    },
+    "refusal_refs": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Refusal Refs",
+      "type": "array"
+    },
+    "residual_ledger": {
+      "$ref": "#/$defs/Ledger"
+    },
+    "resource_type": {
+      "default": "",
+      "title": "Resource Type",
+      "type": "string"
+    },
+    "settled": {
+      "default": false,
+      "title": "Settled",
+      "type": "boolean"
+    },
+    "source_cell_id": {
+      "default": "",
+      "title": "Source Cell Id",
+      "type": "string"
+    },
+    "status": {
+      "$ref": "#/$defs/ClaimStatus",
+      "default": "provisional"
+    },
+    "target_cell_id": {
+      "default": "",
+      "title": "Target Cell Id",
+      "type": "string"
+    },
+    "trace_refs": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Trace Refs",
+      "type": "array"
+    },
+    "transfer_residual": {
+      "default": 0.0,
+      "title": "Transfer Residual",
+      "type": "number"
+    },
+    "trc_operation_gate_refs": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Trc Operation Gate Refs",
+      "type": "array"
+    },
+    "trc_resource_flow_refs": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Trc Resource Flow Refs",
+      "type": "array"
+    },
+    "unit": {
+      "default": "dimensionless",
+      "title": "Unit",
+      "type": "string"
+    },
+    "unit_family": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Unit Family"
+    }
+  },
+  "title": "CandidateFlux",
+  "type": "object"
+}

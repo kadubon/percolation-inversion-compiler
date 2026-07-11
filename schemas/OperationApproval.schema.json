@@ -1,0 +1,60 @@
+{
+  "properties": {
+    "approval_id": {
+      "title": "Approval Id",
+      "type": "string"
+    },
+    "expires_at": {
+      "title": "Expires At",
+      "type": "string"
+    },
+    "issued_at": {
+      "title": "Issued At",
+      "type": "string"
+    },
+    "key_id": {
+      "title": "Key Id",
+      "type": "string"
+    },
+    "max_uses": {
+      "default": 1,
+      "title": "Max Uses",
+      "type": "integer"
+    },
+    "nonce": {
+      "title": "Nonce",
+      "type": "string"
+    },
+    "plan_digest": {
+      "title": "Plan Digest",
+      "type": "string"
+    },
+    "scope": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Scope",
+      "type": "array"
+    },
+    "signature_b64": {
+      "title": "Signature B64",
+      "type": "string"
+    },
+    "signer_id": {
+      "title": "Signer Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "approval_id",
+    "plan_digest",
+    "key_id",
+    "signer_id",
+    "issued_at",
+    "expires_at",
+    "nonce",
+    "signature_b64"
+  ],
+  "title": "OperationApproval",
+  "type": "object"
+}

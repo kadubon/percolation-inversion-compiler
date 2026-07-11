@@ -17,8 +17,6 @@ REQUIRED_DOIS = {
     "10.5281/zenodo.20476200",
 }
 EXPECTED_REPOSITORY = "https://github.com/kadubon/percolation-inversion-compiler"
-EXPECTED_VERSION = "1.0.0"
-EXPECTED_DATE_RELEASED = "2026-07-07"
 EXPECTED_CONCEPT_DOI = "10.5281/zenodo.20569166"
 CHANGELOG_HEADING = re.compile(
     r"^## v(?P<version>\d+\.\d+\.\d+) - (?P<date>\d{4}-\d{2}-\d{2})$",
@@ -61,25 +59,21 @@ def main() -> int:
         failures.append("repository-code must be the public GitHub repository URL")
     if "OWNER/" in str(data.get("repository-code", "")):
         failures.append("repository-code still contains a placeholder owner")
-    if str(data.get("version")) != EXPECTED_VERSION:
-        failures.append(f"version must be {EXPECTED_VERSION}")
     project_version = _project_version()
     package_version = _package_version()
     changelog_version, changelog_date = _latest_changelog()
-    if project_version != EXPECTED_VERSION:
-        failures.append(f"pyproject.toml version must be {EXPECTED_VERSION}")
-    if package_version != EXPECTED_VERSION:
-        failures.append(f"package __version__ must be {EXPECTED_VERSION}")
-    if changelog_version != EXPECTED_VERSION:
-        failures.append(f"latest CHANGELOG.md entry must be v{EXPECTED_VERSION}")
-    if changelog_date != EXPECTED_DATE_RELEASED:
-        failures.append(f"latest CHANGELOG.md entry date must be {EXPECTED_DATE_RELEASED}")
+    if str(data.get("version")) != project_version:
+        failures.append(f"CITATION.cff version must be {project_version}")
+    if package_version != project_version:
+        failures.append(f"package __version__ must be {project_version}")
+    if changelog_version != project_version:
+        failures.append(f"latest CHANGELOG.md entry must be v{project_version}")
+    if data.get("date-released") != changelog_date:
+        failures.append(f"date-released must be {changelog_date}")
     if data.get("doi") != EXPECTED_CONCEPT_DOI:
         failures.append(f"top-level doi must be {EXPECTED_CONCEPT_DOI}")
     if data.get("license") != "Apache-2.0":
         failures.append("license must be Apache-2.0")
-    if data.get("date-released") != EXPECTED_DATE_RELEASED:
-        failures.append(f"date-released must be {EXPECTED_DATE_RELEASED}")
     if failures:
         print("\n".join(failures))
         return 1

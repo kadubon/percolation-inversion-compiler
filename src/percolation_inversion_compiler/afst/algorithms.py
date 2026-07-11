@@ -9,7 +9,7 @@ from datetime import datetime
 from math import isfinite
 from typing import Any, TypeVar
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
 
 from percolation_inversion_compiler.afst.records import (
     ACCEPTED_AUTHORITY_STATUSES,
@@ -35,6 +35,11 @@ from percolation_inversion_compiler.afst.records import (
 )
 from percolation_inversion_compiler.core.ledger import CoordinateKind, Ledger
 from percolation_inversion_compiler.core.status import ClaimStatus
+from percolation_inversion_compiler.core.time import (
+    FreshnessState,
+    freshness_state,
+    parse_utc_datetime,
+)
 
 ModelT = TypeVar("ModelT", bound=BaseModel)
 
@@ -341,8 +346,11 @@ def check_authority_envelope(
     scope = {item.lower() for item in envelope.scope}
     if not {item.lower() for item in required_scope}.issubset(scope):
         reasons.append("authority_scope_mismatch")
-    if _is_expired(envelope.expires_at, reference_time):
+    expiry = freshness_state(envelope.expires_at, reference_time=reference_time)
+    if expiry is FreshnessState.EXPIRED:
         reasons.append("authority_expired")
+    elif expiry is FreshnessState.INVALID:
+        reasons.append("authority_expiry_invalid")
     if envelope.fixture_only and not dry_run:
         reasons.append("fixture_only_authority_non_executable")
     if not envelope.authority_id:
@@ -378,8 +386,11 @@ def check_consent_channel(
         reasons.append("consent_scope_mismatch")
     if channel.action and channel.action != "receive":
         reasons.append("consent_action_mismatch")
-    if _is_expired(channel.expires_at, reference_time):
+    expiry = freshness_state(channel.expires_at, reference_time=reference_time)
+    if expiry is FreshnessState.EXPIRED:
         reasons.append("consent_expired")
+    elif expiry is FreshnessState.INVALID:
+        reasons.append("consent_expiry_invalid")
     if not channel.consent_id:
         reasons.append("missing_consent_channel")
     return channel.model_copy(
@@ -623,6 +634,12 @@ def check_non_market_liquidity(
         flux.amount * flux.conversion_factor - flux.loss_upper_bound - flux.transfer_residual,
     )
     effect = _effect_for_flux(flux, effect_witnesses or [])
+    observed_effect_available = bool(
+        effect is not None
+        and effect.observed_delta is not None
+        and effect.effect_evidence_level.lower() in {"observed", "verified"}
+        and effect.evidence_refs
+    )
     effect_delta = (
         effect.observed_delta
         if effect is not None and effect.observed_delta is not None
@@ -633,6 +650,8 @@ def check_non_market_liquidity(
     target_deficit_reduced = target_deficit_positive and effect_delta > 0.0
     if not target_deficit_reduced:
         reasons.append("target_deficit_not_reduced")
+    if policy.operationally_usable_requires_observed_effect and not observed_effect_available:
+        reasons.append("missing_observed_effect")
 
     price_not_primary = flux.liquidity_mode != "market_signal_only"
     if not price_not_primary:
@@ -706,7 +725,13 @@ def check_non_market_liquidity(
         missing_obligations=sorted(set(reasons)),
         accepted=accepted,
         finite_checks_passed=accepted,
-        operationally_usable=accepted and not policy.operationally_usable_requires_observed_effect,
+        operationally_usable=(
+            accepted
+            and (
+                not policy.operationally_usable_requires_observed_effect
+                or observed_effect_available
+            )
+        ),
         settled=False,
         status=status,
         reasons=sorted(set(reasons)),
@@ -778,37 +803,85 @@ def build_afst_flux_stabilization_report(
 
     policy = afst_profile_policy(profile)
     raw_audit = audit_afst_raw_input(data, policy)
-    reference_time = (
-        _parse_time(str(data.get("reference_time"))) if data.get("reference_time") else None
-    )
+    reference_time_value = data.get("reference_time")
+    reference_time = parse_utc_datetime(str(reference_time_value)) if reference_time_value else None
     residuals = [
         _residual(f"missing_{path}", True, object_id="raw-input")
         for path in raw_audit.missing_required_paths
     ]
     residuals.extend(_raw_record_missing_residuals(data))
+    if reference_time_value and reference_time is None:
+        residuals.append(_residual("invalid_reference_time", True, object_id="raw-input"))
 
     satisfaction_coordinates = _models(
         SatisfactionCoordinate,
         data.get("satisfaction_coordinates"),
+        residuals=residuals,
+        record_type="satisfaction_coordinate",
     )
     deficits = [compute_satisfaction_deficit(coord) for coord in satisfaction_coordinates]
     abundances = [
         compute_certified_abundance(item)
-        for item in _models(CertifiedAbundanceCoordinate, data.get("abundance_coordinates"))
+        for item in _models(
+            CertifiedAbundanceCoordinate,
+            data.get("abundance_coordinates"),
+            residuals=residuals,
+            record_type="certified_abundance_coordinate",
+        )
     ]
-    fluxes = _models(CandidateFlux, data.get("candidate_fluxes"))
-    authority_envelopes = _models(AuthorityEnvelope, data.get("authority_envelopes"))
-    consent_channels = _models(ConsentChannel, data.get("consent_channels"))
-    refusal_channels = _models(RefusalChannel, data.get("refusal_channels"))
-    balance_witnesses = _models(ResourceBalanceWitness, data.get("balance_witnesses"))
-    effect_witnesses = _models(SatisfactionEffectWitness, data.get("effect_witnesses"))
+    fluxes = _models(
+        CandidateFlux,
+        data.get("candidate_fluxes"),
+        residuals=residuals,
+        record_type="candidate_flux",
+    )
+    authority_envelopes = _models(
+        AuthorityEnvelope,
+        data.get("authority_envelopes"),
+        residuals=residuals,
+        record_type="authority_envelope",
+    )
+    consent_channels = _models(
+        ConsentChannel,
+        data.get("consent_channels"),
+        residuals=residuals,
+        record_type="consent_channel",
+    )
+    refusal_channels = _models(
+        RefusalChannel,
+        data.get("refusal_channels"),
+        residuals=residuals,
+        record_type="refusal_channel",
+    )
+    balance_witnesses = _models(
+        ResourceBalanceWitness,
+        data.get("balance_witnesses"),
+        residuals=residuals,
+        record_type="resource_balance_witness",
+    )
+    effect_witnesses = _models(
+        SatisfactionEffectWitness,
+        data.get("effect_witnesses"),
+        residuals=residuals,
+        record_type="satisfaction_effect_witness",
+    )
     buffers = [
         check_stabilization_buffer(item)
-        for item in _models(StabilizationBuffer, data.get("stabilization_buffers"))
+        for item in _models(
+            StabilizationBuffer,
+            data.get("stabilization_buffers"),
+            residuals=residuals,
+            record_type="stabilization_buffer",
+        )
     ]
     handovers = [
         check_bounded_friction_handover(item)
-        for item in _models(BoundedFrictionHandover, data.get("handover_protocols"))
+        for item in _models(
+            BoundedFrictionHandover,
+            data.get("handover_protocols"),
+            residuals=residuals,
+            record_type="bounded_friction_handover",
+        )
     ]
 
     residuals.extend(_model_reason_residuals(buffers, "buffer"))
@@ -884,7 +957,8 @@ def build_afst_flux_stabilization_report(
         accepted=accepted,
         finite_checks_passed=accepted,
         diagnostic_usable=bool(certificates) or bool(residuals),
-        operationally_usable=accepted and not policy.operationally_usable_requires_observed_effect,
+        operationally_usable=accepted
+        and all(certificate.operationally_usable for certificate in certificates),
         flux_admissible=accepted,
         operation_ready=False,
         provider_dispatch_ready=False,
@@ -901,8 +975,30 @@ def build_afst_flux_stabilization_report(
     )
 
 
-def _models(model: type[ModelT], value: Any) -> list[ModelT]:
-    return [model.model_validate(item) for item in _records(value)]
+def _models(
+    model: type[ModelT],
+    value: Any,
+    *,
+    residuals: list[dict[str, Any]] | None = None,
+    record_type: str | None = None,
+) -> list[ModelT]:
+    validated: list[ModelT] = []
+    for index, item in enumerate(_records(value)):
+        try:
+            validated.append(model.model_validate_json(json.dumps(item), strict=True))
+        except ValidationError as error:
+            if residuals is None:
+                raise
+            object_id = _record_object_id(
+                item,
+                ("record_id", "flux_id", "coordinate_id", "authority_id", "consent_id"),
+                f"{record_type or model.__name__}:{index}",
+            )
+            for detail in error.errors(include_url=False):
+                location = "_".join(str(part) for part in detail.get("loc", ())) or "record"
+                kind = f"invalid_{record_type or model.__name__.lower()}_{location}"
+                residuals.append(_residual(kind, True, object_id=object_id))
+    return validated
 
 
 def _records(value: Any) -> list[dict[str, Any]]:
@@ -1080,22 +1176,6 @@ def _ledger_from_residual_dicts(residuals: Sequence[Mapping[str, Any]], subject:
             description=str(residual.get("description") or kind),
         )
     return ledger
-
-
-def _parse_time(value: str) -> datetime | None:
-    try:
-        return datetime.fromisoformat(value.replace("Z", "+00:00"))
-    except ValueError:
-        return None
-
-
-def _is_expired(value: str | None, reference_time: datetime | None) -> bool:
-    if not value or reference_time is None:
-        return False
-    parsed = _parse_time(value)
-    if parsed is None:
-        return False
-    return parsed < reference_time
 
 
 def _scope_for_flux(flux: CandidateFlux) -> set[str]:

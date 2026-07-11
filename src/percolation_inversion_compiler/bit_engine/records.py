@@ -34,9 +34,25 @@ class ActivationGainEstimate(BaseModel):
     estimate_id: str
     lower_bound: float = 0.0
     upper_bound: float = 0.0
+    priority_heuristic: float = 0.0
+    coordinate_reported: bool = False
+    certified_activation_gain: float = 0.0
     unit: str = "protocol-relative-phase-proxy"
     assumptions: list[str] = Field(default_factory=list)
     settled: bool = False
+
+
+class InterventionWitness(BaseModel):
+    """Finite witness required before BIT reports a positive activation coordinate."""
+
+    intervention_law_ref: str = ""
+    resource_matched_baseline_ref: str = ""
+    unit: str = ""
+    stopping_rule_ref: str = ""
+    resource_ledger_ref: str = ""
+    evidence_refs: list[str] = Field(default_factory=list)
+    verifier_refs: list[str] = Field(default_factory=list)
+    accepted: bool = False
 
 
 class PostInversionAuditPlan(BaseModel):
@@ -82,6 +98,7 @@ class BottleneckInversionCandidate(BaseModel):
     bottleneck_class: str
     minimal_enabling_conditions: list[MinimalEnablingCondition] = Field(default_factory=list)
     expected_activation_gain: ActivationGainEstimate
+    intervention_witness: InterventionWitness | None = None
     verification_cost: float = 1.0
     rollback_or_deactivation_plan: RollbackOrDeactivationPlan
     post_inversion_audit_plan: PostInversionAuditPlan
@@ -100,6 +117,8 @@ class InversionCertificate(BaseModel):
     candidate_id: str
     certificate_status: str = "abstain"
     finite_requirements_passed: bool = False
+    coordinate_reported: bool = False
+    certified_activation_gain: float = 0.0
     residual_preserved: bool = True
     grants_execution_authority: bool = False
     protocol_relative_only: bool = True

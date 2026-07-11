@@ -1,5 +1,12 @@
 # CLI Reference
 
+## Explicit Operations
+
+`pic operation adapter-check|plan|approve|preflight|dispatch|verify|reconcile`
+is the only PIC command group that can call a real provider. Every earlier
+command remains non-executing. Read [Operation security](operation-security.md)
+before using `dispatch`.
+
 This page holds the full command inventory so the README can stay short. Commands emit deterministic JSON unless a command is explicitly starting a service.
 
 ## Installation
@@ -317,8 +324,8 @@ uv run pic runtime execute-task --state examples/runtime_state.json --task examp
 uv run pic runtime execute-routes --requests examples/runtime_route_requests.json --evidence-store evidence-store --profile development
 uv run pic runtime run-agent-loop --state examples/runtime_state.json --inputs examples/runtime_loop_inputs.jsonl --store runtime-loop.sqlite --policy examples/runtime_executor_policy.json --profile production
 uv run pic runtime apply-results --state examples/runtime_state.json --report runtime-step.json --results examples/runtime_action_results.json --output runtime-next-state.json
-uv run pic runtime compare --baseline examples/runtime_baseline_run.json --candidate examples/runtime_candidate_run.json --threshold examples/runtime_threshold.json
-uv run pic runtime certify-acceleration --baseline examples/runtime_baseline_run.json --candidate examples/runtime_candidate_run.json
+uv run pic runtime compare --baseline examples/runtime_acceleration/baseline.json --candidate examples/runtime_acceleration/candidate.json
+uv run pic runtime certify-acceleration --baseline examples/runtime_acceleration/baseline.json --candidate examples/runtime_acceleration/candidate.json
 uv run pic runtime population-step --population examples/agent_population.json --inputs examples/runtime_loop_inputs.jsonl --profile production
 uv run pic runtime collective-certify --population examples/agent_population.json --state examples/collective_runtime_state.json --basin examples/ecpt_basin_contract.json --baseline examples/runtime_baseline_run.json --threshold examples/runtime_threshold.json
 uv run pic runtime collective-certify --profile production --population examples/agent_population_signed.json --state examples/collective_runtime_state.json --basin examples/ecpt_basin_contract.json --baseline examples/runtime_baseline_run.json --threshold examples/runtime_threshold.json

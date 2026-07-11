@@ -1,0 +1,79 @@
+{
+  "description": "Measured SQOT cost for one queue item within a validity domain.",
+  "properties": {
+    "age_cost": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Age Cost"
+    },
+    "attention_cost": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Attention Cost"
+    },
+    "evidence_refs": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Evidence Refs",
+      "type": "array"
+    },
+    "hazard_cost": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Hazard Cost"
+    },
+    "packet_id": {
+      "title": "Packet Id",
+      "type": "string"
+    },
+    "unit": {
+      "default": "attention-unit",
+      "title": "Unit",
+      "type": "string"
+    },
+    "validity_domain": {
+      "default": "",
+      "title": "Validity Domain",
+      "type": "string"
+    },
+    "verification_cost": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Verification Cost"
+    }
+  },
+  "required": [
+    "packet_id"
+  ],
+  "title": "QueueItemCost",
+  "type": "object"
+}

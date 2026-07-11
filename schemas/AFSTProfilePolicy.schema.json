@@ -1,0 +1,67 @@
+{
+  "description": "Explicit AFST profile policy for evidence and blocker handling.",
+  "properties": {
+    "allow_auxiliary_price_signal": {
+      "default": true,
+      "title": "Allow Auxiliary Price Signal",
+      "type": "boolean"
+    },
+    "allow_speculative_effect_prediction": {
+      "default": true,
+      "title": "Allow Speculative Effect Prediction",
+      "type": "boolean"
+    },
+    "hard_refusal_blocks": {
+      "default": true,
+      "title": "Hard Refusal Blocks",
+      "type": "boolean"
+    },
+    "operationally_usable_requires_observed_effect": {
+      "default": false,
+      "title": "Operationally Usable Requires Observed Effect",
+      "type": "boolean"
+    },
+    "profile": {
+      "default": "development",
+      "title": "Profile",
+      "type": "string"
+    },
+    "require_authority": {
+      "default": true,
+      "title": "Require Authority",
+      "type": "boolean"
+    },
+    "require_balance_witness": {
+      "default": true,
+      "title": "Require Balance Witness",
+      "type": "boolean"
+    },
+    "require_buffer": {
+      "default": true,
+      "title": "Require Buffer",
+      "type": "boolean"
+    },
+    "require_consent_channel": {
+      "default": false,
+      "title": "Require Consent Channel",
+      "type": "boolean"
+    },
+    "require_handover_for_controller_change": {
+      "default": true,
+      "title": "Require Handover For Controller Change",
+      "type": "boolean"
+    },
+    "require_lifecycle_freshness": {
+      "default": true,
+      "title": "Require Lifecycle Freshness",
+      "type": "boolean"
+    },
+    "require_refusal_channel": {
+      "default": true,
+      "title": "Require Refusal Channel",
+      "type": "boolean"
+    }
+  },
+  "title": "AFSTProfilePolicy",
+  "type": "object"
+}

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from enum import StrEnum
 from typing import Any
 
 from pydantic import BaseModel, Field
@@ -283,6 +284,22 @@ class BasinReachabilityProxy(BaseModel):
     reachability_proxy: float = 0.0
 
 
+class MetricKnowledgeState(StrEnum):
+    KNOWN = "known"
+    UNKNOWN = "unknown"
+    NOT_APPLICABLE = "not_applicable"
+
+
+class PhaseMetricObservation(BaseModel):
+    """Evidence-bearing metric coordinate used by phase threshold checks."""
+
+    state: MetricKnowledgeState = MetricKnowledgeState.UNKNOWN
+    value: float | None = None
+    unit: str = "dimensionless"
+    validity_domain: str = "protocol-relative-finite"
+    evidence_refs: list[str] = Field(default_factory=list)
+
+
 class PhaseWindowObservation(BaseModel):
     """Windowed observation over Phase Lab events and an effective graph."""
 
@@ -315,6 +332,7 @@ class PhaseWindowObservation(BaseModel):
     bottleneck_count_by_type: dict[str, int] = Field(default_factory=dict)
     threshold_distance: float = 0.0
     components: list[PhaseComponentObservation] = Field(default_factory=list)
+    metric_observations: dict[str, PhaseMetricObservation] = Field(default_factory=dict)
     protocol_relative_only: bool = True
     proves_real_asi: bool = False
     proves_physical_or_oracle_truth: bool = False

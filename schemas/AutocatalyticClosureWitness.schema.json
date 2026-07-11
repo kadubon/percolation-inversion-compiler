@@ -1,0 +1,70 @@
+{
+  "description": "Evidence-supported diagnostic closure witness over effective packet edges.",
+  "properties": {
+    "accepted": {
+      "default": false,
+      "title": "Accepted",
+      "type": "boolean"
+    },
+    "edge_ids": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Edge Ids",
+      "type": "array"
+    },
+    "evidence_supported": {
+      "default": false,
+      "title": "Evidence Supported",
+      "type": "boolean"
+    },
+    "execution_available": {
+      "default": false,
+      "title": "Execution Available",
+      "type": "boolean"
+    },
+    "packet_ids": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Packet Ids",
+      "type": "array"
+    },
+    "productive": {
+      "default": false,
+      "title": "Productive",
+      "type": "boolean"
+    },
+    "protocol_relative_only": {
+      "default": true,
+      "title": "Protocol Relative Only",
+      "type": "boolean"
+    },
+    "reasons": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Reasons",
+      "type": "array"
+    },
+    "settled": {
+      "default": false,
+      "title": "Settled",
+      "type": "boolean"
+    },
+    "witness_id": {
+      "title": "Witness Id",
+      "type": "string"
+    },
+    "witness_kind": {
+      "default": "autocatalytic-closure",
+      "title": "Witness Kind",
+      "type": "string"
+    }
+  },
+  "required": [
+    "witness_id"
+  ],
+  "title": "AutocatalyticClosureWitness",
+  "type": "object"
+}

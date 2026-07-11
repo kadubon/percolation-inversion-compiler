@@ -31,6 +31,8 @@ from percolation_inversion_compiler.runtime.algorithms import (
 from percolation_inversion_compiler.runtime.records import (
     AccelerationCertificate,
     AccelerationExperimentSuite,
+    AccelerationMeasurementMetrics,
+    AccelerationMetricComparison,
     ActionCommit,
     ActionCommitPolicy,
     AgentPolicyIdentity,
@@ -73,6 +75,8 @@ from percolation_inversion_compiler.runtime.store import SQLiteRuntimeStore
 __all__ = [
     "AccelerationCertificate",
     "AccelerationExperimentSuite",
+    "AccelerationMeasurementMetrics",
+    "AccelerationMetricComparison",
     "ActionCommit",
     "ActionCommitPolicy",
     "AgentPolicyIdentity",

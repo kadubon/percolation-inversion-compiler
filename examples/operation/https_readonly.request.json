@@ -1,0 +1,14 @@
+{
+  "arguments": [],
+  "expires_at": "2030-01-01T00:00:00Z",
+  "idempotency_key": "example-readonly-001",
+  "nonce": "example-readonly-nonce-001",
+  "path_parameters": {},
+  "plan_id": "operation-plan:readonly-example",
+  "resource_limits": {
+    "timeout_ms": 5000
+  },
+  "scope": [
+    "https:read"
+  ]
+}

@@ -1,0 +1,235 @@
+{
+  "$defs": {
+    "CoordinateKind": {
+      "enum": [
+        "benefit",
+        "burden",
+        "residual",
+        "tolerance",
+        "resource",
+        "metadata"
+      ],
+      "title": "CoordinateKind",
+      "type": "string"
+    },
+    "EvidenceStatus": {
+      "enum": [
+        "verified",
+        "declared",
+        "unknown"
+      ],
+      "title": "EvidenceStatus",
+      "type": "string"
+    },
+    "Ledger": {
+      "description": "A finite typed ledger with explicit coordinate kinds.",
+      "properties": {
+        "coordinates": {
+          "additionalProperties": {
+            "$ref": "#/$defs/LedgerCoordinate"
+          },
+          "title": "Coordinates",
+          "type": "object"
+        }
+      },
+      "title": "Ledger",
+      "type": "object"
+    },
+    "LedgerCoordinate": {
+      "description": "One typed coordinate in a finite certificate ledger.",
+      "properties": {
+        "description": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Description"
+        },
+        "evidence_refs": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Evidence Refs",
+          "type": "array"
+        },
+        "evidence_status": {
+          "$ref": "#/$defs/EvidenceStatus",
+          "default": "declared"
+        },
+        "kind": {
+          "$ref": "#/$defs/CoordinateKind",
+          "default": "burden"
+        },
+        "known": {
+          "default": true,
+          "title": "Known",
+          "type": "boolean"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "unit": {
+          "default": "dimensionless",
+          "title": "Unit",
+          "type": "string"
+        },
+        "value": {
+          "title": "Value",
+          "type": "number"
+        }
+      },
+      "required": [
+        "name",
+        "value"
+      ],
+      "title": "LedgerCoordinate",
+      "type": "object"
+    }
+  },
+  "description": "Local certified surplus after floors, reserves, holds, and residuals.",
+  "properties": {
+    "abundance_id": {
+      "default": "",
+      "title": "Abundance Id",
+      "type": "string"
+    },
+    "accepted": {
+      "default": false,
+      "title": "Accepted",
+      "type": "boolean"
+    },
+    "authority_refs": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Authority Refs",
+      "type": "array"
+    },
+    "available_amount": {
+      "default": 0.0,
+      "title": "Available Amount",
+      "type": "number"
+    },
+    "cell_id": {
+      "default": "",
+      "title": "Cell Id",
+      "type": "string"
+    },
+    "certified_amount": {
+      "default": 0.0,
+      "title": "Certified Amount",
+      "type": "number"
+    },
+    "evidence_refs": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Evidence Refs",
+      "type": "array"
+    },
+    "expires_at": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Expires At"
+    },
+    "legal_hold_amount": {
+      "default": 0.0,
+      "title": "Legal Hold Amount",
+      "type": "number"
+    },
+    "lifecycle_residual": {
+      "default": 0.0,
+      "title": "Lifecycle Residual",
+      "type": "number"
+    },
+    "observation_residual": {
+      "default": 0.0,
+      "title": "Observation Residual",
+      "type": "number"
+    },
+    "observation_window_ref": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Observation Window Ref"
+    },
+    "other_hard_residual": {
+      "default": 0.0,
+      "title": "Other Hard Residual",
+      "type": "number"
+    },
+    "reasons": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Reasons",
+      "type": "array"
+    },
+    "reserve_amount": {
+      "default": 0.0,
+      "title": "Reserve Amount",
+      "type": "number"
+    },
+    "residual_ledger": {
+      "$ref": "#/$defs/Ledger"
+    },
+    "resource_type": {
+      "default": "",
+      "title": "Resource Type",
+      "type": "string"
+    },
+    "safe_floor": {
+      "default": 0.0,
+      "title": "Safe Floor",
+      "type": "number"
+    },
+    "spoilage_upper_bound": {
+      "default": 0.0,
+      "title": "Spoilage Upper Bound",
+      "type": "number"
+    },
+    "transfer_loss_upper_bound": {
+      "default": 0.0,
+      "title": "Transfer Loss Upper Bound",
+      "type": "number"
+    },
+    "unit": {
+      "default": "dimensionless",
+      "title": "Unit",
+      "type": "string"
+    },
+    "unit_family": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Unit Family"
+    }
+  },
+  "title": "CertifiedAbundanceCoordinate",
+  "type": "object"
+}

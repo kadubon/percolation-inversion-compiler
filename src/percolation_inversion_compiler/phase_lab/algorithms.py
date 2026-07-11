@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 from collections import Counter
+from math import isfinite
 from pathlib import Path
 from typing import Any, cast
 
@@ -34,11 +35,13 @@ from percolation_inversion_compiler.phase_lab.records import (
     ExecutionPathDefect,
     ExecutionPathWitness,
     FalseLiquidityLoad,
+    MetricKnowledgeState,
     PacketContributionStatus,
     PhaseCertificateDefect,
     PhaseComponentObservation,
     PhaseLabEvent,
     PhaseLabWindowIndex,
+    PhaseMetricObservation,
     PhaseThresholdStatus,
     PhaseWindow,
     PhaseWindowComparison,
@@ -301,6 +304,25 @@ def observe_phase_window(
             diagnostic_only=True,
         ),
     ]
+    metric_values = {
+        "maximum_false_liquidity_load": false_liquidity_candidates / total,
+        "maximum_residual_debt": residual_debt,
+        "maximum_salience_obstruction": obstruction_count / max(1, len(graph.nodes)),
+        "minimum_accepted_packet_count": float(accepted_count),
+        "minimum_alt_to_ecpt_lift_count": float(false_liquidity_certified),
+        "minimum_closure_witness_count": float(closure_count),
+        "minimum_effective_edge_count": float(effective_edges),
+        "minimum_execution_available_path_density": execution_count / max(1, effective_nodes),
+        "minimum_verification_throughput": accepted_count / total,
+    }
+    metric_observations = {
+        key: PhaseMetricObservation(
+            state=MetricKnowledgeState.KNOWN,
+            value=float(value),
+            evidence_refs=[graph.graph_id, window.window_id],
+        )
+        for key, value in sorted(metric_values.items())
+    }
     return PhaseWindowObservation(
         window=PhaseWindow(
             window_id=window.window_id,
@@ -361,6 +383,7 @@ def observe_phase_window(
             + max(0, 1 - execution_count)
         ),
         components=components,
+        metric_observations=metric_observations,
         accepted=bool(events),
         workflow_usable=True,
         operationally_usable=effective_nodes > 0,
@@ -641,6 +664,24 @@ def build_threshold_status(
             observation.alt_certified_capital_count >= threshold.minimum_alt_to_ecpt_lift_count
         ),
     }
+    legacy_fields = {
+        "maximum_false_liquidity_load": "false_liquidity_load",
+        "maximum_residual_debt": "residual_debt",
+        "maximum_salience_obstruction": "salience_obstruction_load",
+        "minimum_accepted_packet_count": "accepted_packet_count",
+        "minimum_alt_to_ecpt_lift_count": "alt_certified_capital_count",
+        "minimum_closure_witness_count": "closure_witness_count",
+        "minimum_effective_edge_count": "effective_edge_count",
+        "minimum_execution_available_path_density": "basin_reachability_proxy",
+        "minimum_verification_throughput": "verification_throughput",
+    }
+    unknown = sorted(
+        component
+        for component, legacy_field in legacy_fields.items()
+        if not _phase_metric_known(observation, component, legacy_field)
+    )
+    for component in unknown:
+        component_status[component] = False
     failed = sorted(key for key, value in component_status.items() if not value)
     status = "candidate" if not failed else "abstain"
     distance = _threshold_distance(observation, threshold, component_status)
@@ -651,7 +692,12 @@ def build_threshold_status(
         component_status=component_status,
         failed_components=failed,
         abstention_reasons=[
-            f"missing finite threshold component: {component}" for component in failed
+            (
+                f"unknown finite threshold component: {component}"
+                if component in unknown
+                else f"threshold component failed: {component}"
+            )
+            for component in failed
         ],
         threshold_distance=distance,
         accepted=status == "candidate",
@@ -661,6 +707,21 @@ def build_threshold_status(
             "threshold status does not prove real ASI",
         ],
     )
+
+
+def _phase_metric_known(
+    observation: PhaseWindowObservation,
+    component: str,
+    legacy_field: str,
+) -> bool:
+    metric = observation.metric_observations.get(component)
+    if metric is not None:
+        return (
+            metric.state == MetricKnowledgeState.KNOWN
+            and metric.value is not None
+            and isfinite(metric.value)
+        )
+    return legacy_field in observation.model_fields_set
 
 
 def build_phase_threshold_status(

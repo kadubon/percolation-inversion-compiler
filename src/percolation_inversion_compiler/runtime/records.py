@@ -167,6 +167,7 @@ class ResourceMatchedBaselineConfig(BaseModel):
     validity_domain: str = "protocol-relative-finite"
     resource_envelope: ResourceEnvelope = Field(default_factory=ResourceEnvelope)
     tolerance: float = 0.0
+    metric_tolerances: dict[str, float] = Field(default_factory=dict)
 
 
 class RuntimeEvent(BaseModel):
@@ -211,6 +212,8 @@ class RuntimeActionResult(BaseModel):
     task_id: str
     action_id: str | None = None
     executed: bool = False
+    execution_status: str = "not_dispatched"
+    admission_accepted: bool = False
     output_ref: str | None = None
     output_sha256: str | None = None
     output_packets: list[CapabilityPacketCandidate] = Field(default_factory=list)
@@ -486,6 +489,36 @@ class BottleneckWitnessReport(BaseModel):
     reasons: list[str] = Field(default_factory=list)
 
 
+class AccelerationMeasurementMetrics(BaseModel):
+    """Predeclared resource-matched measurements for an acceleration claim."""
+
+    time_to_verified: float | None = None
+    verification_yield: float | None = None
+    residual_half_life: float | None = None
+    receiver_reuse: float | None = None
+    certified_capital_gain: float | None = None
+    resource_cost: float | None = None
+    error_correlation: float | None = None
+    fixed_horizon: bool = False
+    stopping_rule_ref: str = ""
+    evidence_refs: list[str] = Field(default_factory=list)
+    accepted: bool = False
+
+
+class AccelerationMetricComparison(BaseModel):
+    """Direction-aware comparison of one predeclared acceleration metric."""
+
+    metric_name: str
+    direction: str
+    baseline_value: float | None = None
+    candidate_value: float | None = None
+    signed_improvement: float = 0.0
+    tolerance: float = 0.0
+    finite: bool = False
+    improved: bool = False
+    non_regressed: bool = False
+
+
 class RuntimeRunReport(BaseModel):
     """Multi-step runtime trajectory used for finite acceleration comparison."""
 
@@ -499,6 +532,9 @@ class RuntimeRunReport(BaseModel):
     resource_units: float = 0.0
     resource_envelope: ResourceEnvelope = Field(default_factory=ResourceEnvelope)
     baseline_config: ResourceMatchedBaselineConfig | None = None
+    acceleration_metrics: AccelerationMeasurementMetrics = Field(
+        default_factory=lambda: AccelerationMeasurementMetrics()
+    )
     accepted: bool = False
     finite_checks_passed: bool = False
     operationally_usable: bool = False
@@ -522,6 +558,12 @@ class AccelerationCertificate(BaseModel):
     false_liquidity_bounded: bool = False
     verification_backlog_bounded: bool = False
     resource_envelope_matched: bool = False
+    acceleration_metrics: AccelerationMeasurementMetrics = Field(
+        default_factory=lambda: AccelerationMeasurementMetrics()
+    )
+    metric_comparisons: list[AccelerationMetricComparison] = Field(default_factory=list)
+    acceleration_metrics_certified: bool = False
+    acceleration_metric_reasons: list[str] = Field(default_factory=list)
     residual_external_obligations: list[str] = Field(default_factory=list)
     residual_ledger: Ledger = Field(default_factory=Ledger)
     accepted: bool = False
@@ -595,6 +637,8 @@ class RuntimeExecutionReport(BaseModel):
     task_id: str
     task_type: str
     accepted: bool = False
+    execution_status: str = "not_dispatched"
+    admission_accepted: bool = False
     finite_checks_passed: bool = False
     operationally_usable: bool = False
     settled: bool = False

@@ -5,6 +5,19 @@ from __future__ import annotations
 from pydantic import BaseModel, Field
 
 
+class QueueItemCost(BaseModel):
+    """Measured SQOT cost for one queue item within a validity domain."""
+
+    packet_id: str
+    attention_cost: float | None = None
+    verification_cost: float | None = None
+    age_cost: float | None = None
+    hazard_cost: float | None = None
+    unit: str = "attention-unit"
+    validity_domain: str = ""
+    evidence_refs: list[str] = Field(default_factory=list)
+
+
 class AttentionBudgetLedger(BaseModel):
     ledger_id: str = "sqot-attention-budget"
     attention_budget: float = 1.0
@@ -12,6 +25,9 @@ class AttentionBudgetLedger(BaseModel):
     diagnostic_reserve_required: float = 0.1
     diagnostic_reserve_available: float = 0.0
     reserve_preserved: bool = False
+    measurement_state: str = "unknown"
+    unit: str = "attention-unit"
+    unknown_item_ids: list[str] = Field(default_factory=list)
     settled: bool = False
 
 
@@ -36,6 +52,7 @@ class QueueOccupationReport(BaseModel):
     repeated_candidate_only_packets: list[str] = Field(default_factory=list)
     blocked_high_value_packets: list[str] = Field(default_factory=list)
     rollback_unavailable_decisions: list[str] = Field(default_factory=list)
+    queue_costs: list[QueueItemCost] = Field(default_factory=list)
     accepted: bool = False
     workflow_usable: bool = True
     settled: bool = False

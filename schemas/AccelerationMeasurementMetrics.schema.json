@@ -1,0 +1,113 @@
+{
+  "description": "Predeclared resource-matched measurements for an acceleration claim.",
+  "properties": {
+    "accepted": {
+      "default": false,
+      "title": "Accepted",
+      "type": "boolean"
+    },
+    "certified_capital_gain": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Certified Capital Gain"
+    },
+    "error_correlation": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Error Correlation"
+    },
+    "evidence_refs": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Evidence Refs",
+      "type": "array"
+    },
+    "fixed_horizon": {
+      "default": false,
+      "title": "Fixed Horizon",
+      "type": "boolean"
+    },
+    "receiver_reuse": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Receiver Reuse"
+    },
+    "residual_half_life": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Residual Half Life"
+    },
+    "resource_cost": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Resource Cost"
+    },
+    "stopping_rule_ref": {
+      "default": "",
+      "title": "Stopping Rule Ref",
+      "type": "string"
+    },
+    "time_to_verified": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Time To Verified"
+    },
+    "verification_yield": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Verification Yield"
+    }
+  },
+  "title": "AccelerationMeasurementMetrics",
+  "type": "object"
+}

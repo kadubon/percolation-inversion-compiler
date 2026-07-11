@@ -36,7 +36,7 @@ jobs:
         run: uv sync --all-extras --dev --python 3.11
 
       - name: pip-audit
-        run: uv run pip-audit
+        run: uv run pip-audit --skip-editable
 
       - name: Bandit
         run: uv run bandit -r src -c pyproject.toml

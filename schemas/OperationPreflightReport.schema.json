@@ -1,0 +1,128 @@
+{
+  "$defs": {
+    "OperationRiskClass": {
+      "enum": [
+        "read_only",
+        "reversible_write",
+        "irreversible_or_physical"
+      ],
+      "title": "OperationRiskClass",
+      "type": "string"
+    }
+  },
+  "properties": {
+    "accepted": {
+      "default": false,
+      "title": "Accepted",
+      "type": "boolean"
+    },
+    "accepted_approval_ids": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Accepted Approval Ids",
+      "type": "array"
+    },
+    "accepted_key_ids": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Accepted Key Ids",
+      "type": "array"
+    },
+    "accepted_signer_ids": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Accepted Signer Ids",
+      "type": "array"
+    },
+    "adapter_valid": {
+      "default": false,
+      "title": "Adapter Valid",
+      "type": "boolean"
+    },
+    "approvals_valid": {
+      "default": false,
+      "title": "Approvals Valid",
+      "type": "boolean"
+    },
+    "blockers": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Blockers",
+      "type": "array"
+    },
+    "dispatch_ready": {
+      "default": false,
+      "title": "Dispatch Ready",
+      "type": "boolean"
+    },
+    "effective_risk_class": {
+      "$ref": "#/$defs/OperationRiskClass"
+    },
+    "non_claims": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Non Claims",
+      "type": "array"
+    },
+    "operation_ready": {
+      "default": false,
+      "title": "Operation Ready",
+      "type": "boolean"
+    },
+    "physical_dispatch_ready": {
+      "default": false,
+      "title": "Physical Dispatch Ready",
+      "type": "boolean"
+    },
+    "plan_digest": {
+      "title": "Plan Digest",
+      "type": "string"
+    },
+    "plan_id": {
+      "title": "Plan Id",
+      "type": "string"
+    },
+    "plan_valid": {
+      "default": false,
+      "title": "Plan Valid",
+      "type": "boolean"
+    },
+    "provider_dispatch_ready": {
+      "default": false,
+      "title": "Provider Dispatch Ready",
+      "type": "boolean"
+    },
+    "report_id": {
+      "title": "Report Id",
+      "type": "string"
+    },
+    "required_approval_count": {
+      "default": 0,
+      "title": "Required Approval Count",
+      "type": "integer"
+    },
+    "secrets_available": {
+      "default": false,
+      "title": "Secrets Available",
+      "type": "boolean"
+    },
+    "settled": {
+      "default": false,
+      "title": "Settled",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "report_id",
+    "plan_id",
+    "plan_digest",
+    "effective_risk_class"
+  ],
+  "title": "OperationPreflightReport",
+  "type": "object"
+}

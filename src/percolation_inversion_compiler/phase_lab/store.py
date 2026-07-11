@@ -4,10 +4,9 @@ from __future__ import annotations
 
 import json
 import sqlite3
+from contextlib import closing
 from pathlib import Path
 from typing import Any
-
-import yaml
 
 from percolation_inversion_compiler.phase_lab.algorithms import (
     build_effective_packet_graph,
@@ -36,8 +35,9 @@ class PhaseLabStore:
 
     def init(self) -> PhaseLabStoreManifest:
         self.store_dir.mkdir(parents=True, exist_ok=True)
-        with self._connect() as connection:
+        with closing(self._connect()) as connection:
             self._create_schema(connection)
+            connection.commit()
         manifest = self.manifest()
         self._write_manifest(manifest)
         return manifest
@@ -50,8 +50,9 @@ class PhaseLabStore:
                 accepted=False,
                 reasons=["phase lab store has not been initialized"],
             )
-        with self._connect() as connection:
+        with closing(self._connect()) as connection:
             self._create_schema(connection)
+            connection.commit()
             event_count = int(connection.execute("select count(*) from events").fetchone()[0])
             windows = self.list_windows()
         latest = windows[-1].window_id if windows else None
@@ -79,7 +80,8 @@ class PhaseLabStore:
                 continue
             valid_payloads.append((payload, source_path, source_kind))
 
-        with self._connect() as connection:
+        with closing(self._connect()) as connection:
+            connection.execute("BEGIN IMMEDIATE")
             self._create_schema(connection)
             sequence = self._next_window_sequence(connection)
             event_offset = self._next_event_sequence(connection)
@@ -123,8 +125,9 @@ class PhaseLabStore:
     def list_windows(self) -> list[PhaseLabWindowIndex]:
         if not self.db_path.exists():
             return []
-        with self._connect() as connection:
+        with closing(self._connect()) as connection:
             self._create_schema(connection)
+            connection.commit()
             rows = connection.execute(
                 "select window_json from windows order by sequence"
             ).fetchall()
@@ -138,7 +141,7 @@ class PhaseLabStore:
         if not windows:
             raise ValueError("phase lab store has no windows")
         selected = self._select_window(windows, window)
-        with self._connect() as connection:
+        with closing(self._connect()) as connection:
             rows = connection.execute(
                 "select event_json from events where window_id = ? order by sequence",
                 (selected.window_id,),
@@ -149,8 +152,9 @@ class PhaseLabStore:
     def load_all_events(self) -> list[PhaseLabEvent]:
         if not self.db_path.exists():
             return []
-        with self._connect() as connection:
+        with closing(self._connect()) as connection:
             self._create_schema(connection)
+            connection.commit()
             rows = connection.execute("select event_json from events order by sequence").fetchall()
         return [PhaseLabEvent.model_validate(json.loads(row[0])) for row in rows]
 
@@ -354,8 +358,8 @@ def export_phase_lab_store(store_dir: str | Path, output_dir: str | Path) -> Pha
 
 
 def _load_local_data(path: Path) -> dict[str, Any]:
-    text = path.read_text(encoding="utf-8")
-    data = yaml.safe_load(text) if path.suffix.lower() in {".yaml", ".yml"} else json.loads(text)
-    if not isinstance(data, dict):
-        raise ValueError("phase lab input top-level value must be an object")
-    return data
+    # Import lazily to avoid loading the full public schema registry during
+    # phase-lab record initialization.
+    from percolation_inversion_compiler.io.schema import load_data
+
+    return load_data(path)
