@@ -1,0 +1,51 @@
+{
+  "description": "Finite witness required before BIT reports a positive activation coordinate.",
+  "properties": {
+    "accepted": {
+      "default": false,
+      "title": "Accepted",
+      "type": "boolean"
+    },
+    "evidence_refs": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Evidence Refs",
+      "type": "array"
+    },
+    "intervention_law_ref": {
+      "default": "",
+      "title": "Intervention Law Ref",
+      "type": "string"
+    },
+    "resource_ledger_ref": {
+      "default": "",
+      "title": "Resource Ledger Ref",
+      "type": "string"
+    },
+    "resource_matched_baseline_ref": {
+      "default": "",
+      "title": "Resource Matched Baseline Ref",
+      "type": "string"
+    },
+    "stopping_rule_ref": {
+      "default": "",
+      "title": "Stopping Rule Ref",
+      "type": "string"
+    },
+    "unit": {
+      "default": "",
+      "title": "Unit",
+      "type": "string"
+    },
+    "verifier_refs": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Verifier Refs",
+      "type": "array"
+    }
+  },
+  "title": "InterventionWitness",
+  "type": "object"
+}

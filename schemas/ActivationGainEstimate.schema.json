@@ -1,0 +1,56 @@
+{
+  "description": "Protocol-relative estimate of phase proxy activation after an inversion.",
+  "properties": {
+    "assumptions": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Assumptions",
+      "type": "array"
+    },
+    "certified_activation_gain": {
+      "default": 0.0,
+      "title": "Certified Activation Gain",
+      "type": "number"
+    },
+    "coordinate_reported": {
+      "default": false,
+      "title": "Coordinate Reported",
+      "type": "boolean"
+    },
+    "estimate_id": {
+      "title": "Estimate Id",
+      "type": "string"
+    },
+    "lower_bound": {
+      "default": 0.0,
+      "title": "Lower Bound",
+      "type": "number"
+    },
+    "priority_heuristic": {
+      "default": 0.0,
+      "title": "Priority Heuristic",
+      "type": "number"
+    },
+    "settled": {
+      "default": false,
+      "title": "Settled",
+      "type": "boolean"
+    },
+    "unit": {
+      "default": "protocol-relative-phase-proxy",
+      "title": "Unit",
+      "type": "string"
+    },
+    "upper_bound": {
+      "default": 0.0,
+      "title": "Upper Bound",
+      "type": "number"
+    }
+  },
+  "required": [
+    "estimate_id"
+  ],
+  "title": "ActivationGainEstimate",
+  "type": "object"
+}

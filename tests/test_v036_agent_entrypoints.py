@@ -5,6 +5,7 @@ from pathlib import Path
 
 from typer.testing import CliRunner
 
+from percolation_inversion_compiler import __version__
 from percolation_inversion_compiler.agent import (
     AgentCheckReport,
     AgentIntakeReport,
@@ -36,7 +37,7 @@ def test_agents_md_exists_and_states_safety_contract() -> None:
 def test_agent_manifest_json_is_machine_readable() -> None:
     data = json.loads((ROOT / "agent-manifest.json").read_text(encoding="utf-8"))
     assert data["name"] == "percolation-inversion-compiler"
-    assert data["version"] == "1.0.0"
+    assert data["version"] == __version__
     assert "non_goals" in data
     assert "safe_cli_entrypoints" in data
     assert "important_schemas" in data

@@ -8,6 +8,7 @@ from pathlib import Path
 import yaml
 from typer.testing import CliRunner
 
+from percolation_inversion_compiler import __version__
 from percolation_inversion_compiler.cli import app
 from percolation_inversion_compiler.io.schema import schema_by_type
 
@@ -23,10 +24,13 @@ def test_v060_version_metadata_is_consistent() -> None:
     )
     changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
 
-    assert pyproject["project"]["version"] == "1.0.0"
-    assert citation["version"] == "1.0.0"
-    assert re.search(r"^__version__\s*=\s*[\"']1\.0\.0[\"']", init_text, re.MULTILINE)
-    assert re.search(r"^## v1\.0\.0 - 2026-07-07$", changelog, re.MULTILINE)
+    version = str(pyproject["project"]["version"])
+    assert version == __version__
+    assert citation["version"] == version
+    assert re.search(rf"^__version__\s*=\s*[\"']{re.escape(version)}[\"']", init_text, re.MULTILINE)
+    assert re.search(
+        rf"^## v{re.escape(version)} - \d{{4}}-\d{{2}}-\d{{2}}$", changelog, re.MULTILINE
+    )
 
 
 def test_readme_keeps_core_commands_before_optional_sidecars() -> None:

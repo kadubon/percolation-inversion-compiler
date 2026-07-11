@@ -1,0 +1,45 @@
+{
+  "description": "Raw input presence audit used before defaults can hide missing fields.",
+  "properties": {
+    "accepted": {
+      "default": false,
+      "title": "Accepted",
+      "type": "boolean"
+    },
+    "audit_id": {
+      "default": "afst-raw-input-audit",
+      "title": "Audit Id",
+      "type": "string"
+    },
+    "missing_required_paths": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Missing Required Paths",
+      "type": "array"
+    },
+    "reasons": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Reasons",
+      "type": "array"
+    },
+    "supplied_paths": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Supplied Paths",
+      "type": "array"
+    },
+    "unknown_paths": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Unknown Paths",
+      "type": "array"
+    }
+  },
+  "title": "RawInputAudit",
+  "type": "object"
+}

@@ -1,0 +1,241 @@
+{
+  "$defs": {
+    "ClaimStatus": {
+      "description": "Protocol-relative status labels used by ECPT, BIT, TRC, SQOT, and ALT.",
+      "enum": [
+        "rejected",
+        "expired",
+        "diagnostic",
+        "relaxed",
+        "risk-provisional",
+        "speculative",
+        "provisional",
+        "partial",
+        "settled"
+      ],
+      "title": "ClaimStatus",
+      "type": "string"
+    },
+    "CoordinateKind": {
+      "enum": [
+        "benefit",
+        "burden",
+        "residual",
+        "tolerance",
+        "resource",
+        "metadata"
+      ],
+      "title": "CoordinateKind",
+      "type": "string"
+    },
+    "EvidenceStatus": {
+      "enum": [
+        "verified",
+        "declared",
+        "unknown"
+      ],
+      "title": "EvidenceStatus",
+      "type": "string"
+    },
+    "Ledger": {
+      "description": "A finite typed ledger with explicit coordinate kinds.",
+      "properties": {
+        "coordinates": {
+          "additionalProperties": {
+            "$ref": "#/$defs/LedgerCoordinate"
+          },
+          "title": "Coordinates",
+          "type": "object"
+        }
+      },
+      "title": "Ledger",
+      "type": "object"
+    },
+    "LedgerCoordinate": {
+      "description": "One typed coordinate in a finite certificate ledger.",
+      "properties": {
+        "description": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Description"
+        },
+        "evidence_refs": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Evidence Refs",
+          "type": "array"
+        },
+        "evidence_status": {
+          "$ref": "#/$defs/EvidenceStatus",
+          "default": "declared"
+        },
+        "kind": {
+          "$ref": "#/$defs/CoordinateKind",
+          "default": "burden"
+        },
+        "known": {
+          "default": true,
+          "title": "Known",
+          "type": "boolean"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "unit": {
+          "default": "dimensionless",
+          "title": "Unit",
+          "type": "string"
+        },
+        "value": {
+          "title": "Value",
+          "type": "number"
+        }
+      },
+      "required": [
+        "name",
+        "value"
+      ],
+      "title": "LedgerCoordinate",
+      "type": "object"
+    }
+  },
+  "description": "Finite AFST non-market liquidity check result.",
+  "properties": {
+    "abundance_id": {
+      "default": "",
+      "title": "Abundance Id",
+      "type": "string"
+    },
+    "accepted": {
+      "default": false,
+      "title": "Accepted",
+      "type": "boolean"
+    },
+    "authority_valid": {
+      "default": false,
+      "title": "Authority Valid",
+      "type": "boolean"
+    },
+    "balance_witness_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Balance Witness Id"
+    },
+    "certificate_id": {
+      "default": "",
+      "title": "Certificate Id",
+      "type": "string"
+    },
+    "consent_valid": {
+      "default": false,
+      "title": "Consent Valid",
+      "type": "boolean"
+    },
+    "deficit_id": {
+      "default": "",
+      "title": "Deficit Id",
+      "type": "string"
+    },
+    "effect_witness_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Effect Witness Id"
+    },
+    "finite_checks_passed": {
+      "default": false,
+      "title": "Finite Checks Passed",
+      "type": "boolean"
+    },
+    "flux_id": {
+      "default": "",
+      "title": "Flux Id",
+      "type": "string"
+    },
+    "lifecycle_fresh": {
+      "default": false,
+      "title": "Lifecycle Fresh",
+      "type": "boolean"
+    },
+    "missing_obligations": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Missing Obligations",
+      "type": "array"
+    },
+    "operationally_usable": {
+      "default": false,
+      "title": "Operationally Usable",
+      "type": "boolean"
+    },
+    "physical_balance_preserved": {
+      "default": false,
+      "title": "Physical Balance Preserved",
+      "type": "boolean"
+    },
+    "price_not_primary": {
+      "default": true,
+      "title": "Price Not Primary",
+      "type": "boolean"
+    },
+    "reasons": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Reasons",
+      "type": "array"
+    },
+    "refusal_preserved": {
+      "default": false,
+      "title": "Refusal Preserved",
+      "type": "boolean"
+    },
+    "residual_ledger": {
+      "$ref": "#/$defs/Ledger"
+    },
+    "settled": {
+      "default": false,
+      "title": "Settled",
+      "type": "boolean"
+    },
+    "source_floor_preserved": {
+      "default": false,
+      "title": "Source Floor Preserved",
+      "type": "boolean"
+    },
+    "status": {
+      "$ref": "#/$defs/ClaimStatus",
+      "default": "diagnostic"
+    },
+    "target_deficit_reduced": {
+      "default": false,
+      "title": "Target Deficit Reduced",
+      "type": "boolean"
+    }
+  },
+  "title": "NonMarketLiquidityCertificate",
+  "type": "object"
+}

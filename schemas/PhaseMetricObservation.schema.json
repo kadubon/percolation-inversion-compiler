@@ -1,0 +1,51 @@
+{
+  "$defs": {
+    "MetricKnowledgeState": {
+      "enum": [
+        "known",
+        "unknown",
+        "not_applicable"
+      ],
+      "title": "MetricKnowledgeState",
+      "type": "string"
+    }
+  },
+  "description": "Evidence-bearing metric coordinate used by phase threshold checks.",
+  "properties": {
+    "evidence_refs": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Evidence Refs",
+      "type": "array"
+    },
+    "state": {
+      "$ref": "#/$defs/MetricKnowledgeState",
+      "default": "unknown"
+    },
+    "unit": {
+      "default": "dimensionless",
+      "title": "Unit",
+      "type": "string"
+    },
+    "validity_domain": {
+      "default": "protocol-relative-finite",
+      "title": "Validity Domain",
+      "type": "string"
+    },
+    "value": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Value"
+    }
+  },
+  "title": "PhaseMetricObservation",
+  "type": "object"
+}

@@ -139,15 +139,34 @@ def minimal_enabling_conditions_for_bottleneck(
 def build_inversion_certificate(candidate: BottleneckInversionCandidate) -> InversionCertificate:
     """Build a fail-closed certificate candidate for one inversion candidate."""
 
-    finite_requirements_passed = all(
+    evidence_requirements_passed = all(
         condition.required_evidence for condition in candidate.minimal_enabling_conditions
     )
+    witness = candidate.intervention_witness
+    witness_passed = bool(
+        witness
+        and witness.accepted
+        and witness.intervention_law_ref
+        and witness.resource_matched_baseline_ref
+        and witness.unit
+        and witness.stopping_rule_ref
+        and witness.resource_ledger_ref
+        and witness.evidence_refs
+        and witness.verifier_refs
+    )
+    finite_requirements_passed = evidence_requirements_passed and witness_passed
     status = "candidate" if finite_requirements_passed else "abstain"
     return InversionCertificate(
         certificate_id=f"inversion-certificate:{candidate.candidate_id}",
         candidate_id=candidate.candidate_id,
         certificate_status=status,
         finite_requirements_passed=finite_requirements_passed,
+        coordinate_reported=finite_requirements_passed,
+        certified_activation_gain=(
+            candidate.expected_activation_gain.certified_activation_gain
+            if finite_requirements_passed
+            else 0.0
+        ),
         residual_preserved=True,
         grants_execution_authority=False,
         settled=False,
@@ -157,7 +176,10 @@ def build_inversion_certificate(candidate: BottleneckInversionCandidate) -> Inve
             *(
                 []
                 if finite_requirements_passed
-                else ["finite evidence references are required before certification"]
+                else [
+                    "finite evidence and an accepted intervention witness are required "
+                    "before certification"
+                ]
             ),
         ],
     )
@@ -206,11 +228,15 @@ def _candidate_for_bottleneck(
         minimal_enabling_conditions=bottleneck.minimal_enabling_conditions,
         expected_activation_gain=ActivationGainEstimate(
             estimate_id=f"activation-gain:{bottleneck.bottleneck_id}",
-            lower_bound=gain,
-            upper_bound=min(1.0, gain + 0.2),
+            lower_bound=0.0,
+            upper_bound=0.0,
+            priority_heuristic=gain,
+            coordinate_reported=False,
+            certified_activation_gain=0.0,
             assumptions=[
                 "all listed minimal enabling conditions are met",
                 "no new residual or salience obstruction is introduced",
+                "priority_heuristic is not a certified activation lower bound",
             ],
         ),
         verification_cost=max(0.1, bottleneck.severity),

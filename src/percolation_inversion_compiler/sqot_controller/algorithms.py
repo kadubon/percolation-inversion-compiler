@@ -3,13 +3,15 @@
 from __future__ import annotations
 
 from collections import Counter
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
+from math import isfinite
 
 from percolation_inversion_compiler.phase_lab.records import EffectivePacketGraph
 from percolation_inversion_compiler.sqot_controller.records import (
     AttentionBudgetLedger,
     DiagnosticReserveReport,
     PacketQuarantineDecision,
+    QueueItemCost,
     QueueOccupationReport,
     QueueRebalancePlan,
     ReversibleSalienceSovereigntyCertificate,
@@ -23,6 +25,7 @@ def diagnose_queue_occupation(
     *,
     attention_budget: float = 1.0,
     reserve_fraction: float = 0.1,
+    item_costs: Mapping[str, QueueItemCost] | None = None,
 ) -> QueueOccupationReport:
     """Diagnose queue pressure without applying queue actions."""
 
@@ -33,7 +36,29 @@ def diagnose_queue_occupation(
         for node in graph.nodes
         if not node.eligibility.authority_valid or not node.eligibility.hash_valid
     ]
-    occupied = min(attention_budget, float(len(candidate_nodes)) * 0.1)
+    costs = item_costs or {}
+    unknown_item_ids: list[str] = []
+    measured_costs: list[QueueItemCost] = []
+    occupied = 0.0
+    for node in candidate_nodes:
+        cost = costs.get(node.node_id)
+        if not _queue_cost_known(cost):
+            unknown_item_ids.append(node.node_id)
+            continue
+        if cost is None:
+            continue
+        measured_costs.append(cost)
+        occupied += sum(
+            value
+            for value in (
+                cost.attention_cost,
+                cost.verification_cost,
+                cost.age_cost,
+                cost.hazard_cost,
+            )
+            if value is not None
+        )
+    occupied = min(attention_budget, occupied)
     reserve_required = max(0.0, attention_budget * reserve_fraction)
     reserve_available = max(0.0, attention_budget - occupied)
     repeated = _repeated_candidate_nodes(candidate_nodes)
@@ -48,7 +73,9 @@ def diagnose_queue_occupation(
         occupied=occupied,
         diagnostic_reserve_required=reserve_required,
         diagnostic_reserve_available=reserve_available,
-        reserve_preserved=reserve_available >= reserve_required,
+        reserve_preserved=not unknown_item_ids and reserve_available >= reserve_required,
+        measurement_state="known" if not unknown_item_ids else "unknown",
+        unknown_item_ids=sorted(unknown_item_ids),
     )
     pressure = VerificationQueuePressure(
         backlog_count=len(candidate_nodes) + len(graph.missing_edge_evidence),
@@ -70,11 +97,17 @@ def diagnose_queue_occupation(
             for node in graph.nodes
             if not node.eligibility.rollback_available_or_not_required
         ],
-        accepted=True,
+        queue_costs=sorted(measured_costs, key=lambda item: item.packet_id),
+        accepted=not unknown_item_ids,
         settled=False,
         reasons=[
             "queue occupation report is diagnostic only",
             "raw candidate volume does not improve phase metrics",
+            *(
+                ["queue item costs are unknown; occupied capacity and reserve are not certified"]
+                if unknown_item_ids
+                else []
+            ),
         ],
     )
 
@@ -178,6 +211,7 @@ def check_diagnostic_reserve(
     *,
     attention_budget: float = 1.0,
     reserve_fraction: float = 0.1,
+    item_costs: Mapping[str, QueueItemCost] | None = None,
 ) -> DiagnosticReserveReport:
     """Check whether diagnostic reserve remains available."""
 
@@ -185,18 +219,25 @@ def check_diagnostic_reserve(
         graph,
         attention_budget=attention_budget,
         reserve_fraction=reserve_fraction,
+        item_costs=item_costs,
     )
     ledger = occupation.attention_budget_ledger
     deficit = max(0.0, ledger.diagnostic_reserve_required - ledger.diagnostic_reserve_available)
+    measured = ledger.measurement_state == "known"
     return DiagnosticReserveReport(
         graph_id=graph.graph_id,
         attention_budget_ledger=ledger,
         reserve_deficit=deficit,
-        accepted=deficit <= 0.0,
+        accepted=measured and deficit <= 0.0,
         settled=False,
         reasons=[
             "diagnostic reserve is checked without scheduling or executing work",
             *([] if deficit <= 0 else ["diagnostic reserve is below required threshold"]),
+            *(
+                []
+                if measured
+                else ["diagnostic reserve is unknown because queue costs are missing"]
+            ),
         ],
     )
 
@@ -230,3 +271,10 @@ def _repeated_candidate_nodes(nodes: Sequence[object]) -> list[str]:
         for node in nodes
         if digests[getattr(node, "content_digest", "")] > 1
     )
+
+
+def _queue_cost_known(cost: QueueItemCost | None) -> bool:
+    if cost is None or not cost.validity_domain or not cost.evidence_refs:
+        return False
+    values = (cost.attention_cost, cost.verification_cost, cost.age_cost, cost.hazard_cost)
+    return all(value is not None and isfinite(value) and value >= 0.0 for value in values)

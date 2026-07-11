@@ -1,0 +1,51 @@
+{
+  "description": "Typed stabilization-buffer component.",
+  "properties": {
+    "amount": {
+      "default": 0.0,
+      "title": "Amount",
+      "type": "number"
+    },
+    "component_id": {
+      "default": "",
+      "title": "Component Id",
+      "type": "string"
+    },
+    "evidence_refs": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Evidence Refs",
+      "type": "array"
+    },
+    "kind": {
+      "default": "",
+      "title": "Kind",
+      "type": "string"
+    },
+    "resource_type": {
+      "default": "",
+      "title": "Resource Type",
+      "type": "string"
+    },
+    "unit": {
+      "default": "dimensionless",
+      "title": "Unit",
+      "type": "string"
+    },
+    "unit_family": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Unit Family"
+    }
+  },
+  "title": "BufferComponent",
+  "type": "object"
+}

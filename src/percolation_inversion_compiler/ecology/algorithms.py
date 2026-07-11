@@ -12,6 +12,7 @@ from typing import cast
 from percolation_inversion_compiler.core.ledger import CoordinateKind, Ledger
 from percolation_inversion_compiler.core.records import CheckResult
 from percolation_inversion_compiler.core.status import ClaimStatus
+from percolation_inversion_compiler.core.time import is_expired_or_invalid
 from percolation_inversion_compiler.ecology.records import (
     AcceptedPacketPath,
     AutocatalyticClosureWitness,
@@ -156,14 +157,16 @@ def ingest_local_file(source: Path) -> PacketIngestionReport:
     """Ingest one local file as a capability packet candidate."""
 
     try:
-        text = source.read_text(encoding="utf-8")
-    except UnicodeDecodeError:
+        from percolation_inversion_compiler.io.schema import read_bounded_text
+
+        text = read_bounded_text(source)
+    except (UnicodeDecodeError, ValueError):
         return PacketIngestionReport(
             report_id="packet-ingestion:local",
             accepted=False,
             source_kind=PacketSourceKind.LOCAL,
             rejected_sources=[source.name],
-            reasons=["local source is not valid UTF-8 text"],
+            reasons=["local source is not bounded valid UTF-8 text"],
         )
     packet = packet_from_text(
         text,
@@ -215,7 +218,7 @@ def build_packet_registry(
                 packet.residual_charge,
                 kind=CoordinateKind.RESIDUAL,
             )
-        if packet.expires_at == "expired":
+        if is_expired_or_invalid(packet.expires_at):
             residual = residual.add_coordinate(
                 f"packet:{packet.packet_id}:stale",
                 1.0,
@@ -369,7 +372,7 @@ def verify_edge_witness_certificate(
         reasons.append("confidence lower bound is negative")
     if certificate.false_edge_residual < 0.0:
         reasons.append("false-edge residual is negative")
-    if certificate.expires_at == "expired":
+    if is_expired_or_invalid(certificate.expires_at):
         reasons.append("edge certificate is expired")
     if not certificate.evidence_refs:
         reasons.append("edge certificate has no evidence references")
@@ -493,7 +496,7 @@ def verification_throughput(
     total = len(packets)
     accepted_edges = [edge for edge in edges if edge.accepted]
     rejected_edges = [edge for edge in edges if not edge.accepted]
-    stale = [packet for packet in packets if packet.expires_at == "expired"]
+    stale = [packet for packet in packets if is_expired_or_invalid(packet.expires_at)]
     unresolved = sum(len(packet.verifier_routes) for packet in packets) + len(rejected_edges)
     hash_mismatch = sum(
         1

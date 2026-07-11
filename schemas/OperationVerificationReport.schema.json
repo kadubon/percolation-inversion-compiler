@@ -1,0 +1,65 @@
+{
+  "properties": {
+    "accepted": {
+      "default": false,
+      "title": "Accepted",
+      "type": "boolean"
+    },
+    "blockers": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Blockers",
+      "type": "array"
+    },
+    "observation_window_valid": {
+      "default": false,
+      "title": "Observation Window Valid",
+      "type": "boolean"
+    },
+    "physical_outcome_proven": {
+      "default": false,
+      "title": "Physical Outcome Proven",
+      "type": "boolean"
+    },
+    "physical_outcome_verified": {
+      "default": false,
+      "title": "Physical Outcome Verified",
+      "type": "boolean"
+    },
+    "receipt_id": {
+      "title": "Receipt Id",
+      "type": "string"
+    },
+    "report_id": {
+      "title": "Report Id",
+      "type": "string"
+    },
+    "scope_valid": {
+      "default": false,
+      "title": "Scope Valid",
+      "type": "boolean"
+    },
+    "settled": {
+      "default": false,
+      "title": "Settled",
+      "type": "boolean"
+    },
+    "signature_valid": {
+      "default": false,
+      "title": "Signature Valid",
+      "type": "boolean"
+    },
+    "verifier_report_id": {
+      "title": "Verifier Report Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "report_id",
+    "receipt_id",
+    "verifier_report_id"
+  ],
+  "title": "OperationVerificationReport",
+  "type": "object"
+}

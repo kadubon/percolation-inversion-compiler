@@ -1,0 +1,321 @@
+{
+  "$defs": {
+    "BufferComponent": {
+      "description": "Typed stabilization-buffer component.",
+      "properties": {
+        "amount": {
+          "default": 0.0,
+          "title": "Amount",
+          "type": "number"
+        },
+        "component_id": {
+          "default": "",
+          "title": "Component Id",
+          "type": "string"
+        },
+        "evidence_refs": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Evidence Refs",
+          "type": "array"
+        },
+        "kind": {
+          "default": "",
+          "title": "Kind",
+          "type": "string"
+        },
+        "resource_type": {
+          "default": "",
+          "title": "Resource Type",
+          "type": "string"
+        },
+        "unit": {
+          "default": "dimensionless",
+          "title": "Unit",
+          "type": "string"
+        },
+        "unit_family": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Unit Family"
+        }
+      },
+      "title": "BufferComponent",
+      "type": "object"
+    },
+    "CoordinateKind": {
+      "enum": [
+        "benefit",
+        "burden",
+        "residual",
+        "tolerance",
+        "resource",
+        "metadata"
+      ],
+      "title": "CoordinateKind",
+      "type": "string"
+    },
+    "EvidenceStatus": {
+      "enum": [
+        "verified",
+        "declared",
+        "unknown"
+      ],
+      "title": "EvidenceStatus",
+      "type": "string"
+    },
+    "Ledger": {
+      "description": "A finite typed ledger with explicit coordinate kinds.",
+      "properties": {
+        "coordinates": {
+          "additionalProperties": {
+            "$ref": "#/$defs/LedgerCoordinate"
+          },
+          "title": "Coordinates",
+          "type": "object"
+        }
+      },
+      "title": "Ledger",
+      "type": "object"
+    },
+    "LedgerCoordinate": {
+      "description": "One typed coordinate in a finite certificate ledger.",
+      "properties": {
+        "description": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Description"
+        },
+        "evidence_refs": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Evidence Refs",
+          "type": "array"
+        },
+        "evidence_status": {
+          "$ref": "#/$defs/EvidenceStatus",
+          "default": "declared"
+        },
+        "kind": {
+          "$ref": "#/$defs/CoordinateKind",
+          "default": "burden"
+        },
+        "known": {
+          "default": true,
+          "title": "Known",
+          "type": "boolean"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "unit": {
+          "default": "dimensionless",
+          "title": "Unit",
+          "type": "string"
+        },
+        "value": {
+          "title": "Value",
+          "type": "number"
+        }
+      },
+      "required": [
+        "name",
+        "value"
+      ],
+      "title": "LedgerCoordinate",
+      "type": "object"
+    },
+    "ShockEnvelope": {
+      "description": "Finite shock envelope for buffer sizing.",
+      "properties": {
+        "envelope_id": {
+          "default": "",
+          "title": "Envelope Id",
+          "type": "string"
+        },
+        "evidence_refs": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Evidence Refs",
+          "type": "array"
+        },
+        "legal_hold_load": {
+          "default": 0.0,
+          "title": "Legal Hold Load",
+          "type": "number"
+        },
+        "panic_load": {
+          "default": 0.0,
+          "title": "Panic Load",
+          "type": "number"
+        },
+        "queue_load": {
+          "default": 0.0,
+          "title": "Queue Load",
+          "type": "number"
+        },
+        "residual_charge": {
+          "default": 0.0,
+          "title": "Residual Charge",
+          "type": "number"
+        },
+        "resource_type": {
+          "default": "",
+          "title": "Resource Type",
+          "type": "string"
+        },
+        "shock_upper_bound": {
+          "default": 0.0,
+          "title": "Shock Upper Bound",
+          "type": "number"
+        },
+        "spoilage_upper_bound": {
+          "default": 0.0,
+          "title": "Spoilage Upper Bound",
+          "type": "number"
+        },
+        "unit": {
+          "default": "dimensionless",
+          "title": "Unit",
+          "type": "string"
+        },
+        "unit_family": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Unit Family"
+        }
+      },
+      "title": "ShockEnvelope",
+      "type": "object"
+    }
+  },
+  "description": "Typed stabilization buffer with compatible components and shock load.",
+  "properties": {
+    "accepted": {
+      "default": false,
+      "title": "Accepted",
+      "type": "boolean"
+    },
+    "available_buffer": {
+      "default": 0.0,
+      "title": "Available Buffer",
+      "type": "number"
+    },
+    "buffer_id": {
+      "default": "",
+      "title": "Buffer Id",
+      "type": "string"
+    },
+    "cell_id": {
+      "default": "",
+      "title": "Cell Id",
+      "type": "string"
+    },
+    "components": {
+      "items": {
+        "$ref": "#/$defs/BufferComponent"
+      },
+      "title": "Components",
+      "type": "array"
+    },
+    "coverage_ratio": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Coverage Ratio"
+    },
+    "evidence_refs": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Evidence Refs",
+      "type": "array"
+    },
+    "horizon": {
+      "default": "finite",
+      "title": "Horizon",
+      "type": "string"
+    },
+    "reasons": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Reasons",
+      "type": "array"
+    },
+    "required_buffer": {
+      "default": 0.0,
+      "title": "Required Buffer",
+      "type": "number"
+    },
+    "residual_ledger": {
+      "$ref": "#/$defs/Ledger"
+    },
+    "resource_type": {
+      "default": "",
+      "title": "Resource Type",
+      "type": "string"
+    },
+    "shock_envelope": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ShockEnvelope"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "unit": {
+      "default": "dimensionless",
+      "title": "Unit",
+      "type": "string"
+    },
+    "unit_family": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Unit Family"
+    }
+  },
+  "title": "StabilizationBuffer",
+  "type": "object"
+}

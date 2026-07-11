@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 from collections.abc import Iterable, Mapping, Sequence
+from math import isfinite
 from pathlib import Path
 
 from percolation_inversion_compiler.core import (
@@ -17,6 +18,7 @@ from percolation_inversion_compiler.core import (
 )
 from percolation_inversion_compiler.core.ledger import CoordinateKind, Ledger
 from percolation_inversion_compiler.core.status import ClaimStatus
+from percolation_inversion_compiler.core.time import is_expired_or_invalid
 from percolation_inversion_compiler.ecology import (
     BottleneckIntervention,
     CapabilityBasinContract,
@@ -69,6 +71,8 @@ from percolation_inversion_compiler.identity import (
 from percolation_inversion_compiler.runtime.records import (
     AccelerationCertificate,
     AccelerationExperimentSuite,
+    AccelerationMeasurementMetrics,
+    AccelerationMetricComparison,
     ActionCommit,
     ActionCommitPolicy,
     AgentPopulationState,
@@ -123,8 +127,10 @@ class FileEvidenceEnvelopeStore:
         if profile == "production" and not ref.startswith("sha256:"):
             return None
         try:
-            payload = json.loads(path.read_text(encoding="utf-8"))
-        except (OSError, json.JSONDecodeError):
+            from percolation_inversion_compiler.io.schema import load_data
+
+            payload = load_data(path)
+        except (OSError, ValueError):
             return None
         try:
             envelope = VerifierEvidenceEnvelope.model_validate(payload)
@@ -729,7 +735,7 @@ def promote_packet_candidate(
         None,
         identity_profile,
     )
-    if candidate.expires_at == "expired":
+    if is_expired_or_invalid(candidate.expires_at):
         reasons.append("packet candidate is expired")
     if not candidate.evidence_hash_valid:
         reasons.append("packet evidence hash is invalid")
@@ -1421,7 +1427,7 @@ def _salience_records(
                 hazard_charge=packet.hazard_charge + external_hazard,
                 authority_required=packet.authority_required,
                 authority_granted=packet.authority_granted,
-                stale=packet.expires_at == "expired",
+                stale=is_expired_or_invalid(packet.expires_at),
                 evidence_hash_valid=packet.evidence_hash_valid,
                 route_safe=packet.route_safe,
                 rollback_available=packet.rollback_available,
@@ -1463,7 +1469,7 @@ def _action_commit(action: PhaseControlAction, policy: ActionCommitPolicy) -> Ac
 def _stale_ratio(registry: CapabilityPacketRegistry) -> float:
     if not registry.packets:
         return 0.0
-    return sum(1 for packet in registry.packets if packet.expires_at == "expired") / len(
+    return sum(1 for packet in registry.packets if is_expired_or_invalid(packet.expires_at)) / len(
         registry.packets
     )
 
@@ -1620,6 +1626,7 @@ def build_runtime_run_report(
     threshold: Mapping[str, float] | None = None,
     resource_envelope: ResourceEnvelope | None = None,
     baseline_config: ResourceMatchedBaselineConfig | None = None,
+    acceleration_metrics: AccelerationMeasurementMetrics | None = None,
 ) -> RuntimeRunReport:
     """Summarize a runtime trajectory for finite baseline comparison."""
 
@@ -1642,6 +1649,7 @@ def build_runtime_run_report(
         resource_units=float(envelope.verifier_calls + envelope.network_calls + len(reports)),
         resource_envelope=envelope,
         baseline_config=baseline_config,
+        acceleration_metrics=acceleration_metrics or AccelerationMeasurementMetrics(),
         accepted=accepted,
         finite_checks_passed=accepted,
         operationally_usable=accepted and any(report.agent_tasks for report in reports),
@@ -1719,6 +1727,18 @@ def certify_runtime_acceleration(
     if residual_gain < 0.0:
         reasons.append("candidate residual debt exceeds baseline")
     accepted = not reasons
+    comparisons, metric_reasons = _compare_acceleration_metrics(baseline, candidate)
+    metrics_certified = bool(
+        accepted
+        and resource_matched
+        and comparisons
+        and all(comparison.finite and comparison.non_regressed for comparison in comparisons)
+        and any(comparison.improved for comparison in comparisons)
+        and not metric_reasons
+    )
+    checked_metrics = candidate.acceleration_metrics.model_copy(
+        update={"accepted": metrics_certified}
+    )
     residual = candidate.cumulative_residual_ledger
     for obligation in residual_external:
         residual = residual.add_coordinate(
@@ -1741,11 +1761,15 @@ def certify_runtime_acceleration(
         false_liquidity_bounded=false_liquidity_bounded,
         verification_backlog_bounded=verification_backlog_bounded,
         resource_envelope_matched=resource_envelope_matched,
+        acceleration_metrics=checked_metrics,
+        metric_comparisons=comparisons,
+        acceleration_metrics_certified=metrics_certified,
+        acceleration_metric_reasons=metric_reasons,
         residual_external_obligations=residual_external,
         residual_ledger=residual,
         accepted=accepted,
         finite_checks_passed=accepted,
-        operationally_usable=accepted,
+        operationally_usable=accepted and metrics_certified,
         settled=False,
         reasons=sorted(set(reasons)),
     )
@@ -1788,9 +1812,21 @@ def build_acceleration_experiment_suite(
         gains.append(comparison.acceleration_certificate.score_gain_lower_bound)
         reasons.extend(comparison.acceleration_certificate.reasons)
     lower_bound = min(gains) if gains else 0.0
-    accepted = bool(comparisons) and negative_control_passed and lower_bound > 0.0 and not reasons
+    measurements_certified = bool(comparisons) and all(
+        comparison.acceleration_certificate.acceleration_metrics_certified
+        for comparison in comparisons
+    )
+    accepted = (
+        bool(comparisons)
+        and negative_control_passed
+        and measurements_certified
+        and lower_bound > 0.0
+        and not reasons
+    )
     if not negative_control_passed:
         reasons.append("negative control failed")
+    if comparisons and not measurements_certified:
+        reasons.append("acceleration metrics are not certified")
     return AccelerationExperimentSuite(
         suite_id=suite_id,
         paired_comparisons=sorted(comparisons, key=lambda item: item.comparison_id),
@@ -1811,7 +1847,7 @@ def execute_runtime_task(
     policy: RuntimeExecutorPolicy | None = None,
     store: object | None = None,
 ) -> RuntimeExecutionReport:
-    """Execute one allowlisted runtime task without arbitrary shell execution."""
+    """Admit one allowlisted task without dispatching an external provider."""
 
     active_policy = policy or RuntimeExecutorPolicy()
     task_kind = task.task_type or task.action_kind
@@ -1836,24 +1872,28 @@ def execute_runtime_task(
             kind=CoordinateKind.RESIDUAL,
         )
     accepted = not reasons
+    if accepted:
+        reasons.append("runtime task admitted but not dispatched")
     action_result = RuntimeActionResult(
         result_id=f"runtime-execution-result:{task.task_id}",
         task_id=task.task_id,
         action_id=task.action_id,
-        executed=accepted,
-        observed_delta={"expected_proxy_gain": task.expected_proxy_gain} if accepted else {},
+        executed=False,
+        execution_status="not_dispatched",
+        admission_accepted=accepted,
+        observed_delta={},
         residual_ledger=residual,
         rollback_available=bool(task.rollback_condition),
         accepted=accepted,
         finite_checks_passed=accepted,
-        operationally_usable=accepted,
+        operationally_usable=False,
         settled=False,
         reasons=sorted(set(reasons)),
     )
     if accepted and store is not None and hasattr(store, "append_event"):
         event = _runtime_event(
             event_id=f"event:{state.state_id}:{state.step_index}:{task.task_id}:execute",
-            event_type="runtime-task-executed",
+            event_type="runtime-task-admitted",
             step_index=state.step_index,
             payload_ref=task.task_id,
             payload=action_result.model_dump(mode="json"),
@@ -1865,8 +1905,10 @@ def execute_runtime_task(
         task_id=task.task_id,
         task_type=task_kind,
         accepted=accepted,
+        execution_status="not_dispatched",
+        admission_accepted=accepted,
         finite_checks_passed=accepted,
-        operationally_usable=accepted,
+        operationally_usable=False,
         settled=False,
         action_result=action_result,
         residual_ledger=residual,
@@ -2420,7 +2462,116 @@ def _baseline_configs_match(baseline: RuntimeRunReport, candidate: RuntimeRunRep
         and left.constraint_frame_id == right.constraint_frame_id
         and sorted(left.receiver_family) == sorted(right.receiver_family)
         and left.validity_domain == right.validity_domain
+        and left.tolerance == right.tolerance
+        and dict(sorted(left.metric_tolerances.items()))
+        == dict(sorted(right.metric_tolerances.items()))
+        and _resource_envelopes_match(
+            left.resource_envelope,
+            right.resource_envelope,
+            tolerance=max(left.tolerance, right.tolerance),
+        )
     )
+
+
+_ACCELERATION_METRIC_DIRECTIONS = {
+    "time_to_verified": "lower",
+    "verification_yield": "higher",
+    "residual_half_life": "lower",
+    "receiver_reuse": "higher",
+    "certified_capital_gain": "higher",
+    "resource_cost": "lower",
+    "error_correlation": "lower_absolute",
+}
+
+
+def _compare_acceleration_metrics(
+    baseline: RuntimeRunReport,
+    candidate: RuntimeRunReport,
+) -> tuple[list[AccelerationMetricComparison], list[str]]:
+    left = baseline.acceleration_metrics
+    right = candidate.acceleration_metrics
+    reasons: list[str] = []
+    if not left.fixed_horizon or not right.fixed_horizon:
+        reasons.append("baseline and candidate metrics require a fixed horizon")
+    if not left.stopping_rule_ref or not right.stopping_rule_ref:
+        reasons.append("baseline and candidate metrics require a stopping rule")
+    elif left.stopping_rule_ref != right.stopping_rule_ref:
+        reasons.append("baseline and candidate stopping rules do not match")
+    if not left.evidence_refs or not right.evidence_refs:
+        reasons.append("baseline and candidate metrics require evidence references")
+
+    tolerance_map: dict[str, float] = {}
+    if baseline.baseline_config is not None:
+        tolerance_map.update(baseline.baseline_config.metric_tolerances)
+    if candidate.baseline_config is not None:
+        tolerance_map.update(candidate.baseline_config.metric_tolerances)
+
+    comparisons: list[AccelerationMetricComparison] = []
+    for metric_name, direction in _ACCELERATION_METRIC_DIRECTIONS.items():
+        baseline_value = getattr(left, metric_name)
+        candidate_value = getattr(right, metric_name)
+        tolerance = tolerance_map.get(metric_name, 0.0)
+        finite = bool(
+            baseline_value is not None
+            and candidate_value is not None
+            and isfinite(baseline_value)
+            and isfinite(candidate_value)
+            and isfinite(tolerance)
+            and tolerance >= 0.0
+        )
+        signed_improvement = 0.0
+        if finite:
+            assert baseline_value is not None
+            assert candidate_value is not None
+            if direction == "higher":
+                signed_improvement = candidate_value - baseline_value
+            elif direction == "lower":
+                signed_improvement = baseline_value - candidate_value
+            else:
+                signed_improvement = abs(baseline_value) - abs(candidate_value)
+        comparisons.append(
+            AccelerationMetricComparison(
+                metric_name=metric_name,
+                direction=direction,
+                baseline_value=baseline_value,
+                candidate_value=candidate_value,
+                signed_improvement=signed_improvement,
+                tolerance=tolerance,
+                finite=finite,
+                improved=finite and signed_improvement > tolerance,
+                non_regressed=finite and signed_improvement >= -tolerance,
+            )
+        )
+        if not finite:
+            reasons.append(f"{metric_name} comparison is missing, non-finite, or invalid")
+
+    for label, metrics in (("baseline", left), ("candidate", right)):
+        if metrics.verification_yield is not None and not (
+            0.0 <= metrics.verification_yield <= 1.0
+        ):
+            reasons.append(f"{label} verification_yield is outside [0, 1]")
+        if metrics.error_correlation is not None and not (-1.0 <= metrics.error_correlation <= 1.0):
+            reasons.append(f"{label} error_correlation is outside [-1, 1]")
+        for metric_name in (
+            "time_to_verified",
+            "residual_half_life",
+            "receiver_reuse",
+            "certified_capital_gain",
+            "resource_cost",
+        ):
+            value = getattr(metrics, metric_name)
+            if value is not None and value < 0.0:
+                reasons.append(f"{label} {metric_name} must be non-negative")
+
+    if comparisons and all(comparison.finite for comparison in comparisons):
+        regressed = [
+            comparison.metric_name for comparison in comparisons if not comparison.non_regressed
+        ]
+        if regressed:
+            reasons.append("metrics regressed beyond tolerance: " + ", ".join(sorted(regressed)))
+        if not any(comparison.improved for comparison in comparisons):
+            reasons.append("no acceleration metric improved beyond tolerance")
+    return comparisons, sorted(set(reasons))
 
 
 def _resource_envelopes_match(

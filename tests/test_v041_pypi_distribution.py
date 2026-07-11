@@ -9,6 +9,7 @@ from pathlib import Path
 
 from typer.testing import CliRunner
 
+from percolation_inversion_compiler import __version__
 from percolation_inversion_compiler.cli import app
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -47,7 +48,7 @@ def test_installed_demo_package_resources_exist() -> None:
     ]:
         assert (root / name).is_file()
     manifest = json.loads((root / "manifest.json").read_text(encoding="utf-8"))
-    assert manifest["version"] == "1.0.0"
+    assert manifest["version"] == __version__
     assert manifest["candidate_only"] is True
     recommended = "\n".join(manifest["recommended_phase_commands"])
     assert "packet*.json" not in recommended
@@ -70,7 +71,7 @@ def test_pic_demo_installed_smoke_returns_unsettled_report() -> None:
     result = runner.invoke(app, ["demo", "installed-smoke", "--profile", "development"])
     assert result.exit_code == 0
     data = json.loads(result.output)
-    assert data["version"] == "1.0.0"
+    assert data["version"] == __version__
     assert data["accepted"] is True
     assert data["workflow_usable"] is True
     assert data["settled"] is False

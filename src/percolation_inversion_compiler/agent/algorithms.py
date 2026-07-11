@@ -456,6 +456,7 @@ def agent_manifest_payload() -> dict[str, object]:
             "cache-index-performance",
             "agent-loop-protocol",
             "afst-satisfaction-flux-diagnostics",
+            "explicit-operation-planning-and-dispatch",
         ],
         "clone_url": "https://github.com/kadubon/percolation-inversion-compiler.git",
         "clone_recommended_for_full_use": False,

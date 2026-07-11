@@ -3,6 +3,32 @@
   "finite_checks_passed": true,
   "initial_state_id": "runtime-demo",
   "operationally_usable": true,
+  "acceleration_metrics": {
+    "accepted": false,
+    "certified_capital_gain": 0.2,
+    "error_correlation": 0.0,
+    "evidence_refs": [
+      "evidence:runtime-candidate-measurement"
+    ],
+    "fixed_horizon": true,
+    "receiver_reuse": 1.0,
+    "residual_half_life": 2.0,
+    "resource_cost": 1.0,
+    "stopping_rule_ref": "stopping-rule:runtime-v1.1",
+    "time_to_verified": 1.0,
+    "verification_yield": 0.5
+  },
+  "baseline_config": {
+    "constraint_frame_id": "constraint-frame:runtime-v1.1",
+    "metric_tolerances": {},
+    "observation_protocol_id": "observation-protocol:runtime-v1.1",
+    "receiver_family": [
+      "agent"
+    ],
+    "resource_envelope": {},
+    "tolerance": 0.0,
+    "validity_domain": "protocol-relative-finite"
+  },
   "resource_units": 1.0,
   "run_id": "runtime-run:candidate",
   "score_trajectory": [
@@ -13,5 +39,5 @@
     }
   ],
   "settled": false,
-  "threshold_crossing_step": null
+  "threshold_crossing_step": 1
 }

@@ -110,7 +110,7 @@
     }
   ],
   "license": "Apache-2.0 for repository demo JSON and text files",
-  "provenance": "Derived from repository examples for v1.0.0 practical installed-package workflows; no canonical TeX or PDF is vendored.",
+  "provenance": "Derived from repository examples for v1.1.0 practical installed-package workflows; no canonical TeX or PDF is vendored.",
   "recommended_phase_commands": [
     "pic phase plan --compact --text \"Candidate packet: preserve residuals.\" --profile development",
     "pic agent accelerate --compact --text \"Candidate packet: preserve residuals.\" --profile development",
@@ -143,5 +143,5 @@
     "AFST accepted=true is finite checker acceptance only and never dispatches providers, grants physical operation authority, or marks settlement",
     "settled=false is expected when residual obligations remain"
   ],
-  "version": "1.0.0"
+  "version": "1.1.0"
 }

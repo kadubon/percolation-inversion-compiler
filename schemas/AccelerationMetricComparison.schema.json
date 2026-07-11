@@ -1,0 +1,68 @@
+{
+  "description": "Direction-aware comparison of one predeclared acceleration metric.",
+  "properties": {
+    "baseline_value": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Baseline Value"
+    },
+    "candidate_value": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Candidate Value"
+    },
+    "direction": {
+      "title": "Direction",
+      "type": "string"
+    },
+    "finite": {
+      "default": false,
+      "title": "Finite",
+      "type": "boolean"
+    },
+    "improved": {
+      "default": false,
+      "title": "Improved",
+      "type": "boolean"
+    },
+    "metric_name": {
+      "title": "Metric Name",
+      "type": "string"
+    },
+    "non_regressed": {
+      "default": false,
+      "title": "Non Regressed",
+      "type": "boolean"
+    },
+    "signed_improvement": {
+      "default": 0.0,
+      "title": "Signed Improvement",
+      "type": "number"
+    },
+    "tolerance": {
+      "default": 0.0,
+      "title": "Tolerance",
+      "type": "number"
+    }
+  },
+  "required": [
+    "metric_name",
+    "direction"
+  ],
+  "title": "AccelerationMetricComparison",
+  "type": "object"
+}

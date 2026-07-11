@@ -118,6 +118,8 @@ jobs:
           uv run pic runtime apply-results --state examples/runtime_state.json --report "$RUNNER_TEMP/runtime-step-evidence.json" --results examples/runtime_action_results.json --output "$RUNNER_TEMP/runtime-next-state.json"
           uv run pic runtime compare --baseline examples/runtime_baseline_run.json --candidate examples/runtime_candidate_run.json --threshold examples/runtime_threshold.json --output "$RUNNER_TEMP/runtime-comparison.json"
           uv run pic runtime certify-acceleration --baseline examples/runtime_baseline_run.json --candidate examples/runtime_candidate_run.json --output "$RUNNER_TEMP/runtime-acceleration-certificate.json"
+          uv run pic runtime certify-acceleration --baseline examples/runtime_acceleration/baseline.json --candidate examples/runtime_acceleration/candidate.json --output "$RUNNER_TEMP/runtime-v11-acceleration-certificate.json"
+          uv run pic operation adapter-check --manifest examples/operation/https_readonly.adapter.json --output "$RUNNER_TEMP/operation-adapter-check.json"
           uv run pic runtime loop --state examples/runtime_state.json --inputs examples/runtime_loop_inputs.jsonl --max-steps 2 --profile production --output "$RUNNER_TEMP/runtime-loop.json"
           uv run pic runtime health --state examples/runtime_state.json --profile production --output "$RUNNER_TEMP/runtime-health.json"
           uv run pic runtime export-openapi --output "$RUNNER_TEMP/runtime-openapi.json"
@@ -133,3 +135,33 @@ jobs:
 
       - name: Validate citation metadata
         run: uv run python scripts/validate_citation.py
+
+  cross-os-smoke:
+    name: ${{ matrix.os }} Python ${{ matrix.python-version }} smoke
+    runs-on: ${{ matrix.os }}
+    env:
+      UV_PYTHON: ${{ matrix.python-version }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        python-version: ["3.11", "3.14"]
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Set up uv
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+      - name: Install test dependencies
+        run: uv sync --all-extras --dev --python ${{ matrix.python-version }}
+      - name: Cross-platform safety tests
+        run: uv run pytest tests/test_operation.py tests/test_v11_input_boundaries.py -q
+      - name: Build wheel
+        run: uv build
+      - name: Clean wheel install smoke
+        run: uv run python scripts/check_installed_smoke.py dist/percolation_inversion_compiler-1.1.0-py3-none-any.whl --version 1.1.0

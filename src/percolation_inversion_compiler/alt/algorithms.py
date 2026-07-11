@@ -1394,18 +1394,47 @@ def _packet_evidence_refs(packet_data: dict[str, object]) -> list[str]:
 
 
 def _packet_is_accepted_alt_capital(packet_data: dict[str, object]) -> bool:
-    if bool(packet_data.get("accepted", False)) and bool(
-        packet_data.get("operationally_usable", False)
-    ):
+    evidence_contract = _alt_capital_evidence_contract_passes(packet_data)
+    if not evidence_contract:
+        return False
+    if packet_data.get("accepted") is True and packet_data.get("operationally_usable") is True:
         return True
     if packet_data.get("certified_capital_ref"):
-        return bool(packet_data.get("accepted", False))
+        return packet_data.get("accepted") is True
     certificate = packet_data.get("liquidity_certificate")
     if isinstance(certificate, dict):
-        return bool(certificate.get("accepted", False)) and bool(
-            certificate.get("operationally_usable", False)
+        return (
+            certificate.get("accepted") is True and certificate.get("operationally_usable") is True
         )
     return False
+
+
+def _alt_capital_evidence_contract_passes(packet_data: dict[str, object]) -> bool:
+    required_refs = (
+        "mission_law_ref",
+        "receiver_context_ref",
+        "mechanism_ref",
+        "cost_ledger_ref",
+    )
+    if any(
+        not isinstance(packet_data.get(field), str) or not packet_data.get(field)
+        for field in required_refs
+    ):
+        return False
+    baseline = packet_data.get("baseline_contrast")
+    if not isinstance(baseline, dict) or baseline.get("resource_matched") is not True:
+        return False
+    leakage = packet_data.get("leakage_upper_bound")
+    if not isinstance(leakage, int | float) or isinstance(leakage, bool) or leakage < 0.0:
+        return False
+    for field in ("transport_certificate", "hazard_certificate", "lifecycle_certificate"):
+        certificate = packet_data.get(field)
+        if not isinstance(certificate, dict) or certificate.get("accepted") is not True:
+            return False
+    return (
+        bool(_packet_evidence_refs(packet_data))
+        and packet_data.get("verifier_signature_valid") is True
+    )
 
 
 def _search_cost_reduction(packet_data: dict[str, object]) -> float:
@@ -1415,9 +1444,6 @@ def _search_cost_reduction(packet_data: dict[str, object]) -> float:
         value = certificate.get("downstream_search_cost_reduction_lower_bound")
     if value is None:
         value = packet_data.get("signed_surplus_lower_bound", 0.0)
-    if not isinstance(value, int | float | str):
+    if not isinstance(value, int | float) or isinstance(value, bool):
         return 0.0
-    try:
-        return max(0.0, float(value))
-    except (TypeError, ValueError):
-        return 0.0
+    return max(0.0, float(value))

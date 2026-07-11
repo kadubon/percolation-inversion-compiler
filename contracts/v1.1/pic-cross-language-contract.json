@@ -1,0 +1,251 @@
+{
+  "contract_id": "pic-cross-language-v1.1.0",
+  "canonical_semantics": "percolation-inversion-compiler Python",
+  "contract_version": "1.1.0",
+  "systems": [
+    "AFST",
+    "Phase Lab",
+    "BIT",
+    "SQOT",
+    "ALT",
+    "TRC",
+    "operation"
+  ],
+  "decision_order": [
+    "strict-input-validation",
+    "freshness-and-validity-domain",
+    "authority-consent-refusal",
+    "resource-and-unit-balance",
+    "evidence-and-independent-verifier",
+    "residual-preservation",
+    "protocol-relative-acceptance",
+    "non-claim-flags"
+  ],
+  "required_non_claims": {
+    "afst": {
+      "operation_ready": false,
+      "physical_dispatch_ready": false,
+      "provider_dispatch_ready": false,
+      "settled": false
+    },
+    "operation_receipt": {
+      "physical_outcome_proven": false,
+      "physical_outcome_verified": false,
+      "settled": false
+    },
+    "phase": {
+      "oracle_truth_proven": false,
+      "physical_truth_proven": false,
+      "real_asi_proof": false,
+      "settled": false
+    }
+  },
+  "unknown_semantics": {
+    "missing_numeric_values": "unknown, never zero",
+    "positive_contribution": "requires known finite evidence-supported coordinates",
+    "threshold_result": "abstain when any required coordinate is unknown"
+  },
+  "bit_coordinate_rule": {
+    "coordinate_reported_without_witness": false,
+    "lower_bound_without_witness": 0,
+    "fixed_class_score_field": "priority_heuristic"
+  },
+  "sqot_coordinate_rule": {
+    "candidate_count_is_certified_occupation": false,
+    "reserve_requires_item_costs": true,
+    "required_item_costs": [
+      "attention_cost",
+      "verification_cost",
+      "age_cost",
+      "hazard_cost"
+    ]
+  },
+  "alt_coordinate_rule": {
+    "self_reported_accepted_is_sufficient": false,
+    "self_reported_positive_lift_is_sufficient": false,
+    "requires_resource_matched_baseline": true,
+    "requires_independent_verifier": true
+  },
+  "runtime_acceleration_case": {
+    "baseline": {
+      "run_id": "runtime-run:baseline",
+      "initial_state_id": "runtime-state:contract",
+      "score_trajectory": [{"score_id": "score:baseline", "total_score": 0}],
+      "threshold_crossing_step": 3,
+      "resource_units": 1,
+      "baseline_config": {
+        "observation_protocol_id": "observation-protocol:v1.1",
+        "constraint_frame_id": "constraint-frame:v1.1",
+        "receiver_family": ["agent"],
+        "metric_tolerances": {}
+      },
+      "acceleration_metrics": {
+        "time_to_verified": 3,
+        "verification_yield": 0,
+        "residual_half_life": 4,
+        "receiver_reuse": 0,
+        "certified_capital_gain": 0,
+        "resource_cost": 1,
+        "error_correlation": 1,
+        "fixed_horizon": true,
+        "stopping_rule_ref": "stopping-rule:v1.1",
+        "evidence_refs": ["evidence:baseline"]
+      }
+    },
+    "candidate": {
+      "run_id": "runtime-run:candidate",
+      "initial_state_id": "runtime-state:contract",
+      "score_trajectory": [{"score_id": "score:candidate", "total_score": 1}],
+      "threshold_crossing_step": 1,
+      "resource_units": 1,
+      "baseline_config": {
+        "observation_protocol_id": "observation-protocol:v1.1",
+        "constraint_frame_id": "constraint-frame:v1.1",
+        "receiver_family": ["agent"],
+        "metric_tolerances": {}
+      },
+      "acceleration_metrics": {
+        "time_to_verified": 1,
+        "verification_yield": 1,
+        "residual_half_life": 2,
+        "receiver_reuse": 1,
+        "certified_capital_gain": 1,
+        "resource_cost": 1,
+        "error_correlation": 0,
+        "fixed_horizon": true,
+        "stopping_rule_ref": "stopping-rule:v1.1",
+        "evidence_refs": ["evidence:candidate"]
+      }
+    },
+    "expected": {
+      "accepted": true,
+      "acceleration_metrics_certified": true,
+      "hitting_time_gain_lower_bound": 2,
+      "metric_names": [
+        "time_to_verified",
+        "verification_yield",
+        "residual_half_life",
+        "receiver_reuse",
+        "certified_capital_gain",
+        "resource_cost",
+        "error_correlation"
+      ],
+      "operationally_usable": true,
+      "resource_matched": true,
+      "settled": false
+    }
+  },
+  "operation_canonical_case": {
+    "adapter_manifest": {
+      "adapter_kind": "https",
+      "fixed_origin": "https://example.com",
+      "manifest_id": "https:contract",
+      "method": "GET",
+      "path_template": "/v1/{object_id}",
+      "risk_class": "read_only"
+    },
+    "adapter_digest": "cfe60d89dfceb6ab3e9f3f65e7813d56407011fb51139c318370a2a93ebb99ef",
+    "plan_request": {
+      "expires_at": "2030-01-01T00:00:00Z",
+      "idempotency_key": "idempotency:contract",
+      "nonce": "nonce:contract",
+      "path_parameters": {
+        "object_id": "alpha"
+      },
+      "plan_id": "plan:contract",
+      "resource_limits": {
+        "timeout_ms": 5000
+      },
+      "scope": [
+        "read:object"
+      ]
+    },
+    "plan_digest": "b9ec080735b39e109fce83dd14c3ef682a1dea4691aa0faf4af906be3a665b8c"
+  },
+  "approval_signature_case": {
+    "fixture_only_private_seed_b64": "CQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQk=",
+    "public_key_b64": "/RckOFqgx1tk+3jNYC+h2ZH96/drE8WO1wLqyDXp9hg=",
+    "approval": {
+      "approval_id": "approval:plan:contract:fixture-key",
+      "plan_digest": "b9ec080735b39e109fce83dd14c3ef682a1dea4691aa0faf4af906be3a665b8c",
+      "key_id": "fixture-key",
+      "signer_id": "fixture-signer",
+      "scope": [
+        "read:object"
+      ],
+      "issued_at": "2029-01-01T00:00:00Z",
+      "expires_at": "2029-12-31T00:00:00Z",
+      "nonce": "nonce:contract",
+      "max_uses": 1,
+      "signature_b64": "8xeLDk6m3pM99n9NP5yuGAHOrwaIjZKjfkImLAAQJJzQus/uQVEudNrA5xeO9SmF5nJGud60IkxgRY/Hos77DA=="
+    }
+  },
+  "boundary_normal_forms": {
+    "afst_empty": {
+      "accepted": false,
+      "operation_ready": false,
+      "physical_dispatch_ready": false,
+      "provider_dispatch_ready": false,
+      "residual_kinds": [
+        "missing_abundance_coordinates",
+        "missing_authority_envelopes",
+        "missing_balance_witnesses",
+        "missing_candidate_fluxes",
+        "missing_handover_protocols",
+        "missing_refusal_channels",
+        "missing_satisfaction_coordinates",
+        "missing_stabilization_buffers"
+      ],
+      "settled": false,
+      "system": "AFST"
+    },
+    "phase_unknown": {
+      "accepted": false,
+      "certificate_status": "abstain",
+      "settled": false,
+      "system": "Phase"
+    },
+    "bit_unwitnessed": {
+      "certificate_status": "abstain",
+      "certified_activation_gain": 0,
+      "coordinate_reported": false,
+      "lower_bound": 0,
+      "settled": false,
+      "system": "BIT"
+    },
+    "sqot_unknown": {
+      "accepted": false,
+      "measurement_state": "unknown",
+      "reserve_accepted": false,
+      "settled": false,
+      "system": "SQOT"
+    },
+    "alt_self_reported": {
+      "accepted": false,
+      "positive_lift": false,
+      "promotes_to_capital": false,
+      "settled": false,
+      "system": "ALT"
+    },
+    "trc_empty": {
+      "accepted": false,
+      "executed_action_count": 0,
+      "physical_truth_proven": false,
+      "settled": false,
+      "system": "TRC"
+    }
+  },
+  "residual_kinds": [
+    "authority_expired",
+    "authority_expiry_invalid",
+    "consent_expired",
+    "consent_expiry_invalid",
+    "invalid_reference_time",
+    "missing_certified_abundance",
+    "missing_target_deficit",
+    "physical_balance_unknown",
+    "refusal_active",
+    "resource_balance_violation",
+    "unit_mismatch"
+  ]
+}

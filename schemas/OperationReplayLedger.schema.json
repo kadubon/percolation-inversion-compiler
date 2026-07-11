@@ -1,0 +1,45 @@
+{
+  "properties": {
+    "dispatch_uncertain": {
+      "default": false,
+      "title": "Dispatch Uncertain",
+      "type": "boolean"
+    },
+    "ledger_id": {
+      "title": "Ledger Id",
+      "type": "string"
+    },
+    "nonce_digest": {
+      "title": "Nonce Digest",
+      "type": "string"
+    },
+    "receipt_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Receipt Id"
+    },
+    "root": {
+      "title": "Root",
+      "type": "string"
+    },
+    "status": {
+      "title": "Status",
+      "type": "string"
+    }
+  },
+  "required": [
+    "ledger_id",
+    "root",
+    "nonce_digest",
+    "status"
+  ],
+  "title": "OperationReplayLedger",
+  "type": "object"
+}

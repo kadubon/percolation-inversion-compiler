@@ -1,0 +1,65 @@
+{
+  "properties": {
+    "observation_window_end": {
+      "title": "Observation Window End",
+      "type": "string"
+    },
+    "observation_window_start": {
+      "title": "Observation Window Start",
+      "type": "string"
+    },
+    "outcome_accepted": {
+      "default": false,
+      "title": "Outcome Accepted",
+      "type": "boolean"
+    },
+    "outcome_digest": {
+      "title": "Outcome Digest",
+      "type": "string"
+    },
+    "plan_digest": {
+      "title": "Plan Digest",
+      "type": "string"
+    },
+    "receipt_id": {
+      "title": "Receipt Id",
+      "type": "string"
+    },
+    "scope": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Scope",
+      "type": "array"
+    },
+    "signature_b64": {
+      "title": "Signature B64",
+      "type": "string"
+    },
+    "verifier_id": {
+      "title": "Verifier Id",
+      "type": "string"
+    },
+    "verifier_key_id": {
+      "title": "Verifier Key Id",
+      "type": "string"
+    },
+    "verifier_report_id": {
+      "title": "Verifier Report Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "verifier_report_id",
+    "receipt_id",
+    "plan_digest",
+    "verifier_key_id",
+    "verifier_id",
+    "observation_window_start",
+    "observation_window_end",
+    "outcome_digest",
+    "signature_b64"
+  ],
+  "title": "OperationVerifierReport",
+  "type": "object"
+}

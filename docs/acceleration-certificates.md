@@ -1,7 +1,7 @@
 # Finite Acceleration Certificates
 
-`PhaseAccelerationScore` ranks one runtime step. v0.3.4 adds finite comparison
-records so agents can test whether a candidate ECPT runtime path improves on a
+`PhaseAccelerationScore` ranks one runtime step. v1.1 comparison records let
+agents test whether a candidate ECPT runtime path improves on a
 resource-matched baseline:
 
 - `RuntimeRunReport`
@@ -18,17 +18,19 @@ The certificate compares:
 - false-liquidity bound;
 - verifier backlog bound;
 - resource matching.
+- paired direction-aware measurements with fixed horizon, stopping rule,
+  evidence, and per-metric tolerances.
 
-An accepted certificate means the candidate run improved the finite
-protocol-relative ASI-proxy workflow under the declared comparison contract. It
-does not settle external physical, oracle, simulator, policy, or real ASI
-claims.
+`accepted=true` records the finite structural lower bound.
+`acceleration_metrics_certified=true` records the paired empirical comparison.
+Require both for an operational acceleration claim. Neither settles external
+physical, oracle, simulator, policy, or real ASI claims.
 
 CLI:
 
 ```powershell
-uv run pic runtime compare --baseline examples/runtime_baseline_run.json --candidate examples/runtime_candidate_run.json --threshold examples/runtime_threshold.json
-uv run pic runtime certify-acceleration --baseline examples/runtime_baseline_run.json --candidate examples/runtime_candidate_run.json
+uv run pic runtime compare --baseline examples/runtime_acceleration/baseline.json --candidate examples/runtime_acceleration/candidate.json
+uv run pic runtime certify-acceleration --baseline examples/runtime_acceleration/baseline.json --candidate examples/runtime_acceleration/candidate.json
 ```
 
 Agent policy:

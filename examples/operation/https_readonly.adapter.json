@@ -1,0 +1,11 @@
+{
+  "adapter_kind": "https",
+  "fixed_origin": "https://example.com",
+  "manifest_id": "https:readonly-example",
+  "max_request_bytes": 4096,
+  "max_response_bytes": 65536,
+  "method": "GET",
+  "path_template": "/",
+  "risk_class": "read_only",
+  "timeout_ms": 5000
+}

@@ -1,0 +1,968 @@
+{
+  "$defs": {
+    "BoundedFrictionHandover": {
+      "description": "Bounded-friction handover witness; never frictionless execution authority.",
+      "properties": {
+        "accepted": {
+          "default": false,
+          "title": "Accepted",
+          "type": "boolean"
+        },
+        "authority_valid": {
+          "default": false,
+          "title": "Authority Valid",
+          "type": "boolean"
+        },
+        "covert_transition": {
+          "default": false,
+          "title": "Covert Transition",
+          "type": "boolean"
+        },
+        "dual_run": {
+          "default": false,
+          "title": "Dual Run",
+          "type": "boolean"
+        },
+        "evidence_refs": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Evidence Refs",
+          "type": "array"
+        },
+        "explanation_channel_available": {
+          "default": false,
+          "title": "Explanation Channel Available",
+          "type": "boolean"
+        },
+        "from_controller": {
+          "default": "",
+          "title": "From Controller",
+          "type": "string"
+        },
+        "handover_id": {
+          "default": "",
+          "title": "Handover Id",
+          "type": "string"
+        },
+        "irreversible_transition": {
+          "default": false,
+          "title": "Irreversible Transition",
+          "type": "boolean"
+        },
+        "mode": {
+          "default": "diagnostic-only",
+          "title": "Mode",
+          "type": "string"
+        },
+        "override_live": {
+          "default": false,
+          "title": "Override Live",
+          "type": "boolean"
+        },
+        "reasons": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Reasons",
+          "type": "array"
+        },
+        "residual_ledger": {
+          "$ref": "#/$defs/Ledger"
+        },
+        "rollback_available": {
+          "default": false,
+          "title": "Rollback Available",
+          "type": "boolean"
+        },
+        "settled": {
+          "default": false,
+          "title": "Settled",
+          "type": "boolean"
+        },
+        "shadow_mode": {
+          "default": false,
+          "title": "Shadow Mode",
+          "type": "boolean"
+        },
+        "skill_debt_budget": {
+          "default": 0.0,
+          "title": "Skill Debt Budget",
+          "type": "number"
+        },
+        "skill_debt_upper_bound": {
+          "default": 0.0,
+          "title": "Skill Debt Upper Bound",
+          "type": "number"
+        },
+        "telemetry_fresh": {
+          "default": false,
+          "title": "Telemetry Fresh",
+          "type": "boolean"
+        },
+        "to_controller": {
+          "default": "",
+          "title": "To Controller",
+          "type": "string"
+        }
+      },
+      "title": "BoundedFrictionHandover",
+      "type": "object"
+    },
+    "BufferComponent": {
+      "description": "Typed stabilization-buffer component.",
+      "properties": {
+        "amount": {
+          "default": 0.0,
+          "title": "Amount",
+          "type": "number"
+        },
+        "component_id": {
+          "default": "",
+          "title": "Component Id",
+          "type": "string"
+        },
+        "evidence_refs": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Evidence Refs",
+          "type": "array"
+        },
+        "kind": {
+          "default": "",
+          "title": "Kind",
+          "type": "string"
+        },
+        "resource_type": {
+          "default": "",
+          "title": "Resource Type",
+          "type": "string"
+        },
+        "unit": {
+          "default": "dimensionless",
+          "title": "Unit",
+          "type": "string"
+        },
+        "unit_family": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Unit Family"
+        }
+      },
+      "title": "BufferComponent",
+      "type": "object"
+    },
+    "ClaimStatus": {
+      "description": "Protocol-relative status labels used by ECPT, BIT, TRC, SQOT, and ALT.",
+      "enum": [
+        "rejected",
+        "expired",
+        "diagnostic",
+        "relaxed",
+        "risk-provisional",
+        "speculative",
+        "provisional",
+        "partial",
+        "settled"
+      ],
+      "title": "ClaimStatus",
+      "type": "string"
+    },
+    "CoordinateKind": {
+      "enum": [
+        "benefit",
+        "burden",
+        "residual",
+        "tolerance",
+        "resource",
+        "metadata"
+      ],
+      "title": "CoordinateKind",
+      "type": "string"
+    },
+    "EvidenceStatus": {
+      "enum": [
+        "verified",
+        "declared",
+        "unknown"
+      ],
+      "title": "EvidenceStatus",
+      "type": "string"
+    },
+    "Ledger": {
+      "description": "A finite typed ledger with explicit coordinate kinds.",
+      "properties": {
+        "coordinates": {
+          "additionalProperties": {
+            "$ref": "#/$defs/LedgerCoordinate"
+          },
+          "title": "Coordinates",
+          "type": "object"
+        }
+      },
+      "title": "Ledger",
+      "type": "object"
+    },
+    "LedgerCoordinate": {
+      "description": "One typed coordinate in a finite certificate ledger.",
+      "properties": {
+        "description": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Description"
+        },
+        "evidence_refs": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Evidence Refs",
+          "type": "array"
+        },
+        "evidence_status": {
+          "$ref": "#/$defs/EvidenceStatus",
+          "default": "declared"
+        },
+        "kind": {
+          "$ref": "#/$defs/CoordinateKind",
+          "default": "burden"
+        },
+        "known": {
+          "default": true,
+          "title": "Known",
+          "type": "boolean"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "unit": {
+          "default": "dimensionless",
+          "title": "Unit",
+          "type": "string"
+        },
+        "value": {
+          "title": "Value",
+          "type": "number"
+        }
+      },
+      "required": [
+        "name",
+        "value"
+      ],
+      "title": "LedgerCoordinate",
+      "type": "object"
+    },
+    "NonMarketLiquidityCertificate": {
+      "description": "Finite AFST non-market liquidity check result.",
+      "properties": {
+        "abundance_id": {
+          "default": "",
+          "title": "Abundance Id",
+          "type": "string"
+        },
+        "accepted": {
+          "default": false,
+          "title": "Accepted",
+          "type": "boolean"
+        },
+        "authority_valid": {
+          "default": false,
+          "title": "Authority Valid",
+          "type": "boolean"
+        },
+        "balance_witness_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Balance Witness Id"
+        },
+        "certificate_id": {
+          "default": "",
+          "title": "Certificate Id",
+          "type": "string"
+        },
+        "consent_valid": {
+          "default": false,
+          "title": "Consent Valid",
+          "type": "boolean"
+        },
+        "deficit_id": {
+          "default": "",
+          "title": "Deficit Id",
+          "type": "string"
+        },
+        "effect_witness_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Effect Witness Id"
+        },
+        "finite_checks_passed": {
+          "default": false,
+          "title": "Finite Checks Passed",
+          "type": "boolean"
+        },
+        "flux_id": {
+          "default": "",
+          "title": "Flux Id",
+          "type": "string"
+        },
+        "lifecycle_fresh": {
+          "default": false,
+          "title": "Lifecycle Fresh",
+          "type": "boolean"
+        },
+        "missing_obligations": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Missing Obligations",
+          "type": "array"
+        },
+        "operationally_usable": {
+          "default": false,
+          "title": "Operationally Usable",
+          "type": "boolean"
+        },
+        "physical_balance_preserved": {
+          "default": false,
+          "title": "Physical Balance Preserved",
+          "type": "boolean"
+        },
+        "price_not_primary": {
+          "default": true,
+          "title": "Price Not Primary",
+          "type": "boolean"
+        },
+        "reasons": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Reasons",
+          "type": "array"
+        },
+        "refusal_preserved": {
+          "default": false,
+          "title": "Refusal Preserved",
+          "type": "boolean"
+        },
+        "residual_ledger": {
+          "$ref": "#/$defs/Ledger"
+        },
+        "settled": {
+          "default": false,
+          "title": "Settled",
+          "type": "boolean"
+        },
+        "source_floor_preserved": {
+          "default": false,
+          "title": "Source Floor Preserved",
+          "type": "boolean"
+        },
+        "status": {
+          "$ref": "#/$defs/ClaimStatus",
+          "default": "diagnostic"
+        },
+        "target_deficit_reduced": {
+          "default": false,
+          "title": "Target Deficit Reduced",
+          "type": "boolean"
+        }
+      },
+      "title": "NonMarketLiquidityCertificate",
+      "type": "object"
+    },
+    "RawInputAudit": {
+      "description": "Raw input presence audit used before defaults can hide missing fields.",
+      "properties": {
+        "accepted": {
+          "default": false,
+          "title": "Accepted",
+          "type": "boolean"
+        },
+        "audit_id": {
+          "default": "afst-raw-input-audit",
+          "title": "Audit Id",
+          "type": "string"
+        },
+        "missing_required_paths": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Missing Required Paths",
+          "type": "array"
+        },
+        "reasons": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Reasons",
+          "type": "array"
+        },
+        "supplied_paths": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Supplied Paths",
+          "type": "array"
+        },
+        "unknown_paths": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Unknown Paths",
+          "type": "array"
+        }
+      },
+      "title": "RawInputAudit",
+      "type": "object"
+    },
+    "SatisfactionFluxRecord": {
+      "description": "Accepted or rejected satisfaction-flux ledger row.",
+      "properties": {
+        "accepted": {
+          "default": false,
+          "title": "Accepted",
+          "type": "boolean"
+        },
+        "amount": {
+          "default": 0.0,
+          "title": "Amount",
+          "type": "number"
+        },
+        "authority_refs": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Authority Refs",
+          "type": "array"
+        },
+        "certificate_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Certificate Id"
+        },
+        "consent_refs": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Consent Refs",
+          "type": "array"
+        },
+        "effective_amount": {
+          "default": 0.0,
+          "title": "Effective Amount",
+          "type": "number"
+        },
+        "evidence_refs": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Evidence Refs",
+          "type": "array"
+        },
+        "flux_id": {
+          "default": "",
+          "title": "Flux Id",
+          "type": "string"
+        },
+        "latency": {
+          "default": 0.0,
+          "title": "Latency",
+          "type": "number"
+        },
+        "loss_upper_bound": {
+          "default": 0.0,
+          "title": "Loss Upper Bound",
+          "type": "number"
+        },
+        "observed_satisfaction_post": {
+          "additionalProperties": {
+            "type": "number"
+          },
+          "title": "Observed Satisfaction Post",
+          "type": "object"
+        },
+        "predicted_satisfaction_post": {
+          "additionalProperties": {
+            "type": "number"
+          },
+          "title": "Predicted Satisfaction Post",
+          "type": "object"
+        },
+        "predicted_satisfaction_pre": {
+          "additionalProperties": {
+            "type": "number"
+          },
+          "title": "Predicted Satisfaction Pre",
+          "type": "object"
+        },
+        "reasons": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Reasons",
+          "type": "array"
+        },
+        "record_id": {
+          "default": "",
+          "title": "Record Id",
+          "type": "string"
+        },
+        "refusal_refs": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Refusal Refs",
+          "type": "array"
+        },
+        "residual_ledger": {
+          "$ref": "#/$defs/Ledger"
+        },
+        "resource_type": {
+          "default": "",
+          "title": "Resource Type",
+          "type": "string"
+        },
+        "settled": {
+          "default": false,
+          "title": "Settled",
+          "type": "boolean"
+        },
+        "slot": {
+          "default": "finite",
+          "title": "Slot",
+          "type": "string"
+        },
+        "source_cell_id": {
+          "default": "",
+          "title": "Source Cell Id",
+          "type": "string"
+        },
+        "status": {
+          "$ref": "#/$defs/ClaimStatus",
+          "default": "provisional"
+        },
+        "target_cell_id": {
+          "default": "",
+          "title": "Target Cell Id",
+          "type": "string"
+        },
+        "trace_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Trace Id"
+        },
+        "unit": {
+          "default": "dimensionless",
+          "title": "Unit",
+          "type": "string"
+        },
+        "unit_family": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Unit Family"
+        }
+      },
+      "title": "SatisfactionFluxRecord",
+      "type": "object"
+    },
+    "ShockEnvelope": {
+      "description": "Finite shock envelope for buffer sizing.",
+      "properties": {
+        "envelope_id": {
+          "default": "",
+          "title": "Envelope Id",
+          "type": "string"
+        },
+        "evidence_refs": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Evidence Refs",
+          "type": "array"
+        },
+        "legal_hold_load": {
+          "default": 0.0,
+          "title": "Legal Hold Load",
+          "type": "number"
+        },
+        "panic_load": {
+          "default": 0.0,
+          "title": "Panic Load",
+          "type": "number"
+        },
+        "queue_load": {
+          "default": 0.0,
+          "title": "Queue Load",
+          "type": "number"
+        },
+        "residual_charge": {
+          "default": 0.0,
+          "title": "Residual Charge",
+          "type": "number"
+        },
+        "resource_type": {
+          "default": "",
+          "title": "Resource Type",
+          "type": "string"
+        },
+        "shock_upper_bound": {
+          "default": 0.0,
+          "title": "Shock Upper Bound",
+          "type": "number"
+        },
+        "spoilage_upper_bound": {
+          "default": 0.0,
+          "title": "Spoilage Upper Bound",
+          "type": "number"
+        },
+        "unit": {
+          "default": "dimensionless",
+          "title": "Unit",
+          "type": "string"
+        },
+        "unit_family": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Unit Family"
+        }
+      },
+      "title": "ShockEnvelope",
+      "type": "object"
+    },
+    "StabilizationBuffer": {
+      "description": "Typed stabilization buffer with compatible components and shock load.",
+      "properties": {
+        "accepted": {
+          "default": false,
+          "title": "Accepted",
+          "type": "boolean"
+        },
+        "available_buffer": {
+          "default": 0.0,
+          "title": "Available Buffer",
+          "type": "number"
+        },
+        "buffer_id": {
+          "default": "",
+          "title": "Buffer Id",
+          "type": "string"
+        },
+        "cell_id": {
+          "default": "",
+          "title": "Cell Id",
+          "type": "string"
+        },
+        "components": {
+          "items": {
+            "$ref": "#/$defs/BufferComponent"
+          },
+          "title": "Components",
+          "type": "array"
+        },
+        "coverage_ratio": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Coverage Ratio"
+        },
+        "evidence_refs": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Evidence Refs",
+          "type": "array"
+        },
+        "horizon": {
+          "default": "finite",
+          "title": "Horizon",
+          "type": "string"
+        },
+        "reasons": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Reasons",
+          "type": "array"
+        },
+        "required_buffer": {
+          "default": 0.0,
+          "title": "Required Buffer",
+          "type": "number"
+        },
+        "residual_ledger": {
+          "$ref": "#/$defs/Ledger"
+        },
+        "resource_type": {
+          "default": "",
+          "title": "Resource Type",
+          "type": "string"
+        },
+        "shock_envelope": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ShockEnvelope"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "unit": {
+          "default": "dimensionless",
+          "title": "Unit",
+          "type": "string"
+        },
+        "unit_family": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Unit Family"
+        }
+      },
+      "title": "StabilizationBuffer",
+      "type": "object"
+    }
+  },
+  "description": "Top-level AFST diagnostic report.",
+  "properties": {
+    "accepted": {
+      "default": false,
+      "title": "Accepted",
+      "type": "boolean"
+    },
+    "alt_report_refs": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Alt Report Refs",
+      "type": "array"
+    },
+    "blockers": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Blockers",
+      "type": "array"
+    },
+    "diagnostic_usable": {
+      "default": false,
+      "title": "Diagnostic Usable",
+      "type": "boolean"
+    },
+    "finite_checks_passed": {
+      "default": false,
+      "title": "Finite Checks Passed",
+      "type": "boolean"
+    },
+    "flux_admissible": {
+      "default": false,
+      "title": "Flux Admissible",
+      "type": "boolean"
+    },
+    "handover_protocols": {
+      "items": {
+        "$ref": "#/$defs/BoundedFrictionHandover"
+      },
+      "title": "Handover Protocols",
+      "type": "array"
+    },
+    "liquidity_certificates": {
+      "items": {
+        "$ref": "#/$defs/NonMarketLiquidityCertificate"
+      },
+      "title": "Liquidity Certificates",
+      "type": "array"
+    },
+    "missing_obligations": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Missing Obligations",
+      "type": "array"
+    },
+    "next_safe_actions": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Next Safe Actions",
+      "type": "array"
+    },
+    "non_claims": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Non Claims",
+      "type": "array"
+    },
+    "observation_window_refs": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Observation Window Refs",
+      "type": "array"
+    },
+    "ok": {
+      "default": true,
+      "title": "Ok",
+      "type": "boolean"
+    },
+    "operation_ready": {
+      "default": false,
+      "title": "Operation Ready",
+      "type": "boolean"
+    },
+    "operationally_usable": {
+      "default": false,
+      "title": "Operationally Usable",
+      "type": "boolean"
+    },
+    "physical_dispatch_ready": {
+      "default": false,
+      "title": "Physical Dispatch Ready",
+      "type": "boolean"
+    },
+    "profile": {
+      "default": "development",
+      "title": "Profile",
+      "type": "string"
+    },
+    "provider_dispatch_ready": {
+      "default": false,
+      "title": "Provider Dispatch Ready",
+      "type": "boolean"
+    },
+    "raw_input_audit": {
+      "$ref": "#/$defs/RawInputAudit"
+    },
+    "reasons": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Reasons",
+      "type": "array"
+    },
+    "report_id": {
+      "default": "afst-flux-stabilization",
+      "title": "Report Id",
+      "type": "string"
+    },
+    "residual_ledger": {
+      "$ref": "#/$defs/Ledger"
+    },
+    "residuals": {
+      "items": {
+        "additionalProperties": true,
+        "type": "object"
+      },
+      "title": "Residuals",
+      "type": "array"
+    },
+    "satisfaction_flux_ledger": {
+      "items": {
+        "$ref": "#/$defs/SatisfactionFluxRecord"
+      },
+      "title": "Satisfaction Flux Ledger",
+      "type": "array"
+    },
+    "schema_version": {
+      "default": "pic.afst_flux_stabilization.v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "settled": {
+      "default": false,
+      "title": "Settled",
+      "type": "boolean"
+    },
+    "stabilization_buffers": {
+      "items": {
+        "$ref": "#/$defs/StabilizationBuffer"
+      },
+      "title": "Stabilization Buffers",
+      "type": "array"
+    },
+    "status": {
+      "$ref": "#/$defs/ClaimStatus",
+      "default": "diagnostic"
+    },
+    "trc_report_refs": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Trc Report Refs",
+      "type": "array"
+    }
+  },
+  "title": "AFSTFluxStabilizationReport",
+  "type": "object"
+}

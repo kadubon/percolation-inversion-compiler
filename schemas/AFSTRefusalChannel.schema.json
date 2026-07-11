@@ -1,0 +1,167 @@
+{
+  "$defs": {
+    "CoordinateKind": {
+      "enum": [
+        "benefit",
+        "burden",
+        "residual",
+        "tolerance",
+        "resource",
+        "metadata"
+      ],
+      "title": "CoordinateKind",
+      "type": "string"
+    },
+    "EvidenceStatus": {
+      "enum": [
+        "verified",
+        "declared",
+        "unknown"
+      ],
+      "title": "EvidenceStatus",
+      "type": "string"
+    },
+    "Ledger": {
+      "description": "A finite typed ledger with explicit coordinate kinds.",
+      "properties": {
+        "coordinates": {
+          "additionalProperties": {
+            "$ref": "#/$defs/LedgerCoordinate"
+          },
+          "title": "Coordinates",
+          "type": "object"
+        }
+      },
+      "title": "Ledger",
+      "type": "object"
+    },
+    "LedgerCoordinate": {
+      "description": "One typed coordinate in a finite certificate ledger.",
+      "properties": {
+        "description": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Description"
+        },
+        "evidence_refs": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Evidence Refs",
+          "type": "array"
+        },
+        "evidence_status": {
+          "$ref": "#/$defs/EvidenceStatus",
+          "default": "declared"
+        },
+        "kind": {
+          "$ref": "#/$defs/CoordinateKind",
+          "default": "burden"
+        },
+        "known": {
+          "default": true,
+          "title": "Known",
+          "type": "boolean"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "unit": {
+          "default": "dimensionless",
+          "title": "Unit",
+          "type": "string"
+        },
+        "value": {
+          "title": "Value",
+          "type": "number"
+        }
+      },
+      "required": [
+        "name",
+        "value"
+      ],
+      "title": "LedgerCoordinate",
+      "type": "object"
+    }
+  },
+  "description": "Refusal and legal-hold channel that must not be suppressed.",
+  "properties": {
+    "accepted": {
+      "default": false,
+      "title": "Accepted",
+      "type": "boolean"
+    },
+    "active_refusal": {
+      "default": false,
+      "title": "Active Refusal",
+      "type": "boolean"
+    },
+    "appeal_available": {
+      "default": false,
+      "title": "Appeal Available",
+      "type": "boolean"
+    },
+    "channel_id": {
+      "default": "",
+      "title": "Channel Id",
+      "type": "string"
+    },
+    "evidence_refs": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Evidence Refs",
+      "type": "array"
+    },
+    "explanation_requested": {
+      "default": false,
+      "title": "Explanation Requested",
+      "type": "boolean"
+    },
+    "legal_hold": {
+      "default": false,
+      "title": "Legal Hold",
+      "type": "boolean"
+    },
+    "mode": {
+      "default": "declared",
+      "title": "Mode",
+      "type": "string"
+    },
+    "observed_signal": {
+      "default": 0.0,
+      "title": "Observed Signal",
+      "type": "number"
+    },
+    "reasons": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Reasons",
+      "type": "array"
+    },
+    "residual_ledger": {
+      "$ref": "#/$defs/Ledger"
+    },
+    "stop_threshold": {
+      "default": 1.0,
+      "title": "Stop Threshold",
+      "type": "number"
+    },
+    "subject_cell_id": {
+      "default": "",
+      "title": "Subject Cell Id",
+      "type": "string"
+    }
+  },
+  "title": "RefusalChannel",
+  "type": "object"
+}

@@ -36,7 +36,7 @@ uv run ruff format --check .
 uv run ruff check .
 uv run mypy src scripts
 uv run pytest --cov=percolation_inversion_compiler --cov-report=term-missing --cov-fail-under=90
-uv run pip-audit
+uv run pip-audit --skip-editable
 uv run bandit -r src -c pyproject.toml
 uv run python scripts/check_publish_safety.py
 uv build

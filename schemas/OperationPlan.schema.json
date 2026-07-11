@@ -1,0 +1,356 @@
+{
+  "$defs": {
+    "OperationAdapterKind": {
+      "enum": [
+        "https",
+        "process"
+      ],
+      "title": "OperationAdapterKind",
+      "type": "string"
+    },
+    "OperationAdapterManifest": {
+      "properties": {
+        "adapter_kind": {
+          "$ref": "#/$defs/OperationAdapterKind"
+        },
+        "argv_patterns": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Argv Patterns",
+          "type": "array"
+        },
+        "environment_allowlist": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Environment Allowlist",
+          "type": "array"
+        },
+        "executable_path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Executable Path"
+        },
+        "executable_sha256_by_platform": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Executable Sha256 By Platform",
+          "type": "object"
+        },
+        "external_sandbox_attested": {
+          "default": false,
+          "title": "External Sandbox Attested",
+          "type": "boolean"
+        },
+        "fixed_argv_prefix": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Fixed Argv Prefix",
+          "type": "array"
+        },
+        "fixed_cwd": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Fixed Cwd"
+        },
+        "fixed_origin": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Fixed Origin"
+        },
+        "hazard_contract_ref": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Hazard Contract Ref"
+        },
+        "manifest_id": {
+          "title": "Manifest Id",
+          "type": "string"
+        },
+        "max_request_bytes": {
+          "default": 1000000,
+          "title": "Max Request Bytes",
+          "type": "integer"
+        },
+        "max_response_bytes": {
+          "default": 1000000,
+          "title": "Max Response Bytes",
+          "type": "integer"
+        },
+        "method": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Method"
+        },
+        "path_template": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Path Template"
+        },
+        "request_schema": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Request Schema"
+        },
+        "response_schema": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Response Schema"
+        },
+        "risk_class": {
+          "$ref": "#/$defs/OperationRiskClass"
+        },
+        "rollback_contract_ref": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Rollback Contract Ref"
+        },
+        "secret_env_names": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Secret Env Names",
+          "type": "array"
+        },
+        "timeout_ms": {
+          "default": 10000,
+          "title": "Timeout Ms",
+          "type": "integer"
+        },
+        "verifier_contract_ref": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Verifier Contract Ref"
+        },
+        "version": {
+          "default": "1",
+          "title": "Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "manifest_id",
+        "adapter_kind",
+        "risk_class"
+      ],
+      "title": "OperationAdapterManifest",
+      "type": "object"
+    },
+    "OperationRiskClass": {
+      "enum": [
+        "read_only",
+        "reversible_write",
+        "irreversible_or_physical"
+      ],
+      "title": "OperationRiskClass",
+      "type": "string"
+    }
+  },
+  "properties": {
+    "adapter_digest": {
+      "title": "Adapter Digest",
+      "type": "string"
+    },
+    "adapter_manifest": {
+      "$ref": "#/$defs/OperationAdapterManifest"
+    },
+    "arguments": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Arguments",
+      "type": "array"
+    },
+    "body_sha256": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Body Sha256"
+    },
+    "expires_at": {
+      "title": "Expires At",
+      "type": "string"
+    },
+    "hazard_contract_ref": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Hazard Contract Ref"
+    },
+    "idempotency_key": {
+      "title": "Idempotency Key",
+      "type": "string"
+    },
+    "nonce": {
+      "title": "Nonce",
+      "type": "string"
+    },
+    "path_parameters": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "title": "Path Parameters",
+      "type": "object"
+    },
+    "plan_digest": {
+      "default": "",
+      "title": "Plan Digest",
+      "type": "string"
+    },
+    "plan_id": {
+      "title": "Plan Id",
+      "type": "string"
+    },
+    "resource_limits": {
+      "additionalProperties": {
+        "type": "integer"
+      },
+      "title": "Resource Limits",
+      "type": "object"
+    },
+    "risk_class": {
+      "$ref": "#/$defs/OperationRiskClass"
+    },
+    "rollback_contract_ref": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Rollback Contract Ref"
+    },
+    "scope": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Scope",
+      "type": "array"
+    },
+    "secret_env_names": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Secret Env Names",
+      "type": "array"
+    },
+    "settled": {
+      "default": false,
+      "title": "Settled",
+      "type": "boolean"
+    },
+    "verifier_contract_ref": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Verifier Contract Ref"
+    }
+  },
+  "required": [
+    "plan_id",
+    "adapter_manifest",
+    "adapter_digest",
+    "risk_class",
+    "expires_at",
+    "nonce",
+    "idempotency_key"
+  ],
+  "title": "OperationPlan",
+  "type": "object"
+}

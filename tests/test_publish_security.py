@@ -7,6 +7,8 @@ from pathlib import Path
 
 import yaml
 
+from percolation_inversion_compiler import __version__
+
 ROOT = Path(__file__).resolve().parents[1]
 
 
@@ -23,7 +25,7 @@ def _publish_safety_main() -> int:
 def test_citation_cff_references_all_papers() -> None:
     data = yaml.safe_load((ROOT / "CITATION.cff").read_text(encoding="utf-8"))
     dois = {reference["doi"] for reference in data["references"]}
-    assert data["version"] == "1.0.0"
+    assert data["version"] == __version__
     assert data["doi"] == "10.5281/zenodo.20569166"
     assert data["repository-code"] == "https://github.com/kadubon/percolation-inversion-compiler"
     assert "OWNER/" not in data["repository-code"]
@@ -37,23 +39,24 @@ def test_citation_cff_references_all_papers() -> None:
 def test_release_version_metadata_is_consistent() -> None:
     citation = yaml.safe_load((ROOT / "CITATION.cff").read_text(encoding="utf-8"))
     pyproject = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
-    init_text = (ROOT / "src" / "percolation_inversion_compiler" / "__init__.py").read_text(
-        encoding="utf-8"
-    )
     changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
 
-    assert pyproject["project"]["version"] == "1.0.0"
-    assert citation["version"] == "1.0.0"
-    assert citation["date-released"] == "2026-07-07"
-    assert re.search(r"^__version__\s*=\s*[\"']1\.0\.0[\"']", init_text, re.MULTILINE)
-    assert re.search(r"^## v1\.0\.0 - 2026-07-07$", changelog, re.MULTILINE)
-    assert changelog.index("## v1.0.0 - 2026-07-07") < changelog.index("## v0.9.0 - 2026-07-02")
+    version = str(pyproject["project"]["version"])
+    assert version == __version__
+    assert citation["version"] == version
+    release_heading = re.search(
+        rf"^## v{re.escape(version)} - (?P<date>\d{{4}}-\d{{2}}-\d{{2}})$",
+        changelog,
+        re.MULTILINE,
+    )
+    assert release_heading is not None
+    assert citation["date-released"] == release_heading.group("date")
 
 
 def test_pyproject_has_pypi_distribution_metadata() -> None:
     data = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
     project = data["project"]
-    assert project["version"] == "1.0.0"
+    assert project["version"] == __version__
     urls = project["urls"]
     assert urls["Repository"] == "https://github.com/kadubon/percolation-inversion-compiler"
     assert urls["DOI"] == "https://doi.org/10.5281/zenodo.20569166"
