@@ -176,6 +176,41 @@ def test_distribution_artifact_checker_accepts_required_wheel_members(tmp_path: 
     assert module.validate_wheel(wheel) == []
 
 
+def test_distribution_artifact_checker_accepts_core_metadata_25(tmp_path: Path) -> None:
+    module = _distribution_script_module()
+    wheel = tmp_path / "demo.whl"
+    with zipfile.ZipFile(wheel, "w") as archive:
+        archive.writestr(
+            "demo-1.0.dist-info/METADATA",
+            "Metadata-Version: 2.5\nName: demo\nVersion: 1.0\n",
+        )
+    assert module.validate_wheel_metadata(wheel) == []
+
+
+def test_distribution_artifact_checker_rejects_invalid_core_metadata(tmp_path: Path) -> None:
+    module = _distribution_script_module()
+    wheel = tmp_path / "demo.whl"
+    with zipfile.ZipFile(wheel, "w") as archive:
+        archive.writestr(
+            "demo-1.0.dist-info/METADATA",
+            "Metadata-Version: 2.99\nName: demo\nVersion: 1.0\n",
+        )
+    failures = module.validate_wheel_metadata(wheel)
+    assert any("invalid Core Metadata" in failure for failure in failures)
+
+
+def test_distribution_artifact_checker_accepts_sdist_core_metadata_25(
+    tmp_path: Path,
+) -> None:
+    module = _distribution_script_module()
+    sdist = tmp_path / "demo.tar.gz"
+    metadata = tmp_path / "PKG-INFO"
+    metadata.write_text("Metadata-Version: 2.5\nName: demo\nVersion: 1.0\n", encoding="utf-8")
+    with tarfile.open(sdist, "w:gz") as archive:
+        archive.add(metadata, arcname="demo-1.0/PKG-INFO")
+    assert module.validate_sdist_metadata(sdist) == []
+
+
 def test_distribution_artifact_checker_accepts_required_sdist_members(tmp_path: Path) -> None:
     module = _distribution_script_module()
     sdist = tmp_path / "demo.tar.gz"

@@ -48,10 +48,7 @@ jobs:
       - name: Build distributions
         run: uv build
 
-      - name: Check distribution metadata
-        run: uv run --with twine python -m twine check dist/*.whl dist/*.tar.gz
-
-      - name: Check distribution artifacts
+      - name: Validate distribution metadata and artifacts
         run: uv run python scripts/check_distribution_artifacts.py
 
       - name: Publish distributions to PyPI
