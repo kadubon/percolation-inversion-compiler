@@ -196,8 +196,10 @@ def check_pyproject_metadata() -> list[str]:
         f"pyproject.toml missing PyPI keyword: {keyword}" for keyword in missing_keywords
     )
     dev_dependencies = set(project.get("optional-dependencies", {}).get("dev", []))
-    if not any(item.startswith("twine>=") for item in dev_dependencies):
-        failures.append("pyproject.toml dev dependencies must include twine for metadata checks")
+    if not any(item.startswith("packaging>=") for item in dev_dependencies):
+        failures.append(
+            "pyproject.toml dev dependencies must include packaging for metadata checks"
+        )
     return failures
 
 
@@ -224,8 +226,8 @@ def check_pypi_workflow() -> list[str]:
     run_values = [str(step.get("run", "")) for step in steps if isinstance(step, dict)]
     if any("gh-action-pypi-publish" in value for value in uses_values):
         failures.append("PyPI workflow must not use the PyPA Docker publish action")
-    if not any("twine check" in run for run in run_values):
-        failures.append("PyPI workflow must run twine check before publishing")
+    if not any("scripts/check_distribution_artifacts.py" in run for run in run_values):
+        failures.append("PyPI workflow must validate distribution metadata before publishing")
     if not any(PYPI_PUBLISH_COMMAND in run for run in run_values):
         failures.append("PyPI workflow must publish with uv trusted publishing")
     return failures

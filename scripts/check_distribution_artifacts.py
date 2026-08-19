@@ -8,6 +8,8 @@ import tomllib
 import zipfile
 from pathlib import Path
 
+from packaging.metadata import InvalidMetadata, Metadata
+
 ROOT = Path(__file__).resolve().parents[1]
 
 REQUIRED_WHEEL_MEMBERS = {
@@ -162,6 +164,33 @@ def validate_wheel(wheel: Path) -> list[str]:
     return failures
 
 
+def _validate_metadata(raw: bytes, artifact: Path) -> list[str]:
+    try:
+        metadata = Metadata.from_email(raw)
+    except (InvalidMetadata, ExceptionGroup) as error:
+        return [f"{artifact.name} has invalid Core Metadata: {error}"]
+
+    failures: list[str] = []
+    for field, value in {
+        "Metadata-Version": metadata.metadata_version,
+        "Name": metadata.name,
+        "Version": metadata.version,
+    }.items():
+        if value is None or not str(value).strip():
+            failures.append(f"{artifact.name} is missing required Core Metadata field: {field}")
+    return failures
+
+
+def validate_wheel_metadata(wheel: Path) -> list[str]:
+    if not wheel.exists():
+        return [f"missing wheel: {wheel}"]
+    with zipfile.ZipFile(wheel) as archive:
+        members = [name for name in archive.namelist() if name.endswith(".dist-info/METADATA")]
+        if len(members) != 1:
+            return [f"{wheel.name} must contain exactly one .dist-info/METADATA file"]
+        return _validate_metadata(archive.read(members[0]), wheel)
+
+
 def validate_sdist(sdist: Path) -> list[str]:
     failures: list[str] = []
     if not sdist.exists():
@@ -183,6 +212,19 @@ def validate_sdist(sdist: Path) -> list[str]:
     return failures
 
 
+def validate_sdist_metadata(sdist: Path) -> list[str]:
+    if not sdist.exists():
+        return [f"missing sdist: {sdist}"]
+    with tarfile.open(sdist, "r:gz") as archive:
+        members = [member for member in archive.getmembers() if member.name.endswith("/PKG-INFO")]
+        if len(members) != 1:
+            return [f"{sdist.name} must contain exactly one PKG-INFO file"]
+        stream = archive.extractfile(members[0])
+        if stream is None:
+            return [f"{sdist.name} has unreadable PKG-INFO"]
+        return _validate_metadata(stream.read(), sdist)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--dist-dir", default="dist")
@@ -193,7 +235,12 @@ def main() -> int:
     version = str(args.version)
     wheel = dist_dir / f"percolation_inversion_compiler-{version}-py3-none-any.whl"
     sdist = dist_dir / f"percolation_inversion_compiler-{version}.tar.gz"
-    failures = [*validate_wheel(wheel), *validate_sdist(sdist)]
+    failures = [
+        *validate_wheel(wheel),
+        *validate_wheel_metadata(wheel),
+        *validate_sdist(sdist),
+        *validate_sdist_metadata(sdist),
+    ]
     if failures:
         print("\n".join(failures))
         return 1

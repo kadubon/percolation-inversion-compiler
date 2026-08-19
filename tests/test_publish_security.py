@@ -90,7 +90,7 @@ def test_pypi_publish_workflow_uses_trusted_publishing() -> None:
     uses = [step.get("uses", "") for step in job["steps"] if isinstance(step, dict)]
     assert not any("gh-action-pypi-publish" in use for use in uses)
     runs = [step.get("run", "") for step in job["steps"] if isinstance(step, dict)]
-    assert any("twine check" in run for run in runs)
+    assert any("scripts/check_distribution_artifacts.py" in run for run in runs)
     assert any("uv publish --trusted-publishing always" in run for run in runs)
 
 
