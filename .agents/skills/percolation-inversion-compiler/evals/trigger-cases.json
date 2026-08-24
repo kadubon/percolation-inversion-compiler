@@ -1,0 +1,31 @@
+{
+  "skill": "percolation-inversion-compiler",
+  "positive": [
+    {"prompt":"Can this coding-agent output be treated as settled and reusable?","reason":"agent-result semantics"},
+    {"prompt":"Check this capability packet and preserve proof obligations.","reason":"capability packet"},
+    {"prompt":"Route verifier tasks for this finite agent trace.","reason":"verifier routing"},
+    {"prompt":"Run a check-only admission on an agent result.","reason":"safe first pass"},
+    {"prompt":"Find the bottleneck blocking this agent workflow.","reason":"bottleneck inversion"},
+    {"prompt":"Compile this output into a residual ledger.","reason":"unknown preservation"},
+    {"prompt":"Plan an approval-bound agent operation.","reason":"operation planning"},
+    {"prompt":"Inspect provenance before accepting agent output.","reason":"output admission"},
+    {"prompt":"Assess protocol-relative ASI-proxy diagnostics.","reason":"explicit protocol-relative diagnostic"},
+    {"prompt":"Check whether a provider receipt proves an outcome.","reason":"receipt boundary"}
+  ],
+  "negative": [
+    {"prompt":"Deploy this payment workflow.","reason":"real execution request"},
+    {"prompt":"Prove we achieved AGI.","reason":"real ASI claim"},
+    {"prompt":"Write unit tests for a Django app.","reason":"generic testing"},
+    {"prompt":"Is this scientific paper true?","reason":"scientific truth"},
+    {"prompt":"Store a user preference in LangGraph memory.","reason":"CMGL routing"},
+    {"prompt":"Evaluate p-hacking by my AI scientist.","reason":"Audit-Closed routing"},
+    {"prompt":"Benchmark receipt confusion across fixture cases.","reason":"ATRB routing"},
+    {"prompt":"Review our verifier evidence bundle.","reason":"VEK routing"}
+  ],
+  "ambiguous": [
+    {"prompt":"Can we execute this operation?","expected":"inspect authority; do not dispatch by default","reason":"operation is consequential"},
+    {"prompt":"Validate an agent result.","expected":"use PIC for general output; VEK for structured evidence packet","reason":"primary object decides"},
+    {"prompt":"Is this accepted result safe?","expected":"inspect scoped fields and residuals; do not equate accepted with safety","reason":"collapsed terminology"},
+    {"prompt":"Our tool call returned a receipt.","expected":"use PIC only if this is part of an agent workflow/operation protocol","reason":"receipt alone is insufficient"}
+  ]
+}
