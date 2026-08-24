@@ -16,6 +16,13 @@ witness-only positive BIT coordinates, measured SQOT costs, rechecked ALT lift,
 finite TRC traces, resource-matched acceleration measurement, and an explicit
 approval-bound operation path.
 
+## Agent Skill
+
+This repository includes an Agent Skills-compatible workflow at
+[`.agents/skills/percolation-inversion-compiler/SKILL.md`](.agents/skills/percolation-inversion-compiler/SKILL.md).
+Compatible agents can discover it from this repository, or copy it to a supported user skills directory
+such as `~/.agents/skills/percolation-inversion-compiler/`. The canonical implementation remains this repository.
+
 ## Five-Minute Check-Only Quickstart
 
 The PyPI package is intended for practical agent output checking. Install the
