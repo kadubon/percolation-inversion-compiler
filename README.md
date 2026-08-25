@@ -23,6 +23,12 @@ This repository includes an Agent Skills-compatible workflow at
 Compatible agents can discover it from this repository, or copy it to a supported user skills directory
 such as `~/.agents/skills/percolation-inversion-compiler/`. The canonical implementation remains this repository.
 
+For a compact, non-executing routing pass, start with `pic agent check --compact`,
+then use `pic phase plan --compact` to inspect ranked verifier work and
+`pic token admissibility` to check a candidate token. The returned
+`safe_commands` are operator-controlled inspection hints; they never grant
+execution authority or promote a candidate to settlement.
+
 ## Five-Minute Check-Only Quickstart
 
 The PyPI package is intended for practical agent output checking. Install the
