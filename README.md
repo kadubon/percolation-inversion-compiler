@@ -31,27 +31,36 @@ execution authority or promote a candidate to settlement.
 
 ## Five-Minute Check-Only Quickstart
 
-The PyPI package is intended for practical agent output checking. Install the
-base package and run only local, non-executing checks:
+Install the published 1.1.0 base package in an isolated Python environment
+(Python 3.11+). Installation accesses the package registry:
 
 ```bash
 python -m pip install percolation-inversion-compiler==1.1.0
+```
+
+After installation, these checks print local reports without dispatching an operation:
+
+```bash
 pic agent check --compact
 pic doctor --fail-on never
-pic demo bootstrap --output-dir pic-demo --overwrite
+```
+
+Local fixture creation writes files. Use a fresh `pic-demo` directory; bootstrap
+then supplies the input for the following check:
+
+```bash
+pic demo bootstrap --output-dir pic-demo
 pic afst check --case pic-demo/afst/minimal_accepted.json --compact
 ```
 
 The bootstrap example is inert data. Check commands do not dispatch providers,
 run packet text, grant shell authority, or mark physical outcomes as proven.
 
-Clone the repository for canonical TeX audits and development fixtures:
+For canonical TeX audits and development fixtures, first install `uv` using its
+[official instructions](https://docs.astral.sh/uv/getting-started/installation/).
+The following source-checkout setup downloads code and dependencies:
 
 ```bash
-# macOS/Linux
-curl -LsSf https://astral.sh/uv/install.sh | sh
-# Windows PowerShell
-powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
 git clone https://github.com/kadubon/percolation-inversion-compiler.git
 cd percolation-inversion-compiler
 uv sync --all-extras --dev
@@ -74,6 +83,9 @@ PIC uses two separate acceleration decisions:
 
 A measured accelerator claim requires both fields to be true. It is still not
 proof of real ASI or general intelligence.
+
+From a prepared source checkout (Bash/POSIX shell line continuations), these
+commands read the existing fixtures and print comparison/certificate reports:
 
 ```bash
 pic runtime compare \
@@ -107,8 +119,12 @@ cache hits, and dispatch receipts do not become positive phase progress.
 ## Real-World Operation Dry Run
 
 All ordinary PIC checks are non-executing. Real-world effects are isolated in
-the explicit sequence `adapter-check -> plan -> preflight -> approve ->
+the explicit sequence `adapter-check -> plan -> approve -> preflight ->
 dispatch -> verify -> reconcile`.
+
+The optional installation uses the network. From a source checkout, the
+remaining commands inspect existing inputs and write `operation-plan.json`;
+choose a fresh output path. They do not dispatch an operation. Bash syntax:
 
 ```bash
 python -m pip install "percolation-inversion-compiler[operation]==1.1.0"
@@ -119,7 +135,8 @@ pic operation plan \
   --output operation-plan.json
 ```
 
-Planning is a dry run. Dispatch additionally requires a digest-bound plan,
+Planning is a dry run. Preflight consumes and validates approvals, which is why
+`approve` precedes `preflight`. Dispatch additionally requires a digest-bound plan,
 fresh scoped approvals, an unused nonce, adapter restrictions, and the exact
 body or process digest. A dispatch receipt proves only that a provider call was
 attempted. `physical_outcome_proven` remains false; only an independent signed
@@ -128,6 +145,11 @@ observation can set `physical_outcome_verified=true`.
 Read [Operation security](docs/operation-security.md) before enabling dispatch.
 
 ## SDK
+
+This sketch requires `baseline_data` and `candidate_data` to be complete
+`RuntimeRunReport` mappings. See the existing
+[baseline](examples/runtime_baseline_run.json) and
+[candidate](examples/runtime_candidate_run.json) fixtures for their shape.
 
 ```python
 from percolation_inversion_compiler.runtime import (
@@ -231,6 +253,10 @@ certificate compiler, proof obligations, residual ledgers, typed trace normal
 forms, frontier extraction, abstraction liquidity, salience queue, verifier
 routing, resource-matched acceleration, ASI-proxy phase-control, AI agent
 integration, operation approval, Ed25519, SSRF protection.
+
+For related research, the [Collective Intelligence Research and OSS Index](https://kadubon.github.io/github.io/collective-intelligence-index.html)
+routes readers through [completion and outcome](https://kadubon.github.io/github.io/collective-intelligence-index.html#problem-completion-and-outcome)
+and [authority](https://kadubon.github.io/github.io/collective-intelligence-index.html#problem-authority). Those routes do not grant dispatch authority.
 
 ## License
 
