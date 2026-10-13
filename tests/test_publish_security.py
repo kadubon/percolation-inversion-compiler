@@ -126,8 +126,6 @@ def test_docs_explain_pip_clone_boundary_and_uv_install() -> None:
     required = [
         "python -m pip install percolation-inversion-compiler",
         "git clone https://github.com/kadubon/percolation-inversion-compiler.git",
-        'powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"',
-        "curl -LsSf https://astral.sh/uv/install.sh | sh",
         "uv sync --all-extras --dev",
     ]
     for relative in [
@@ -141,9 +139,19 @@ def test_docs_explain_pip_clone_boundary_and_uv_install() -> None:
         text = (ROOT / relative).read_text(encoding="utf-8")
         for phrase in required:
             assert phrase in text
+        if relative == "README.md":
+            assert "https://docs.astral.sh/uv/getting-started/installation/" in text
+        else:
+            assert (
+                'powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"'
+                in text
+            )
+            assert "curl -LsSf https://astral.sh/uv/install.sh | sh" in text
     readme = (ROOT / "README.md").read_text(encoding="utf-8")
-    assert "The PyPI package is intended for practical agent output checking" in readme
-    assert "Clone the repository for canonical TeX audits" in readme
+    assert "isolated Python environment" in readme
+    assert "Installed-package examples use `pic-demo/...`" in readme
+    assert "Source-checkout examples use" in readme
+    assert "canonical TeX audits and development fixtures" in readme
 
 
 def test_release_checklist_warns_against_local_dist_star_publish() -> None:
